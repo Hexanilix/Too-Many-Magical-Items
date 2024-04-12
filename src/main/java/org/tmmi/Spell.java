@@ -1,17 +1,19 @@
 package org.tmmi;
 
-import org.bukkit.entity.Player;
-
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class Spell {
+    public static List<Spell> spells = new ArrayList<>();
+
     private final UUID handler;
     private final SpellBase base;
 
     Spell(UUID handler, SpellBase base) {
         this.handler = handler;
         this.base = base;
-        new SpellBase("spell", SpellBase.CastAreaEffect.DIRECT, SpellBase.MainElement.FIRE);
+        spells.add(this);
     }
 
     public UUID getHandler() {
@@ -26,7 +28,7 @@ public class Spell {
     public String toString() {
         return "Spell{" +
                 "handler=" + handler +
-                ", base=" + base +
+                ", base=" + base.toString() +
                 '}';
     }
 }

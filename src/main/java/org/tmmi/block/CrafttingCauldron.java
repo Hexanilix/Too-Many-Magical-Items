@@ -17,7 +17,7 @@ import java.util.*;
 import static org.tmmi.Main.log;
 import static org.tmmi.Main.plugin;
 
-public class CrafttingCauldron extends Block implements Listener {
+public class CrafttingCauldron extends Block {
     public static ItemStack item;
     public static List<CrafttingCauldron> cauldron = new ArrayList<>();
 
