@@ -9,6 +9,7 @@ import org.tmmi.InteractiveBlock;
 import org.tmmi.events.PlayerBlockInteractEvent;
 
 public class SpellCrafter extends InteractiveBlock {
+    private GUI;
     SpellCrafter(Material material, Location loc) {
         super(material, loc);
     }

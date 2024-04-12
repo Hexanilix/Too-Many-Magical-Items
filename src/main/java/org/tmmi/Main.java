@@ -22,6 +22,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.block.CrafttingCauldron;
+import org.tmmi.block.SpellAbsorbingBlock;
 import org.tmmi.events.PlayerItemUseEvent;
 import org.tmmi.items.FocusWand;
 
@@ -505,9 +506,19 @@ public class Main extends JavaPlugin {
             assert m != null;
             m.setDisplayName(ChatColor.LIGHT_PURPLE + "Crafting Cauldron");
             m.setLore(List.of("lore"));
-            m.setCustomModelData(100000);
+            m.setCustomModelData(200000);
             i.setItemMeta(m);
             CrafttingCauldron.item = i;
+        }
+        {
+            ItemStack i = new ItemStack(Material.LODESTONE);
+            ItemMeta m = i.getItemMeta();
+            assert m != null;
+            m.setDisplayName(ChatColor.GOLD + "Spell Condenser");
+            m.setLore(List.of("lore"));
+            m.setCustomModelData(200001);
+            i.setItemMeta(m);
+            SpellAbsorbingBlock.item = i;
         }
     }
     @Override

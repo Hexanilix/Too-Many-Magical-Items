@@ -6,6 +6,8 @@ import org.tmmi.Spell;
 import java.util.Random;
 
 public class SpellAbsorbingBlock extends Block {
+    public static ItemStack item;
+
     private Thread spellGrabTHread;
     private Thread dripTHread;
     private float magicules;
@@ -32,6 +34,7 @@ public class SpellAbsorbingBlock extends Block {
         this.dripTHread = new Thread(() -> {
             try {
                 if (this.magicules > 100) {
+                    //Spell distribution
                     if (this.getLoc().getBlockAt(this.getLoc().clone().subtract(0, 1, 0)) == Material.STONE) {
 
                     } else {
