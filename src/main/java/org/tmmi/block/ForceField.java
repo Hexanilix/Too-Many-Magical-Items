@@ -3,6 +3,8 @@ package org.tmmi.block;
 import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.tmmi.InteractiveBlock;
@@ -13,13 +15,14 @@ import java.util.*;
 import static org.tmmi.Main.plugin;
 
 public class ForceField extends InteractiveBlock {
+    public static Inventory inv;
     public static ItemStack item;
     public static List<ForceField> forceFields = new ArrayList<>();
 
     private BukkitTask task;
 
     public ForceField(Location loc) {
-        super(Material.CAULDRON, loc);
+        super(Material.CAULDRON, loc, inv);
         this.onPlace(loc);
         forceFields.add(this);
     }
@@ -108,7 +111,7 @@ public class ForceField extends InteractiveBlock {
     }
 
     @Override
-    public void onGUIClick(ItemStack item, Player player) {
+    public void onGUIClick(InventoryAction action, ItemStack item, Player player) {
 
     }
 }

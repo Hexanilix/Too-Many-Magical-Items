@@ -1,5 +1,8 @@
 package org.tmmi.block;
 
+import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
 import org.tmmi.Block;
 import org.tmmi.Spell;
 
@@ -35,7 +38,7 @@ public class SpellAbsorbingBlock extends Block {
             try {
                 if (this.magicules > 100) {
                     //Spell distribution
-                    if (this.getLoc().getBlockAt(this.getLoc().clone().subtract(0, 1, 0)) == Material.STONE) {
+                    if (this.getLoc().getWorld().getBlockAt(this.getLoc().clone().subtract(0, 1, 0)).getType() == Material.STONE) {
 
                     } else {
                         this.magicules -= new Random().nextInt(0, 5);

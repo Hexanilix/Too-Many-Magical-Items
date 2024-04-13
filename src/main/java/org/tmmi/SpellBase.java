@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.tmmi.Main.log;
 import static org.tmmi.Main.plugin;
 
 public class SpellBase {
@@ -60,7 +59,7 @@ public class SpellBase {
     private final SpellType spellType;
     private final double travel;
     private final double speed;
-    private final Sound castSpund;
+    private final Sound castSound;
     private boolean isCast;
     private Location castLocation;
 
@@ -79,12 +78,14 @@ public class SpellBase {
         this.castCost = 5;
         this.travel = 15;
         this.speed = 1;
+        Sound  castSpund1 = null;
         switch (mainElement) {
-            case FIRE -> this.castSpund = Sound.MUSIC_UNDER_WATER;
-            case EARTH -> this.castSpund = Sound.MUSIC_UNDER_WATER;
-            case WATER -> this.castSpund = Sound.MUSIC_UNDER_WATER;
-            case AIR -> this.castSpund = Sound.MUSIC_UNDER_WATER;
+            case FIRE -> castSpund1 = Sound.MUSIC_UNDER_WATER;
+            case EARTH -> castSpund1 = Sound.MUSIC_UNDER_WATER;
+            case WATER -> castSpund1 = Sound.MUSIC_UNDER_WATER;
+            case AIR -> castSpund1 = Sound.MUSIC_UNDER_WATER;
         }
+        this.castSound = castSpund1;
         this.isCast = false;
     }
 
@@ -142,8 +143,10 @@ public class SpellBase {
         double spellSpeed = this.speed;
         Vector direction = castLocation.getDirection();
         Location loc = castLocation.clone();
+        double speed = this.speed;
         loc.add(direction.multiply(spellSpeed));
         SpellBase s = this;
+        Sound sound = this.castSound;
         switch (this.castAreaEffect) {
             case DIRECT -> {
                 this.spellRun = new BukkitRunnable() {
@@ -151,12 +154,12 @@ public class SpellBase {
                     @Override
                     public void run() {
                         if (distance > travDis) {
-                            s.unCast() = true;
+                            s.unCast();
                             cancel();
                         }
                         distance += spellSpeed;
                         loc.add(direction.multiply(spellSpeed));
-                        loc.getWOrld().playSound();
+                        Objects.requireNonNull(loc.getWorld()).playSound(loc, sound, 1, 1);
                         Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, Math.round(1*multiplier), 0, 0, 0, 0);
                         List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(loc.getWorld()).getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
                         if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
@@ -173,23 +176,28 @@ public class SpellBase {
             }
             case WIDE_RANGE -> {
                 this.spellRun = new BukkitRunnable() {
+                    private double distance = 0;
+                    private Location sloc = loc;
+                    private final List<Integer> hitInts = new ArrayList<>();
                     @Override
                     public void run() {
                         if (distance > travDis) {
                             s.unCast();
                         }
                         for (int i = 0; i < 6; i++) {
-                            loc.setYaw(60*i);
-                            loc.getWorld().playSound();
+                            Location loca = sloc.clone();
+                            loca.setYaw(sloc.getYaw() + (i * 60));
+                            loca.setDirection(loc.getDirection().multiply(distance+speed));
+                            Objects.requireNonNull(loca.getWorld()).playSound(loca, sound, 1, 1);
                             if (!hitInts.contains(i)) {
-                                Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, Math.round(1 * multiplier), 0, 0, 0, 0);
-                                List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(loc.getWorld()).getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
-                                if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
+                                Objects.requireNonNull(loca.getWorld()).spawnParticle(finalP, loca, Math.round(1 * multiplier), 0, 0, 0, 0);
+                                List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(loca.getWorld()).getNearbyEntities(loca.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
+                                if (loca.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
                                     for (Entity e : nearbyEntities) {
                                         if (e instanceof LivingEntity liv) {
                                             liv.damage(1 * multiplier);
                                             for (int j = 0; j < 10; j++)
-                                                Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, 0, 0, 0.5, 0, 0);
+                                                Objects.requireNonNull(loca.getWorld()).spawnParticle(finalP, loca, 0, 0, 0.5, 0, 0);
                                         }
                                     }
                                     hitInts.add(i);
@@ -214,7 +222,7 @@ public class SpellBase {
                         }
                         for (int i = 0; i < 6; i++) {
                             loc.setYaw(60*i);
-                            loc.getWorld().playSound();
+                            Objects.requireNonNull(loc.getWorld()).playSound(loc, sound, 1, 1);
                             if (!hitInts.contains(i)) {
                                 Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, Math.round(1 * multiplier), 0, 0, 0, 0);
                                 List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(loc.getWorld()).getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
@@ -240,7 +248,7 @@ public class SpellBase {
 
     }
 
-    public boolean unCast() {
+    public void unCast() {
         this.spellRun.cancel();
         this.isCast = false;
     }
@@ -265,7 +273,7 @@ public class SpellBase {
                 ", spellType=" + spellType +
                 ", travel=" + travel +
                 ", speed=" + speed +
-                ", castSpund=" + castSpund +
+                ", castSpund=" + castSound +
                 ", isCast=" + isCast +
                 ", spellRun=" + spellRun +
                 '}';

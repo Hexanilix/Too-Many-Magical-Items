@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -19,6 +20,7 @@ import org.tmmi.events.PlayerBlockInteractEvent;
 import java.util.*;
 
 public class Presence extends InteractiveBlock implements Listener {
+    public static Inventory inv;
     private ItemStack item;
     private Location location;
     private Inventory gui;
@@ -35,7 +37,7 @@ public class Presence extends InteractiveBlock implements Listener {
     int i = 0;
 
     public Presence(ItemStack item, Material material, Location loc) {
-        super(material, loc);
+        super(material, loc, inv);
         this.item = item;
     }
 
@@ -178,7 +180,7 @@ public class Presence extends InteractiveBlock implements Listener {
     }
 
     @Override
-    public void onGUIClick(ItemStack item, Player player) {
+    public void onGUIClick(InventoryAction action, ItemStack item, Player player) {
 
     }
 

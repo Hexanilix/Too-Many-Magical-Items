@@ -27,7 +27,7 @@ public class CrafttingCauldron extends Block {
     private BukkitTask thread;
 
     public CrafttingCauldron(Location loc) {
-        super(Material.CAULDRON, loc);
+        super(, loc);
         this.onPlace(loc);
         this.isCrafting = false;
         this.isGathering = false;
@@ -35,7 +35,8 @@ public class CrafttingCauldron extends Block {
     }
 
     @Override
-    public void onPlace(Location location) {
+    public void onPlace(@NotNull Location location) {
+        location.getBlock().setType(Material.CAULDRON);
         CrafttingCauldron craft = this;
         this.thread = new BukkitRunnable() {
             private final CrafttingCauldron craftIn = craft;

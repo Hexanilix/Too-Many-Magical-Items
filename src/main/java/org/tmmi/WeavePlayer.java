@@ -44,7 +44,6 @@ public class WeavePlayer {
 
     public void cast(@NotNull Action action) {
         Spell s = (action.name().contains("LEFT") ? this.getMainSpell() : this.getSecondarySpell());
-        log(s.toString());
         if (s != null) {
             float mul = (this.isWeaving ? wand.getPower() : 1);
             s.base().cast(action, this.player.getEyeLocation(), 5);

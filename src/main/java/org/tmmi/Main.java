@@ -11,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -542,8 +543,10 @@ public class Main extends JavaPlugin {
         @EventHandler
         public void placeBlock(@NotNull BlockPlaceEvent event) {
             if (Objects.requireNonNull(event.getItemInHand().getItemMeta()).hasCustomModelData()) {
-                if (isSim(CrafttingCauldron.item, event.getItemInHand())) {
-                    new CrafttingCauldron(event.getBlock().getLocation());
+                for (Block l : Block.getInstances()) {
+                    if (isSim(, event.getItemInHand())) {
+                        new CrafttingCauldron(event.getBlock().getLocation());
+                    }
                 }
             }
         }
@@ -609,6 +612,17 @@ public class Main extends JavaPlugin {
 //            this.handler = activeUser.getUniqueId();
 //            this.setSlot(Main.getItemSlot(this.getItem(), event.getPlayer().getInventory()));
 //        }
+        @EventHandler
+        public void invClick(@NotNull InventoryClickEvent event) {
+            ItemStack i = event.getInventory().getItem(0);
+            if (i != null && i.hasItemMeta() && Objects.requireNonNull(i.getItemMeta()).hasCustomModelData()) {
+                for (InteractiveBlock inter : interactiveBlock) {
+                    if (inter.getGui().getItem(0) == i) {
+                        inter.onGUIClick(event.getAction(), event.getCurrentItem(), (Player) event.getWhoClicked());
+                    }
+                }
+            }
+        }
     }
     public static boolean isSim(@NotNull ItemStack i1, @NotNull ItemStack i2) {
         return Objects.requireNonNull(i1.getItemMeta()).getCustomModelData() == Objects.requireNonNull(i2.getItemMeta()).getCustomModelData()
