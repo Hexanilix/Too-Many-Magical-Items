@@ -11,11 +11,16 @@ import org.jetbrains.annotations.NotNull;
 import org.tmmi.InteractiveBlock;
 import org.tmmi.events.PlayerBlockInteractEvent;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class SpellCrafter extends InteractiveBlock {
     public static Inventory gui;
+    public static ItemStack item;
+    public static List<CrafttingCauldron> cauldron = new ArrayList<>();
 
-    SpellCrafter(Material material, Location loc) {
-        super(material, loc, gui);
+    public SpellCrafter(Location loc) {
+        super(Material.ENCHANTING_TABLE, loc, gui);
     }
 
     @Override

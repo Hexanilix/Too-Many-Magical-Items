@@ -4,7 +4,6 @@ import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
@@ -27,7 +26,7 @@ public class CrafttingCauldron extends Block {
     private BukkitTask thread;
 
     public CrafttingCauldron(Location loc) {
-        super(, loc);
+        super(Material.CAULDRON, loc);
         this.onPlace(loc);
         this.isCrafting = false;
         this.isGathering = false;

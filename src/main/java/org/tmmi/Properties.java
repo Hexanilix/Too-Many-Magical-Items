@@ -5,6 +5,7 @@ public enum Properties {
     ENABLED("enabeled"),
     FILEVERSION("fileversion"),
     AUTOSAVE("autosave"),
+    AUTOSAVE_MSG("autosaveMessage"),
     AUTOSAVE_FREQUENCY("autosaveFrequency");
 
     private final String key;

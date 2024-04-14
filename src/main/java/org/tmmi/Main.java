@@ -7,6 +7,7 @@ import org.bukkit.*;
 import org.bukkit.command.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Spellcaster;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -23,7 +24,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.block.CrafttingCauldron;
+import org.tmmi.block.ForceField;
 import org.tmmi.block.SpellAbsorbingBlock;
+import org.tmmi.block.SpellCrafter;
 import org.tmmi.events.PlayerItemUseEvent;
 import org.tmmi.items.FocusWand;
 
@@ -42,6 +45,7 @@ import static org.tmmi.Properties.*;
 public class Main extends JavaPlugin {
     public static Plugin plugin;
     public Set<Class<?>> classes = new HashSet<>();
+
     public static String DTFL;
     public static String PROP_FILE;
     public static String PROP_VERSION = "1.0.0";
@@ -51,8 +55,12 @@ public class Main extends JavaPlugin {
     public static Map<String, Boolean> BoolProperties = new HashMap<>();
     public static Map<String, String> TextProperties = new HashMap<>();
     public static Map<String, Integer> NumProperties = new HashMap<>();
-    public static Map<UUID, SpellInventory> weavers = new HashMap<>();
+
     public static Thread autosave;
+
+    public static Map<UUID, SpellInventory> weavers = new HashMap<>();
+    public static List<ItemStack> items;
+    public static List<Inventory> allItemInv = new ArrayList<>();
 
     public static ItemStack background;
     private static final List<Integer> customItemSelectorDataList = new ArrayList<>();
@@ -104,7 +112,7 @@ public class Main extends JavaPlugin {
         log(Level.INFO, msg);
     }
     public static void log(Level lv, Object message) {
-        Bukkit.getLogger().log(lv, String.valueOf(message));
+        Bukkit.getLogger().log(lv, "[TMMI]" + message);
     }
 
     @Override
@@ -146,6 +154,7 @@ public class Main extends JavaPlugin {
                         new Pair<>(COMMENT, "The following values are to be customised"),
                         new Pair<>(ENABLED, "true"),
                         new Pair<>(AUTOSAVE, "true"),
+                        new Pair<>(AUTOSAVE_MSG, "true"),
                         new Pair<>(AUTOSAVE_FREQUENCY, "600"));
                 try {
                     FileWriter writer = new FileWriter(PROP_FILE);
@@ -159,25 +168,10 @@ public class Main extends JavaPlugin {
             readPropFile();
             if (boolProp(ENABLED)) {
                 permission = "tmmi.craft." + new NamespacedKey(this, "weaver");
-                BLOCK_DATAFILE = DTFL + "block.json";
-                SPELL_DATAFILE = DTFL + "spell.json";
-                SPELL_BASE_DATAFILE = DTFL + "spellbase.json";
                 checkFilesAndCreate();
                 boolean classesLoaded = loadClasses();
                 if (classesLoaded) {
-                    if (boolProp(AUTOSAVE)) {
-                        autosave = new Thread(() -> {
-                            try {
-                                while (true) {
-                                    Thread.sleep(intProp(AUTOSAVE_FREQUENCY) * 1000);
-                                    log("Autosaving...");
-                                }
-                            } catch (InterruptedException ignore) {
-                                //Silence is key...
-                            }
-                        });
-                        autosave.start();
-                    }
+                    startAutosave();
                     {
                         ItemStack item = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
                         ItemMeta itemMeta = item.getItemMeta();
@@ -191,20 +185,35 @@ public class Main extends JavaPlugin {
 
                     Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setExecutor(new cmd());
                     Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setTabCompleter(new cmd.cmdTabCom());
-                    log("[TMMI] Plugin loaded successfully");
+                    log("Plugin loaded successfully");
                 }
             } else {
-                log(Level.WARNING, "[TMMI] Plugin is disabled in properties, make sure this is a change you wanted");
+                log(Level.WARNING, "Plugin is disabled in properties, make sure this is a change you wanted");
             }
         }
     }
+    private void startAutosave() {
+        if (boolProp(AUTOSAVE)) {
+            autosave = new Thread(() -> {
+                try {
+                    while (true) {
+                        Thread.sleep((long) (intProp(AUTOSAVE_FREQUENCY) * 1000));
+                        if (boolProp(AUTOSAVE_MSG)) log("Autosaving...");
+                    }
+                } catch (InterruptedException e) {
+                    log(Level.WARNING, "Autosave interrupted. Plugin data will not be saved until plugin disable and any new data acquired this point will be lost in case of a unprecedented stop");
+                }
+            });
+            autosave.start();
+        }
+    }
 
-    private long intProp(@NotNull Properties key) {
-        return NumProperties.get(key.key());
+    private float intProp(@NotNull Properties key) {
+        return NumProperties.getOrDefault(key.key(), -1);
     }
 
     private boolean boolProp(@NotNull Properties key) {
-        return BoolProperties.containsKey(key.key()) && BoolProperties.get(key.key());
+        return BoolProperties.getOrDefault(key.key(), false);
     }
 
     private class cmd implements CommandExecutor {
@@ -273,7 +282,7 @@ public class Main extends JavaPlugin {
                                         }
                                     }
                                 } else {
-                                    // Open inv with all items
+                                    player.openInventory(allItemInv.get(0));
                                 }
                             } else if (args[0].equalsIgnoreCase("getPlayerHead")) {
 //                                if (args.length == 2) {
@@ -399,7 +408,7 @@ public class Main extends JavaPlugin {
             @Override
             public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String s, @NotNull String[] args) {
                 List<String> tab = new ArrayList<>();
-                if (command.getName().equalsIgnoreCase("org/tmmi")) {
+                if (command.getName().equalsIgnoreCase("tmmi")) {
                     if (!(sender instanceof ConsoleCommandSender)) {
                         Player player = (Player) sender;
                         if (player.isOp()) {
@@ -486,6 +495,9 @@ public class Main extends JavaPlugin {
     }
 
     private void checkFilesAndCreate() {
+        BLOCK_DATAFILE = DTFL + "block.json";
+        SPELL_DATAFILE = DTFL + "spell.json";
+        SPELL_BASE_DATAFILE = DTFL + "spellbase.json";
         List<String> files = new ArrayList<>(Arrays.asList(BLOCK_DATAFILE, SPELL_DATAFILE, SPELL_BASE_DATAFILE));
         for (String file : files) {
             Path path = Path.of(file);
@@ -501,6 +513,7 @@ public class Main extends JavaPlugin {
     }
 
     private void setItems() {
+        Inventory pg1 = Bukkit.createInventory(null, 54, "pg1");
         {
             ItemStack i = new ItemStack(Material.CAULDRON);
             ItemMeta m = i.getItemMeta();
@@ -510,6 +523,7 @@ public class Main extends JavaPlugin {
             m.setCustomModelData(200000);
             i.setItemMeta(m);
             CrafttingCauldron.item = i;
+            pg1.addItem(i);
         }
         {
             ItemStack i = new ItemStack(Material.LODESTONE);
@@ -520,7 +534,9 @@ public class Main extends JavaPlugin {
             m.setCustomModelData(200001);
             i.setItemMeta(m);
             SpellAbsorbingBlock.item = i;
+            pg1.addItem(i);
         }
+        allItemInv.add(pg1);
     }
     @Override
     public void onDisable() {
@@ -528,7 +544,6 @@ public class Main extends JavaPlugin {
     }
 
     public static class MainListener implements Listener {
-        @EventHandler
         public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
             Player p = event.getPlayer();
             p.getInventory().addItem(CrafttingCauldron.item);
@@ -543,10 +558,16 @@ public class Main extends JavaPlugin {
         @EventHandler
         public void placeBlock(@NotNull BlockPlaceEvent event) {
             if (Objects.requireNonNull(event.getItemInHand().getItemMeta()).hasCustomModelData()) {
-                for (Block l : Block.getInstances()) {
-                    if (isSim(, event.getItemInHand())) {
-                        new CrafttingCauldron(event.getBlock().getLocation());
-                    }
+                ItemStack i = event.getItemInHand();
+                Location loc = event.getBlock().getLocation();
+                if (isSim(CrafttingCauldron.item, i)) {
+                    new CrafttingCauldron(loc);
+                } else if (isSim(ForceField.item, i)) {
+                    new ForceField(loc);
+                } else if (isSim(SpellCrafter.item, i)) {
+                    new SpellCrafter(loc);
+                } else if (isSim(SpellAbsorbingBlock.item, i)) {
+                    new SpellAbsorbingBlock(loc);
                 }
             }
         }
@@ -579,7 +600,6 @@ public class Main extends JavaPlugin {
                 if (weaver.isWeaving()) {
                     int nxt = event.getNewSlot();
                     int move = (weaver.getWandSlot() - nxt > 0 ? 1 : -1);
-
                 }
             }
         }
@@ -616,17 +636,24 @@ public class Main extends JavaPlugin {
         public void invClick(@NotNull InventoryClickEvent event) {
             ItemStack i = event.getInventory().getItem(0);
             if (i != null && i.hasItemMeta() && Objects.requireNonNull(i.getItemMeta()).hasCustomModelData()) {
-                for (InteractiveBlock inter : interactiveBlock) {
-                    if (inter.getGui().getItem(0) == i) {
-                        inter.onGUIClick(event.getAction(), event.getCurrentItem(), (Player) event.getWhoClicked());
+                if (allItemInv.contains(event.getInventory())) {
+                    event.getWhoClicked().getInventory().addItem(event.getCurrentItem());
+                    event.setCancelled(true);
+                } else {
+                    for (InteractiveBlock inter : interactiveBlock) {
+                        if (inter.getGui().getItem(0) == i) {
+                            inter.onGUIClick(event.getAction(), event.getCurrentItem(), (Player) event.getWhoClicked());
+                        }
                     }
                 }
             }
         }
     }
-    public static boolean isSim(@NotNull ItemStack i1, @NotNull ItemStack i2) {
-        return Objects.requireNonNull(i1.getItemMeta()).getCustomModelData() == Objects.requireNonNull(i2.getItemMeta()).getCustomModelData()
-                && i1.getType() == i2.getType();
+    public static boolean isSim(ItemStack i1, ItemStack i2) {
+        return (i1 != null && i2 != null) && (i1 == i2 || ((i1.hasItemMeta() && i2.hasItemMeta()) &&
+                (i1.getItemMeta().hasCustomModelData() && i2.getItemMeta().hasCustomModelData())
+                && i1.getItemMeta().getCustomModelData() == i2.getItemMeta().getCustomModelData()
+                && i1.getType() == i2.getType()));
     }
     static int getItemSlot(ItemStack item, @NotNull Inventory inv) {
         for (int i = 0; i < inv.getContents().length; i++) {

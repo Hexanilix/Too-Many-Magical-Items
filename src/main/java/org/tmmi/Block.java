@@ -12,7 +12,6 @@ public abstract class Block {
 
     private Location loc;
     private final Material material;
-    private ItemStack item;
     public Block(Material material, Location loc) {
         this.material = material;
         this.loc = loc;
@@ -21,10 +20,6 @@ public abstract class Block {
 
     public Material getMaterial() {
         return material;
-    }
-
-    public ItemStack getItem() {
-        return item;
     }
 
     public abstract void onPlace(Location location);
