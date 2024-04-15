@@ -41,6 +41,7 @@ import static org.tmmi.block.CrafttingCauldron.craftingCauldronLocations;
 import static org.tmmi.block.Presence.*;
 import static org.tmmi.block.Presence.detectorLocations;
 import static org.tmmi.Properties.*;
+import static org.tmmi.items.FocusWand.wands;
 
 public class Main extends JavaPlugin {
     public static Plugin plugin;
@@ -514,6 +515,18 @@ public class Main extends JavaPlugin {
 
     private void setItems() {
         Inventory pg1 = Bukkit.createInventory(null, 54, "pg1");
+        // Item
+        {
+            ItemStack i = new ItemStack(Material.STICK);
+            ItemMeta m = i.getItemMeta();
+            assert m != null;
+            m.setDisplayName(ChatColor.GOLD + "Focus Wand");
+            m.setCustomModelData(2140000+wands.size());
+            i.setItemMeta(m);
+            FocusWand.item = i;
+            pg1.addItem(i);
+        }
+        // Blocks
         {
             ItemStack i = new ItemStack(Material.CAULDRON);
             ItemMeta m = i.getItemMeta();

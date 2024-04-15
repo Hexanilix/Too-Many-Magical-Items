@@ -13,19 +13,10 @@ import static org.tmmi.Main.plugin;
 
 public class FocusWand extends Wand {
     public static List<FocusWand> wands = new ArrayList<>();
-    public static @NotNull ItemStack newItem() {
-        ItemStack itemStack = new ItemStack(Material.STICK);
-        ItemMeta itemMeta = itemStack.getItemMeta();
-        assert itemMeta != null;
-        itemMeta.setDisplayName(ChatColor.GOLD + "Focus Wand");
-        itemMeta.setCustomModelData(2140000+wands.size());
-        itemStack.setItemMeta(itemMeta);
-        return itemStack;
-    }
-
+    public static ItemStack item;
 
     public FocusWand(UUID uuid) {
-        super(newItem(), uuid);
+        super(item, uuid);
     }
 
 
