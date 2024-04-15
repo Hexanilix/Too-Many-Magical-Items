@@ -1,5 +1,6 @@
 package org.tmmi;
 
+import com.google.gson.Gson;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -16,8 +17,11 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.RecipeChoice;
+import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.permissions.Permission;
 import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -37,6 +41,7 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 
+import static org.tmmi.Spell.spells;
 import static org.tmmi.block.CrafttingCauldron.craftingCauldronLocations;
 import static org.tmmi.block.Presence.*;
 import static org.tmmi.block.Presence.detectorLocations;
@@ -66,7 +71,7 @@ public class Main extends JavaPlugin {
     public static ItemStack background;
     private static final List<Integer> customItemSelectorDataList = new ArrayList<>();
     private static final Map<Player, Object> invToAdd = new HashMap<>();
-    public static String permission;
+    private String permission = "tmmi.craft." + new NamespacedKey(this, "weaver");
     private @NotNull ItemStack guideBook() {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
         BookMeta bookMeta = (BookMeta) book.getItemMeta();
@@ -168,7 +173,6 @@ public class Main extends JavaPlugin {
             }
             readPropFile();
             if (boolProp(ENABLED)) {
-                permission = "tmmi.craft." + new NamespacedKey(this, "weaver");
                 checkFilesAndCreate();
                 boolean classesLoaded = loadClasses();
                 if (classesLoaded) {
@@ -186,6 +190,8 @@ public class Main extends JavaPlugin {
 
                     Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setExecutor(new cmd());
                     Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setTabCompleter(new cmd.cmdTabCom());
+
+                    loadSaveData();
                     log("Plugin loaded successfully");
                 }
             } else {
@@ -193,6 +199,20 @@ public class Main extends JavaPlugin {
             }
         }
     }
+
+    private void loadSaveData() {
+        try {
+            Scanner reader = new Scanner(new File(BLOCK_DATAFILE));
+            while (reader.hasNext()) {
+                String json = reader.nextLine();
+                Gson g = new Gson();
+                CrafttingCauldron c = g.fromJson(json.replace("\"", "").replace("\\", "\""), CrafttingCauldron.class);
+            }
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private void startAutosave() {
         if (boolProp(AUTOSAVE)) {
             autosave = new Thread(() -> {
@@ -360,16 +380,16 @@ public class Main extends JavaPlugin {
                                 WeavePlayer w = new WeavePlayer(player, new SpellInventory());
                                 w.setWand(new FocusWand(player.getUniqueId()));
                                 player.getInventory().addItem(w.getWand().getItem());
-                                w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(), new SpellBase("Yoink", SpellBase.CastAreaEffect.DIRECT, SpellBase.MainElement.AIR)));
+                                w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.MainElement.AIR, 10));
                             } else if (args[0].equalsIgnoreCase("spell")) {
                                 WeavePlayer w = WeavePlayer.getWeaver(player);
                                 assert w != null;
                                 switch (args[1].toLowerCase()) {
-                                    case "a" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(), new SpellBase("Yoink", SpellBase.CastAreaEffect.DIRECT, SpellBase.MainElement.AIR)));
-                                    case "b" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(), new SpellBase("Yoink", SpellBase.CastAreaEffect.DIRECT, SpellBase.MainElement.WATER)));
-                                    case "c" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(), new SpellBase("Yoink", SpellBase.CastAreaEffect.DIRECT, SpellBase.MainElement.EARTH)));
-                                    case "d" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(), new SpellBase("Yoink", SpellBase.CastAreaEffect.DIRECT, SpellBase.MainElement.FIRE)));
-                                    case "e" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(), new SpellBase("Yoink", SpellBase.CastAreaEffect.WIDE_RANGE, SpellBase.MainElement.FIRE)));
+                                    case "a" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.MainElement.AIR, 10));
+                                    case "b" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink1", Spell.CastAreaEffect.DIRECT, Spell.MainElement.FIRE, 10));
+                                    case "c" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink2", Spell.CastAreaEffect.DIRECT, Spell.MainElement.WATER, 10));
+                                    case "d" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink3", Spell.CastAreaEffect.DIRECT, Spell.MainElement.EARTH, 10));
+                                    case "e" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"whak", Spell.CastAreaEffect.WIDE_RANGE, Spell.MainElement.FIRE, 10));
                                 }
                             } else {
                                 player.sendMessage(ChatColor.RED + "Unknown argument " + ChatColor.ITALIC + args[0]);
@@ -498,8 +518,7 @@ public class Main extends JavaPlugin {
     private void checkFilesAndCreate() {
         BLOCK_DATAFILE = DTFL + "block.json";
         SPELL_DATAFILE = DTFL + "spell.json";
-        SPELL_BASE_DATAFILE = DTFL + "spellbase.json";
-        List<String> files = new ArrayList<>(Arrays.asList(BLOCK_DATAFILE, SPELL_DATAFILE, SPELL_BASE_DATAFILE));
+        List<String> files = new ArrayList<>(Arrays.asList(BLOCK_DATAFILE, SPELL_DATAFILE));
         for (String file : files) {
             Path path = Path.of(file);
             if (!Files.exists(path)) {
@@ -516,44 +535,68 @@ public class Main extends JavaPlugin {
     private void setItems() {
         Inventory pg1 = Bukkit.createInventory(null, 54, "pg1");
         // Item
-        {
-            ItemStack i = new ItemStack(Material.STICK);
-            ItemMeta m = i.getItemMeta();
-            assert m != null;
-            m.setDisplayName(ChatColor.GOLD + "Focus Wand");
-            m.setCustomModelData(2140000+wands.size());
-            i.setItemMeta(m);
-            FocusWand.item = i;
-            pg1.addItem(i);
-        }
+        ItemStack focusWand = new ItemStack(Material.STICK);
+        ItemMeta fcM = focusWand.getItemMeta();
+        assert fcM != null;
+        fcM.setDisplayName(ChatColor.GOLD + "Focus Wand");
+        fcM.setCustomModelData(2140000+wands.size());
+        focusWand.setItemMeta(fcM);
+        FocusWand.item = focusWand;
+        pg1.addItem(focusWand);
+
         // Blocks
-        {
-            ItemStack i = new ItemStack(Material.CAULDRON);
-            ItemMeta m = i.getItemMeta();
-            assert m != null;
-            m.setDisplayName(ChatColor.LIGHT_PURPLE + "Crafting Cauldron");
-            m.setLore(List.of("lore"));
-            m.setCustomModelData(200000);
-            i.setItemMeta(m);
-            CrafttingCauldron.item = i;
-            pg1.addItem(i);
-        }
-        {
-            ItemStack i = new ItemStack(Material.LODESTONE);
-            ItemMeta m = i.getItemMeta();
-            assert m != null;
-            m.setDisplayName(ChatColor.GOLD + "Spell Condenser");
-            m.setLore(List.of("lore"));
-            m.setCustomModelData(200001);
-            i.setItemMeta(m);
-            SpellAbsorbingBlock.item = i;
-            pg1.addItem(i);
-        }
+        ItemStack craftCaul = new ItemStack(Material.CAULDRON);
+        ItemMeta crM = craftCaul.getItemMeta();
+        assert crM != null;
+        crM.setDisplayName(ChatColor.LIGHT_PURPLE + "Crafting Cauldron");
+        crM.setLore(List.of("lore"));
+        crM.setCustomModelData(200000);
+        craftCaul.setItemMeta(fcM);
+        CrafttingCauldron.item = craftCaul;
+        pg1.addItem(craftCaul);
+
+        ItemStack spellNaber = new ItemStack(Material.LODESTONE);
+        ItemMeta snM = spellNaber.getItemMeta();
+        assert snM != null;
+        snM.setDisplayName(ChatColor.GOLD + "Spell Condenser");
+        snM.setLore(List.of("lore"));
+        snM.setCustomModelData(200001);
+        spellNaber.setItemMeta(fcM);
+        SpellAbsorbingBlock.item = spellNaber;
+        pg1.addItem(spellNaber);
+
+        ItemStack fusionCrys = new ItemStack(Material.END_CRYSTAL);
+        ItemMeta fuM = fusionCrys.getItemMeta();
+        assert fuM != null;
+        fuM.setDisplayName(ChatColor.DARK_AQUA + "Fusion Crystal");
+        List<String> lore = new ArrayList<>();
+        lore.add("A Crystal with the power");
+        lore.add("of 1m brewing stands");
+        fuM.setLore(lore);
+        fuM.setCustomModelData(365450);
+        fusionCrys.setItemMeta(fuM);
         allItemInv.add(pg1);
-    }
-    @Override
-    public void onDisable() {
-        autosave.interrupt();
+
+        NamespacedKey key = NamespacedKey.minecraft(permission);
+        ShapedRecipe craftCaulRec = new ShapedRecipe(key, CrafttingCauldron.item);
+        craftCaulRec.shape(
+                "ADA",
+                "ECE",
+                "AUA");
+        craftCaulRec.setIngredient('A', Material.AIR);
+        craftCaulRec.setIngredient('E', Material.ECHO_SHARD);
+        craftCaulRec.setIngredient('U', Material.NETHERITE_SCRAP);
+        craftCaulRec.setIngredient('C', new RecipeChoice.ExactChoice(fusionCrys));
+        craftCaulRec.setIngredient('D', Material.DIAMOND);
+        if (Bukkit.getServer().getRecipe(key) == null) {
+            Bukkit.getServer().addRecipe(craftCaulRec);
+        }
+        String permissionNode ="tmmi.craft."+craftCaulRec.getKey().getKey();
+        String permissionDescription = "Pot Craft perm";
+        Permission permission = new Permission(permissionNode, permissionDescription);
+        if (Bukkit.getServer().getPluginManager().getPermission(permissionNode) == null) {
+            Bukkit.getServer().getPluginManager().addPermission(permission);
+        }
     }
 
     public static class MainListener implements Listener {
@@ -675,5 +718,15 @@ public class Main extends JavaPlugin {
             }
         }
         return -1;
+    }
+    @Override
+    public void onDisable() {
+        autosave.interrupt();
+        Gson g = new Gson();
+        try (Writer w = new FileWriter(BLOCK_DATAFILE)) {
+            w.write(spells.get(0).toJson());
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

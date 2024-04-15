@@ -5,6 +5,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.tmmi.Spell.SpellType.CANTRIP;
+
 public class SpellInventory {
     public enum SpellType {
         MAIN,
@@ -52,12 +54,12 @@ public class SpellInventory {
     }
 
     public void addSpell(@NotNull Spell s) {
-        if (s.base().getType() == SpellBase.SpellType.CANTRIP) this.canSpells.add(s);
+        if (s.getType() == CANTRIP) this.canSpells.add(s);
         else this.sorcerySpells.add(s);
     }
 
     public void removeSpell(@NotNull Spell s) {
-        if (s.base().getType() == SpellBase.SpellType.CANTRIP) this.canSpells.remove(s);
+        if (s.getType() == CANTRIP) this.canSpells.remove(s);
         else this.sorcerySpells.remove(s);
     }
 

@@ -31,10 +31,10 @@ public class SpellAbsorbingBlock extends Block {
                 for (Spell s : Spell.spells) {
                     log("a spell");
                     // fix the check
-                    if (s.base().isCast() && inSphere(loc, 5, s.base().getCastLocation())) {
+                    if (s.isCast() && inSphere(loc, 5, s.getCastLocation())) {
                         log("so it is");
-                        this.magicules += (float) s.base().getCastCost() / 5;
-                        s.base().unCast();
+                        this.magicules += (float) s.getCastCost() / 5;
+                        s.unCast();
                     }
                 }
                 log("Doing it");
