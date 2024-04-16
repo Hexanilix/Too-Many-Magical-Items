@@ -10,6 +10,7 @@ import org.bukkit.event.block.Action;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.events.SpellCollideEvent;
 
@@ -26,37 +27,62 @@ public class Spell {
     public enum SpellType {
         CANTRIP,
         SORCERY,
-        INCANTATION
+        INCANTATION;
+        @Contract(pure = true)
+        public static SpellType getSpellType(@NotNull String type) {
+            SpellType s = null;
+            switch (type) {
+                case "CANTRIP" -> s = CANTRIP;
+                case "SORCERY" -> s = SORCERY;
+                case "AREA_EFFECT" -> s = INCANTATION;
+            }
+            return s;
+        }
     }
 
     public enum CastAreaEffect {
         DIRECT,
         WIDE_RANGE,
-        AREA_EFFECT
+        AREA_EFFECT;
+        @Contract(pure = true)
+        public static CastAreaEffect getAreaEffect(@NotNull String type) {
+            CastAreaEffect c = null;
+            switch (type) {
+                case "DIRECT" -> c = DIRECT;
+                case "WIDE_RANGE" -> c = WIDE_RANGE;
+                case "AREA_EFFECT" -> c = AREA_EFFECT;
+            }
+            return c;
+        }
     }
 
     public enum SpellAtribute {
         CHARGE
     }
 
-    public enum MainElement {
+    public enum Element {
         FIRE,
         EARTH,
         WATER,
-        AIR
-    }
-    public enum SecondaryElement {
-        FIRE,
-        EARTH,
-        WATER,
-        AIR
+        AIR;
+        @Contract(pure = true)
+        public static Element getElement(@NotNull String element) {
+            Element e = null;
+            switch (element) {
+                case "FIRE" -> e = FIRE;
+                case "EARTH" -> e = EARTH;
+                case "WATER" -> e = WATER;
+                case "AIR" -> e = AIR;
+            }
+            return e;
+        }
     }
 
     private final UUID handler;
     private final String name;
     private final CastAreaEffect castAreaEffect;
-    private final MainElement mainElement;
-    private final SecondaryElement secondaryElement;
+    private final Element mainElement;
+    private final Element secondaryElement;
     private final int level;
     private final int castCost;
     private final SpellType spellType;
@@ -68,18 +94,21 @@ public class Spell {
 
     private BukkitTask spellRun;
 
-    public Spell(UUID handler, String name, CastAreaEffect castAreaEffect, @NotNull MainElement mainElement, SecondaryElement secondaryElement, int usedMagicules) {
+    public Spell(UUID handler, String name, CastAreaEffect castAreaEffect, @NotNull Element mainElement, Element secondaryElement, int usedMagicules) {
+        this(name, handler, 1, 10, mainElement, secondaryElement, CastAreaEffect.DIRECT, SpellType.CANTRIP, 1, 10);
+    }
+    public Spell(String name, UUID handler, int level, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double speed, double travel) {
         this.handler = handler;
         this.name = name;
+        this.castCost = castCost;
         this.castAreaEffect = castAreaEffect;
         this.mainElement = mainElement;
         this.secondaryElement = secondaryElement;
-        this.level = Math.round((float)usedMagicules/100);
-        this.spellType = (this.level > 10 ? SpellType.INCANTATION : (this.level > 3 ? SpellType.SORCERY : SpellType.CANTRIP));
-        this.castCost = (int) (level * (this.spellType == SpellType.INCANTATION ? 1 : (this.spellType == SpellType.SORCERY ? 2.5 : 10)));
-        this.travel = 15;
-        this.speed = 1;
-        Sound  castSpund1 = null;
+        this.level = level;
+        this.spellType = spellType;
+        this.travel = travel;
+        this.speed = speed;
+        Sound castSpund1 = null;
         switch (mainElement) {
             case FIRE -> castSpund1 = Sound.MUSIC_UNDER_WATER;
             case EARTH -> castSpund1 = Sound.MUSIC_UNDER_WATER;
@@ -90,7 +119,7 @@ public class Spell {
         this.isCast = false;
         spells.add(this);
     }
-    public Spell(UUID handler, String name, CastAreaEffect castAreaEffect, @NotNull MainElement mainElement, int usedMagicules) {
+    public Spell(UUID handler, String name, CastAreaEffect castAreaEffect, @NotNull Spell.Element mainElement, int usedMagicules) {
         this(handler, name, castAreaEffect, mainElement, null, 6);
     }
 
@@ -120,16 +149,19 @@ public class Spell {
                 '}';
     }
     public String toJson() {
-        return "{\n" +
-                "\"Name\":" + this.name + "\",\n" +
-                "\"Handler\":" + this.handler.toString() + "\",\n" +
-                "\"Level\":" + this.level + "\",\n" +
-                "\"mainElement\":" + this.mainElement.toString() + "\"\n" +
-                "\"secondaryElement\":" + this.secondaryElement + "\",\n" +
-                "\"castAreaEffect\":" + this.castAreaEffect + "\",\n" +
-                "\"spellType\":" + this.spellType + "\",\n" +
-                "\"speed\":" + this.speed + "\",\n" +
-                "\"travel\":" + this.travel + "\",\n" +
+        return "{ \"Spell\":\n" +
+                    "{\n" +
+                        "\"Name\":\"" + this.name + "\",\n" +
+                        "\"Handler\":\"" + this.handler.toString() + "\",\n" +
+                        "\"Level\":" + this.level + ",\n" +
+                        "\"castCost\":" + this.castCost + ",\n" +
+                        "\"mainElement\":\"" + this.mainElement + "\",\n" +
+                        "\"secondaryElement\":\"" + this.secondaryElement + "\",\n" +
+                        "\"castAreaEffect\":\"" + this.castAreaEffect + "\",\n" +
+                        "\"spellType\":\"" + this.spellType + "\",\n" +
+                        "\"speed\":" + this.speed + ",\n" +
+                        "\"travel\":" + this.travel + ",\n" +
+                    "}\n" +
                 "}";
     }
     public boolean isCast() {
@@ -138,10 +170,10 @@ public class Spell {
     public CastAreaEffect getCastAreaEffect() {
         return castAreaEffect;
     }
-    public MainElement getMainElement() {
+    public Element getMainElement() {
         return mainElement;
     }
-    public SecondaryElement getSecondaryElement() {
+    public Element getSecondaryElement() {
         return secondaryElement;
     }
     public int getLevel() {

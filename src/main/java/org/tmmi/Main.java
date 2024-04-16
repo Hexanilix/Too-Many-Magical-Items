@@ -1,6 +1,5 @@
 package org.tmmi;
 
-import com.google.gson.Gson;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -8,7 +7,6 @@ import org.bukkit.*;
 import org.bukkit.command.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Spellcaster;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -27,11 +25,12 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.tmmi.block.CrafttingCauldron;
 import org.tmmi.block.ForceField;
 import org.tmmi.block.SpellAbsorbingBlock;
 import org.tmmi.block.SpellCrafter;
-import org.tmmi.events.PlayerItemUseEvent;
 import org.tmmi.items.FocusWand;
 
 import java.io.*;
@@ -41,7 +40,6 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 
-import static org.tmmi.Spell.spells;
 import static org.tmmi.block.CrafttingCauldron.craftingCauldronLocations;
 import static org.tmmi.block.Presence.*;
 import static org.tmmi.block.Presence.detectorLocations;
@@ -71,7 +69,7 @@ public class Main extends JavaPlugin {
     public static ItemStack background;
     private static final List<Integer> customItemSelectorDataList = new ArrayList<>();
     private static final Map<Player, Object> invToAdd = new HashMap<>();
-    private String permission = "tmmi.craft." + new NamespacedKey(this, "weaver");
+    public static String permission;
     private @NotNull ItemStack guideBook() {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
         BookMeta bookMeta = (BookMeta) book.getItemMeta();
@@ -173,6 +171,7 @@ public class Main extends JavaPlugin {
             }
             readPropFile();
             if (boolProp(ENABLED)) {
+                permission = "tmmi.craft." + new NamespacedKey(plugin, "weaver");
                 checkFilesAndCreate();
                 boolean classesLoaded = loadClasses();
                 if (classesLoaded) {
@@ -201,14 +200,27 @@ public class Main extends JavaPlugin {
     }
 
     private void loadSaveData() {
+        //Make json for eah player
         try {
-            Scanner reader = new Scanner(new File(BLOCK_DATAFILE));
-            while (reader.hasNext()) {
-                String json = reader.nextLine();
-                Gson g = new Gson();
-                CrafttingCauldron c = g.fromJson(json.replace("\"", "").replace("\\", "\""), CrafttingCauldron.class);
+            List<String> l = Files.readAllLines(Path.of(BLOCK_DATAFILE));
+            if (l.size() > 1) {
+                JSONObject ji = new JSONObject(String.join("", l));
+                try {
+                    JSONObject j = ji.getJSONObject("Spell");
+                    log(j);
+                    if (!j.isEmpty()) {
+                        Spell s = new Spell(j.getString("Name"), UUID.fromString(j.getString("Handler")), j.getInt("Level"),
+                                j.getInt("castCost"), Spell.Element.getElement(j.getString("mainElement")),
+                                Spell.Element.getElement(j.getString("secondaryElement")), Spell.CastAreaEffect.getAreaEffect(j.getString("castAreaEffect")),
+                                Spell.SpellType.getSpellType(j.getString("spellType")),
+                                j.getDouble("speed"), j.getDouble("travel"));
+                        log(s.toString());
+                    }
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
-        } catch (FileNotFoundException e) {
+        } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
@@ -380,16 +392,16 @@ public class Main extends JavaPlugin {
                                 WeavePlayer w = new WeavePlayer(player, new SpellInventory());
                                 w.setWand(new FocusWand(player.getUniqueId()));
                                 player.getInventory().addItem(w.getWand().getItem());
-                                w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.MainElement.AIR, 10));
+                                w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.Element.AIR, 10));
                             } else if (args[0].equalsIgnoreCase("spell")) {
                                 WeavePlayer w = WeavePlayer.getWeaver(player);
                                 assert w != null;
                                 switch (args[1].toLowerCase()) {
-                                    case "a" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.MainElement.AIR, 10));
-                                    case "b" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink1", Spell.CastAreaEffect.DIRECT, Spell.MainElement.FIRE, 10));
-                                    case "c" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink2", Spell.CastAreaEffect.DIRECT, Spell.MainElement.WATER, 10));
-                                    case "d" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink3", Spell.CastAreaEffect.DIRECT, Spell.MainElement.EARTH, 10));
-                                    case "e" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"whak", Spell.CastAreaEffect.WIDE_RANGE, Spell.MainElement.FIRE, 10));
+                                    case "a" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.Element.AIR, 10));
+                                    case "b" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink1", Spell.CastAreaEffect.DIRECT, Spell.Element.FIRE, 10));
+                                    case "c" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink2", Spell.CastAreaEffect.DIRECT, Spell.Element.WATER, 10));
+                                    case "d" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink3", Spell.CastAreaEffect.DIRECT, Spell.Element.EARTH, 10));
+                                    case "e" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"whak", Spell.CastAreaEffect.WIDE_RANGE, Spell.Element.FIRE, 10));
                                 }
                             } else {
                                 player.sendMessage(ChatColor.RED + "Unknown argument " + ChatColor.ITALIC + args[0]);
@@ -577,26 +589,20 @@ public class Main extends JavaPlugin {
         fusionCrys.setItemMeta(fuM);
         allItemInv.add(pg1);
 
-        NamespacedKey key = NamespacedKey.minecraft(permission);
-        ShapedRecipe craftCaulRec = new ShapedRecipe(key, CrafttingCauldron.item);
-        craftCaulRec.shape(
+        NamespacedKey key = new NamespacedKey(this, "crafting_cauldron");
+        ShapedRecipe crfCReci = new ShapedRecipe(key, CrafttingCauldron.item);
+        crfCReci.shape(
                 "ADA",
                 "ECE",
                 "AUA");
-        craftCaulRec.setIngredient('A', Material.AIR);
-        craftCaulRec.setIngredient('E', Material.ECHO_SHARD);
-        craftCaulRec.setIngredient('U', Material.NETHERITE_SCRAP);
-        craftCaulRec.setIngredient('C', new RecipeChoice.ExactChoice(fusionCrys));
-        craftCaulRec.setIngredient('D', Material.DIAMOND);
-        if (Bukkit.getServer().getRecipe(key) == null) {
-            Bukkit.getServer().addRecipe(craftCaulRec);
-        }
-        String permissionNode ="tmmi.craft."+craftCaulRec.getKey().getKey();
-        String permissionDescription = "Pot Craft perm";
-        Permission permission = new Permission(permissionNode, permissionDescription);
-        if (Bukkit.getServer().getPluginManager().getPermission(permissionNode) == null) {
-            Bukkit.getServer().getPluginManager().addPermission(permission);
-        }
+        crfCReci.setIngredient('A', Material.AIR);
+        crfCReci.setIngredient('E', Material.ECHO_SHARD);
+        crfCReci.setIngredient('U', Material.NETHERITE_SCRAP);
+        crfCReci.setIngredient('C', new RecipeChoice.ExactChoice(fusionCrys));
+        crfCReci.setIngredient('D', Material.DIAMOND);
+        Bukkit.getServer().addRecipe(crfCReci);
+        Permission permission = new Permission("tmmi.craft."+crfCReci.getKey().getKey(), "Crafting cauldron perm");
+        Bukkit.getServer().getPluginManager().addPermission(permission);
     }
 
     public static class MainListener implements Listener {
@@ -721,12 +727,13 @@ public class Main extends JavaPlugin {
     }
     @Override
     public void onDisable() {
-        autosave.interrupt();
-        Gson g = new Gson();
-        try (Writer w = new FileWriter(BLOCK_DATAFILE)) {
-            w.write(spells.get(0).toJson());
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+//        autosave.interrupt();
+//        if (!Spell.spells.isEmpty()) {
+//            try (Writer w = new FileWriter(BLOCK_DATAFILE)) {
+//                w.write(Spell.spells.get(0).toJson());
+//            } catch (IOException e) {
+//                throw new RuntimeException(e);
+//            }
+//        }
     }
 }
