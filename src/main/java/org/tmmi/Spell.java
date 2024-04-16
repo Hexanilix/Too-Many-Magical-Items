@@ -121,14 +121,15 @@ public class Spell {
     }
     public String toJson() {
         return "{\n" +
-                    "\"Handler\":" + this.handler.toString() + "\",\n" +
-                    "\"SpellBase:\n" +
-                    "{\n" +
-                        "\"Handler\":" + this.handler + "\",\n" +
-                        "\"Level\":" + this.level + "\",\n" +
-                        "\"Handler\":" + this.handler + "\",\n" +
-                        "\"Handler\":" + this.handler + "\"\n" +
-                    "}\n" +
+                "\"Name\":" + this.name + "\",\n" +
+                "\"Handler\":" + this.handler.toString() + "\",\n" +
+                "\"Level\":" + this.level + "\",\n" +
+                "\"mainElement\":" + this.mainElement.toString() + "\"\n" +
+                "\"secondaryElement\":" + this.secondaryElement + "\",\n" +
+                "\"castAreaEffect\":" + this.castAreaEffect + "\",\n" +
+                "\"spellType\":" + this.spellType + "\",\n" +
+                "\"speed\":" + this.speed + "\",\n" +
+                "\"travel\":" + this.travel + "\",\n" +
                 "}";
     }
     public boolean isCast() {
