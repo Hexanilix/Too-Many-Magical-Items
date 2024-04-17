@@ -78,6 +78,7 @@ public class Spell {
         }
     }
 
+    private final UUID id;
     private final UUID handler;
     private final String name;
     private final CastAreaEffect castAreaEffect;
@@ -95,9 +96,10 @@ public class Spell {
     private BukkitTask spellRun;
 
     public Spell(UUID handler, String name, CastAreaEffect castAreaEffect, @NotNull Element mainElement, Element secondaryElement, int usedMagicules) {
-        this(name, handler, 1, 10, mainElement, secondaryElement, CastAreaEffect.DIRECT, SpellType.CANTRIP, 1, 10);
+        this(UUID.randomUUID(), name, handler, 1, 10, mainElement, secondaryElement, CastAreaEffect.DIRECT, SpellType.CANTRIP, 1, 10);
     }
-    public Spell(String name, UUID handler, int level, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double speed, double travel) {
+    public Spell(UUID id, String name, UUID handler, int level, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double speed, double travel) {
+        this.id = id;
         this.handler = handler;
         this.name = name;
         this.castCost = castCost;

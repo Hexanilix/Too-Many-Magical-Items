@@ -5,9 +5,11 @@ import org.bukkit.event.block.Action;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.tmmi.items.GrandBook;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import static org.tmmi.Main.log;
 
@@ -24,7 +26,8 @@ public class WeavePlayer {
     private final SpellInventory spellInventory;
     private boolean isWeaving;
     private Wand wand;
-    private ItemStack grandBook;
+    private List<Spell> spells;
+    private GrandBook grandBook;
 
     public WeavePlayer(Player player, SpellInventory spellInventory) {
         this.player = player;
@@ -32,6 +35,15 @@ public class WeavePlayer {
         this.isWeaving = false;
         this.grandBook = null;
         weavers.add(this);
+    }
+
+    public String toJson() {
+        return "{ \"Weaver\":\n" +
+                    "{\n" +
+                        "\"Power\":" + this.player.getUniqueId() + ",\n" +
+                        String.join("\n", this.getSpells().stream().map(Spell::toJson).toList()) +
+                    "}\n" +
+                "}";
     }
 
     public Player getPlayer() {
@@ -50,12 +62,20 @@ public class WeavePlayer {
         }
     }
 
+    public void addSpell(Spell s) {
+        this.spells.add(s);
+    }
+
     private Spell getMainSpell() {
         return this.getSpellInventory().getMainSpell();
     }
 
     private Spell getSecondarySpell() {
         return this.getSpellInventory().getSecondarySpell();
+    }
+
+    public List<Spell> getSpells() {
+        return this.spells;
     }
 
     public boolean isWeaving() {

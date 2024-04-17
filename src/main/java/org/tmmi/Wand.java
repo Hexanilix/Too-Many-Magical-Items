@@ -20,13 +20,16 @@ public abstract class Wand extends InteractiveItem {
     private Spell selSpell;
     private Player activeUser = null;
 
-    public Wand(ItemStack item, UUID handler) {
+    public Wand(ItemStack item, UUID handler, int level, int power) {
         super(item);
         this.handler = handler;
         this.level = 1;
         this.isWeaving = false;
         this.select_cooldown = 0;
         this.power = 1;
+    }
+    public Wand(ItemStack item, UUID handler) {
+        this(item, handler, 1, 1);
     }
 
     public int getSlot() {
@@ -69,6 +72,7 @@ public abstract class Wand extends InteractiveItem {
                             selSpell = null;
                         }
                         if (action == Action.LEFT_CLICK_AIR) {
+
                         } else if (action == Action.RIGHT_CLICK_AIR) {
 
                         } else if (action == Action.LEFT_CLICK_BLOCK) {

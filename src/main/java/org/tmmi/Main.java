@@ -36,10 +36,13 @@ import org.tmmi.items.FocusWand;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 
+import static org.tmmi.Spell.spells;
+import static org.tmmi.WeavePlayer.getWeaver;
 import static org.tmmi.block.CrafttingCauldron.craftingCauldronLocations;
 import static org.tmmi.block.Presence.*;
 import static org.tmmi.block.Presence.detectorLocations;
@@ -209,7 +212,7 @@ public class Main extends JavaPlugin {
                     JSONObject j = ji.getJSONObject("Spell");
                     log(j);
                     if (!j.isEmpty()) {
-                        Spell s = new Spell(j.getString("Name"), UUID.fromString(j.getString("Handler")), j.getInt("Level"),
+                        Spell s = new Spell(UUID.fromString(j.getString("id")), j.getString("Name"), UUID.fromString(j.getString("Handler")), j.getInt("Level"),
                                 j.getInt("castCost"), Spell.Element.getElement(j.getString("mainElement")),
                                 Spell.Element.getElement(j.getString("secondaryElement")), Spell.CastAreaEffect.getAreaEffect(j.getString("castAreaEffect")),
                                 Spell.SpellType.getSpellType(j.getString("spellType")),
@@ -394,7 +397,7 @@ public class Main extends JavaPlugin {
                                 player.getInventory().addItem(w.getWand().getItem());
                                 w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.Element.AIR, 10));
                             } else if (args[0].equalsIgnoreCase("spell")) {
-                                WeavePlayer w = WeavePlayer.getWeaver(player);
+                                WeavePlayer w = getWeaver(player);
                                 assert w != null;
                                 switch (args[1].toLowerCase()) {
                                     case "a" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.Element.AIR, 10));
@@ -657,7 +660,7 @@ public class Main extends JavaPlugin {
         @EventHandler
         public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
             Player player = event.getPlayer();
-            WeavePlayer weaver = WeavePlayer.getWeaver(player);
+            WeavePlayer weaver = getWeaver(player);
             if (weaver != null) {
                 if (weaver.isWeaving()) {
                     int nxt = event.getNewSlot();
@@ -680,7 +683,7 @@ public class Main extends JavaPlugin {
             if (!Objects.requireNonNull(item.getItemMeta()).hasCustomModelData()) {
                 return;
             }
-            WeavePlayer weaver = WeavePlayer.getWeaver(event.getPlayer());
+            WeavePlayer weaver = getWeaver(event.getPlayer());
             if (weaver != null) {
                 if (item.equals(weaver.getWand().getItem())) {
                     weaver.getWand().onUse(event.getAction());
@@ -725,15 +728,52 @@ public class Main extends JavaPlugin {
         }
         return -1;
     }
+    public String playerToJSON(Player plz) {
+        WeavePlayer wev = getWeaver(plz);
+            return "{ \"Player\":\n" +
+                        "\"Name\":\"" + plz.getName() + "\",\n" +
+                        "\"UUID\":\"" + plz.getUniqueId() + "\"" +
+                        (wev == null ? "" : ",") +
+                    "\n}";
+    }
     @Override
     public void onDisable() {
-//        autosave.interrupt();
-//        if (!Spell.spells.isEmpty()) {
-//            try (Writer w = new FileWriter(BLOCK_DATAFILE)) {
-//                w.write(Spell.spells.get(0).toJson());
-//            } catch (IOException e) {
-//                throw new RuntimeException(e);
-//            }
-//        }
+        autosave.interrupt();
+        if (!spells.isEmpty()) {
+            try (Writer w = new FileWriter(BLOCK_DATAFILE)) {
+                w.append(spells.get(0).toJson());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+    public static enum TMMIobject {
+        SPELL,
+        WAND,
+        ITEM,
+        BLOCK
+    }
+    public static @NotNull UUID newUUID(@NotNull TMMIobject type) {
+        String u = "19a4bc21";
+        u+="-000a-";
+        DecimalFormat df = new DecimalFormat("0000");
+        switch (type) {
+            case SPELL -> u += "d049-" + df.format(517) + '-';
+        }
+        u+=getRanUUIDstring(12);
+        System.out.println(u);
+        return UUID.fromString(u);
+    }
+    public static @NotNull String getRanUUIDstring(int amnt) {
+        List<String> l = List.of("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f");
+        StringBuilder s = new StringBuilder();
+        Random r = new Random();
+        for (int i = 0; i < amnt; i ++) {
+            s.append(l.get(r.nextInt(16)));
+        }
+        return s.toString();
     }
 }
+
+
+
