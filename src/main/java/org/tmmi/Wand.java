@@ -1,6 +1,7 @@
 package org.tmmi;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
@@ -8,9 +9,11 @@ import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.List;
 import java.util.UUID;
 
 public abstract class Wand extends InteractiveItem {
+    public static List<Wand> wands;
     private int slot;
     private float power;
     private int level;
@@ -20,15 +23,15 @@ public abstract class Wand extends InteractiveItem {
     private Spell selSpell;
     private Player activeUser = null;
 
-    public Wand(ItemStack item, UUID handler, int level, int power) {
-        super(item);
+    public Wand(UUID handler, int level, int power) {
+        super(Material.STICK);
         this.handler = handler;
         this.level = 1;
         this.isWeaving = false;
         this.select_cooldown = 0;
         this.power = 1;
     }
-    public Wand(ItemStack item, UUID handler) {
+    public Wand(UUID handler) {
         this(item, handler, 1, 1);
     }
 

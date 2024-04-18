@@ -1,5 +1,6 @@
 package org.tmmi;
 
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
@@ -7,22 +8,14 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
+import java.util.UUID;
 
-public abstract class InteractiveItem implements Listener {
-    private final int id;
-    private final ItemStack item;
-
-    public InteractiveItem(@NotNull ItemStack item) {
-        this.item = item;
-        this.id = Objects.requireNonNull(item.getItemMeta()).getCustomModelData();
+public abstract class InteractiveItem extends Item {
+    public InteractiveItem(@NotNull Material mat) {
+        super(mat);
     }
-
-    public int getId() {
-        return id;
-    }
-
-    public ItemStack getItem() {
-        return item;
+    public InteractiveItem(@NotNull Material mat, UUID id) {
+        super(mat, id);
     }
 
     public abstract void onUse(Action action);

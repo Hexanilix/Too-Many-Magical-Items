@@ -394,7 +394,7 @@ public class Main extends JavaPlugin {
                             } else if (args[0].equalsIgnoreCase("getWand")) {
                                 WeavePlayer w = new WeavePlayer(player, new SpellInventory());
                                 w.setWand(new FocusWand(player.getUniqueId()));
-                                player.getInventory().addItem(w.getWand().getItem());
+                                player.getInventory().addItem(w.getWand());
                                 w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.Element.AIR, 10));
                             } else if (args[0].equalsIgnoreCase("spell")) {
                                 WeavePlayer w = getWeaver(player);
@@ -550,7 +550,7 @@ public class Main extends JavaPlugin {
     private void setItems() {
         Inventory pg1 = Bukkit.createInventory(null, 54, "pg1");
         // Item
-        ItemStack focusWand = new ItemStack(Material.STICK);
+        Item focusWand = new Item(Material.STICK);
         ItemMeta fcM = focusWand.getItemMeta();
         assert fcM != null;
         fcM.setDisplayName(ChatColor.GOLD + "Focus Wand");
@@ -560,7 +560,7 @@ public class Main extends JavaPlugin {
         pg1.addItem(focusWand);
 
         // Blocks
-        ItemStack craftCaul = new ItemStack(Material.CAULDRON);
+        Item craftCaul = new Item(Material.CAULDRON);
         ItemMeta crM = craftCaul.getItemMeta();
         assert crM != null;
         crM.setDisplayName(ChatColor.LIGHT_PURPLE + "Crafting Cauldron");
@@ -570,7 +570,7 @@ public class Main extends JavaPlugin {
         CrafttingCauldron.item = craftCaul;
         pg1.addItem(craftCaul);
 
-        ItemStack spellNaber = new ItemStack(Material.LODESTONE);
+        Item spellNaber = new Item(Material.LODESTONE);
         ItemMeta snM = spellNaber.getItemMeta();
         assert snM != null;
         snM.setDisplayName(ChatColor.GOLD + "Spell Condenser");
@@ -580,7 +580,7 @@ public class Main extends JavaPlugin {
         SpellAbsorbingBlock.item = spellNaber;
         pg1.addItem(spellNaber);
 
-        ItemStack fusionCrys = new ItemStack(Material.END_CRYSTAL);
+        Item fusionCrys = new Item(Material.END_CRYSTAL);
         ItemMeta fuM = fusionCrys.getItemMeta();
         assert fuM != null;
         fuM.setDisplayName(ChatColor.DARK_AQUA + "Fusion Crystal");
@@ -685,7 +685,7 @@ public class Main extends JavaPlugin {
             }
             WeavePlayer weaver = getWeaver(event.getPlayer());
             if (weaver != null) {
-                if (item.equals(weaver.getWand().getItem())) {
+                if (item.equals(weaver.getWand())) {
                     weaver.getWand().onUse(event.getAction());
                 }
             }
@@ -747,7 +747,7 @@ public class Main extends JavaPlugin {
             }
         }
     }
-    public static enum TMMIobject {
+    public enum TMMIobject {
         SPELL,
         WAND,
         ITEM,
@@ -758,20 +758,34 @@ public class Main extends JavaPlugin {
         u+="-000a-";
         DecimalFormat df = new DecimalFormat("0000");
         switch (type) {
-            case SPELL -> u += "d049-" + df.format(517) + '-';
+            case SPELL -> u += "d049-" + df.format(IntToHex(spells.size()));
+            case WAND -> u += "c213-" + df.format(IntToHex(Wand.wands.size()));
+            case ITEM -> u += "e082-" + df.format(IntToHex(Item.items.size()));
+            case BLOCK -> u += "8b3f-" + df.format(IntToHex(Block.blocks.size()));
         }
-        u+=getRanUUIDstring(12);
+        u+='-'+getRanUUIDstring(12);
         System.out.println(u);
         return UUID.fromString(u);
     }
+    static final String digits = "0123456789abcdef";
     public static @NotNull String getRanUUIDstring(int amnt) {
-        List<String> l = List.of("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f");
         StringBuilder s = new StringBuilder();
         Random r = new Random();
         for (int i = 0; i < amnt; i ++) {
-            s.append(l.get(r.nextInt(16)));
+            s.append(digits.charAt(r.nextInt(16)));
         }
         return s.toString();
+    }
+    public static @NotNull String IntToHex(int i) {
+        if (i <= 0)
+            return "0";
+        StringBuilder hex = new StringBuilder();
+        while (i > 0) {
+            int digit = i % 16;
+            hex.insert(0, digits.charAt(digit));
+            i = i / 16;
+        }
+        return hex.toString();
     }
 }
 
