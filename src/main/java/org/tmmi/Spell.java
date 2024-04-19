@@ -151,19 +151,18 @@ public class Spell {
                 '}';
     }
     public String toJson() {
-        return "{ \"Spell\":\n" +
-                    "{\n" +
-                        "\"Name\":\"" + this.name + "\",\n" +
-                        "\"Handler\":\"" + this.handler.toString() + "\",\n" +
-                        "\"Level\":" + this.level + ",\n" +
-                        "\"castCost\":" + this.castCost + ",\n" +
-                        "\"mainElement\":\"" + this.mainElement + "\",\n" +
-                        "\"secondaryElement\":\"" + this.secondaryElement + "\",\n" +
-                        "\"castAreaEffect\":\"" + this.castAreaEffect + "\",\n" +
-                        "\"spellType\":\"" + this.spellType + "\",\n" +
-                        "\"speed\":" + this.speed + ",\n" +
-                        "\"travel\":" + this.travel + ",\n" +
-                    "}\n" +
+        return "{\n" +
+                "   \"id\":\"" + this.id + "\",\n" +
+                "   \"name\":\"" + this.name + "\",\n" +
+                "   \"handler\":\"" + this.handler.toString() + "\",\n" +
+                "   \"level\":" + this.level + ",\n" +
+                "   \"cast_cost\":" + this.castCost + ",\n" +
+                "   \"main_element\":\"" + this.mainElement + "\",\n" +
+                "   \"secondary_element\":\"" + this.secondaryElement + "\",\n" +
+                "   \"cast_area_effect\":\"" + this.castAreaEffect + "\",\n" +
+                "   \"spell_type\":\"" + this.spellType + "\",\n" +
+                "   \"speed\":" + this.speed + ",\n" +
+                "   \"travel\":" + this.travel + "\n" +
                 "}";
     }
     public boolean isCast() {

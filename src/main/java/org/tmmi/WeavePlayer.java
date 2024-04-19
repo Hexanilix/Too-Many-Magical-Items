@@ -9,28 +9,28 @@ import org.tmmi.items.GrandBook;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+import java.util.UUID;
 
 import static org.tmmi.Main.log;
 
 public class WeavePlayer {
     public static List<WeavePlayer> weavers = new ArrayList<>();
-    public static @Nullable WeavePlayer getWeaver(Player player) {
+    public static @Nullable WeavePlayer getWeaver(UUID player) {
         for (WeavePlayer w : weavers) {
-            if (w.getPlayer() == player) return w;
+            if (w.getHandler() == player) return w;
         }
         return null;
     }
 
-    private final Player player;
+    private final UUID handler;
     private final SpellInventory spellInventory;
     private boolean isWeaving;
     private Wand wand;
     private List<Spell> spells;
     private GrandBook grandBook;
 
-    public WeavePlayer(Player player, SpellInventory spellInventory) {
-        this.player = player;
+    public WeavePlayer(UUID handler, SpellInventory spellInventory) {
+        this.handler = handler;
         this.spellInventory = spellInventory;
         this.isWeaving = false;
         this.grandBook = null;
@@ -40,14 +40,15 @@ public class WeavePlayer {
     public String toJson() {
         return "{ \"Weaver\":\n" +
                     "{\n" +
-                        "\"Power\":" + this.player.getUniqueId() + ",\n" +
+                        "\"Power\":" + this.handler + ",\n" +
+
                         String.join("\n", this.getSpells().stream().map(Spell::toJson).toList()) +
                     "}\n" +
                 "}";
     }
 
-    public Player getPlayer() {
-        return player;
+    public UUID getHandler() {
+        return handler;
     }
 
     public SpellInventory getSpellInventory() {
@@ -58,7 +59,7 @@ public class WeavePlayer {
         Spell s = (action.name().contains("LEFT") ? this.getMainSpell() : this.getSecondarySpell());
         if (s != null) {
             float mul = (this.isWeaving ? wand.getPower() : 1);
-            s.cast(action, this.player.getEyeLocation(), 5);
+            s.cast(action, this.handler.getEyeLocation(), 5);
         }
     }
 

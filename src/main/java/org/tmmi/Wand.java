@@ -12,6 +12,8 @@ import org.jetbrains.annotations.NotNull;
 import java.util.List;
 import java.util.UUID;
 
+import static org.tmmi.items.FocusWand.wands;
+
 public abstract class Wand extends InteractiveItem {
     public static List<Wand> wands;
     private int slot;
@@ -25,6 +27,11 @@ public abstract class Wand extends InteractiveItem {
 
     public Wand(UUID handler, int level, int power) {
         super(Material.STICK);
+        ItemMeta fcM = this.getItemMeta();
+        assert fcM != null;
+        fcM.setDisplayName(ChatColor.GOLD + "Focus Wand");
+        fcM.setCustomModelData(2140000+wands.size());
+        this.setItemMeta(fcM);
         this.handler = handler;
         this.level = 1;
         this.isWeaving = false;
@@ -32,7 +39,7 @@ public abstract class Wand extends InteractiveItem {
         this.power = 1;
     }
     public Wand(UUID handler) {
-        this(item, handler, 1, 1);
+        this(handler, 1, 1);
     }
 
     public int getSlot() {
@@ -53,6 +60,14 @@ public abstract class Wand extends InteractiveItem {
 
     public int getLevel() {
         return this.level;
+    }
+
+    public void setLevel(int level) {
+        this.level = level;
+    }
+
+    public void addLevel(int lvl) {
+        this.level += lvl;
     }
 
     @Override

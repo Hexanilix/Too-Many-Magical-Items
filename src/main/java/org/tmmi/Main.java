@@ -25,6 +25,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.tmmi.block.CrafttingCauldron;
@@ -204,27 +205,40 @@ public class Main extends JavaPlugin {
 
     private void loadSaveData() {
         //Make json for eah player
-        try {
-            List<String> l = Files.readAllLines(Path.of(BLOCK_DATAFILE));
-            if (l.size() > 1) {
-                JSONObject ji = new JSONObject(String.join("", l));
-                try {
-                    JSONObject j = ji.getJSONObject("Spell");
-                    log(j);
-                    if (!j.isEmpty()) {
-                        Spell s = new Spell(UUID.fromString(j.getString("id")), j.getString("Name"), UUID.fromString(j.getString("Handler")), j.getInt("Level"),
-                                j.getInt("castCost"), Spell.Element.getElement(j.getString("mainElement")),
-                                Spell.Element.getElement(j.getString("secondaryElement")), Spell.CastAreaEffect.getAreaEffect(j.getString("castAreaEffect")),
-                                Spell.SpellType.getSpellType(j.getString("spellType")),
-                                j.getDouble("speed"), j.getDouble("travel"));
-                        log(s.toString());
+        File folder = new File(DTFL + "/playerdata");
+        if (folder.exists()) {
+            File[] listOfFiles = folder.listFiles();
+            if (listOfFiles != null) {
+                for (File file : listOfFiles) {
+                    if (file.isFile()) {
+                        try {
+                            JSONObject json = new JSONObject(new String(Files.readAllBytes(Path.of(BLOCK_DATAFILE))));
+                            JSONArray ar = json.getJSONArray("spells");
+                            for (int i = 0; i < ar.length(); i++) {
+                                JSONObject j = ar.getJSONObject(i);
+                                try {
+                                    new WeavePlayer();
+                                    Spell s = new Spell(UUID.fromString(j.getString("id")), j.getString("name"), UUID.fromString(j.getString("handler")), j.getInt("level"),
+                                            j.getInt("cast_cost"), Spell.Element.getElement(j.getString("main_element")),
+                                            Spell.Element.getElement(j.getString("secondary_element")), Spell.CastAreaEffect.getAreaEffect(j.getString("cast_area_effect")),
+                                            Spell.SpellType.getSpellType(j.getString("spell_type")),
+                                            j.getDouble("speed"), j.getDouble("travel"));
+                                    log(s.toString());
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+
                     }
-                } catch (JSONException e) {
-                    e.printStackTrace();
                 }
             }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        } else {
+            log(Level.SEVERE, "Player data folder doesn't exist and couldn't be created at " + folder.getAbsolutePath() + "\n"+
+                    "Player data won't be saved, it is advised to restart the plugin and check logs for any reading errors or" +
+                    "insufficient permission levels for this plugin");
         }
     }
 
@@ -392,7 +406,7 @@ public class Main extends JavaPlugin {
 //                                    }.runTaskTimer(plugin, 200, 0);
 //                                }
                             } else if (args[0].equalsIgnoreCase("getWand")) {
-                                WeavePlayer w = new WeavePlayer(player, new SpellInventory());
+                                WeavePlayer w = new WeavePlayer(player.getUniqeId(), new SpellInventory());
                                 w.setWand(new FocusWand(player.getUniqueId()));
                                 player.getInventory().addItem(w.getWand());
                                 w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.Element.AIR, 10));
@@ -556,7 +570,6 @@ public class Main extends JavaPlugin {
         fcM.setDisplayName(ChatColor.GOLD + "Focus Wand");
         fcM.setCustomModelData(2140000+wands.size());
         focusWand.setItemMeta(fcM);
-        FocusWand.item = focusWand;
         pg1.addItem(focusWand);
 
         // Blocks

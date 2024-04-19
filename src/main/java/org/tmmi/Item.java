@@ -1,17 +1,20 @@
 package org.tmmi;
-
-import com.google.common.base.Preconditions;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.tmmi.Main.getRanUUIDstring;
-
 public class Item extends ItemStack {
     public static List<Item> items = new ArrayList<>();
+    public static @Nullable Item getItem(UUID id) {
+        for (Item i : items) {
+            if (i.getId() == id) return i;
+        }
+        return null;
+    }
 
 
     private final UUID id;
