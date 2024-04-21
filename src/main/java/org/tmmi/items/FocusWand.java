@@ -16,7 +16,7 @@ public class FocusWand extends Wand {
     public static ItemStack item;
 
     public FocusWand(UUID uuid) {
-        super(item, uuid);
+        super(uuid);
     }
 
 

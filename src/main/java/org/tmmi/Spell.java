@@ -1,17 +1,17 @@
 package org.tmmi;
 
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
-import org.bukkit.Sound;
+import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.block.Action;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.tmmi.events.SpellCollideEvent;
 
 import java.util.ArrayList;
@@ -42,17 +42,31 @@ public class Spell {
 
     public enum CastAreaEffect {
         DIRECT,
-        WIDE_RANGE,
-        AREA_EFFECT;
+        WIDE,
+        AREA;
+        public static ItemStack DIRECT_ITEM;
+        public static ItemStack WIDE_ITEM;
+        public static ItemStack AREA_ITEM;
         @Contract(pure = true)
         public static CastAreaEffect getAreaEffect(@NotNull String type) {
             CastAreaEffect c = null;
             switch (type) {
                 case "DIRECT" -> c = DIRECT;
-                case "WIDE_RANGE" -> c = WIDE_RANGE;
-                case "AREA_EFFECT" -> c = AREA_EFFECT;
+                case "WIDE_RANGE" -> c = WIDE;
+                case "AREA_EFFECT" -> c = AREA;
             }
             return c;
+        }
+        @Contract(pure = true)
+        public static @Nullable CastAreaEffect getAreaEffect(ItemStack item) {
+            if (item == DIRECT_ITEM) {
+                return DIRECT;
+            } else if (item == WIDE_ITEM) {
+                return WIDE;
+            } else if (item == AREA_ITEM) {
+                return AREA;
+            }
+            return null;
         }
     }
 
@@ -65,6 +79,10 @@ public class Spell {
         EARTH,
         WATER,
         AIR;
+        public static ItemStack FIRE_ITEM;
+        public static ItemStack EARTH_ITEM;
+        public static ItemStack WATER_ITEM;
+        public static ItemStack AIR_ITEM;
         @Contract(pure = true)
         public static Element getElement(@NotNull String element) {
             Element e = null;
@@ -73,6 +91,20 @@ public class Spell {
                 case "EARTH" -> e = EARTH;
                 case "WATER" -> e = WATER;
                 case "AIR" -> e = AIR;
+            }
+            return e;
+        }
+        @Contract(pure = true)
+        public static @Nullable Element getElement(ItemStack item) {
+            Element e = null;
+            if (item == FIRE_ITEM) {
+                e = FIRE;
+            } else if (item == EARTH_ITEM) {
+                e = EARTH;
+            } else if (item == WATER_ITEM) {
+                e = WATER;
+            } else if (item == AIR_ITEM) {
+                e = AIR;
             }
             return e;
         }
@@ -89,16 +121,17 @@ public class Spell {
     private final SpellType spellType;
     private final double travel;
     private final double speed;
+    private double baseDamage;
     private final Sound castSound;
     private boolean isCast;
     private Location castLocation;
 
     private BukkitTask spellRun;
 
-    public Spell(UUID handler, String name, CastAreaEffect castAreaEffect, @NotNull Element mainElement, Element secondaryElement, int usedMagicules) {
-        this(UUID.randomUUID(), name, handler, 1, 10, mainElement, secondaryElement, CastAreaEffect.DIRECT, SpellType.CANTRIP, 1, 10);
+    public Spell(UUID handler, String name, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, int usedMagicules) {
+        this(Main.newUUID(Main.TMMIobject.SPELL), handler, name, 1, 10, mainElement, secondaryElement, castAreaEffect, SpellType.CANTRIP, (double) usedMagicules /100, 1, 10);
     }
-    public Spell(UUID id, String name, UUID handler, int level, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double speed, double travel) {
+    public Spell(UUID id, UUID handler, String name, int level, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double baseDamage, double speed, double travel) {
         this.id = id;
         this.handler = handler;
         this.name = name;
@@ -112,17 +145,18 @@ public class Spell {
         this.speed = speed;
         Sound castSpund1 = null;
         switch (mainElement) {
-            case FIRE -> castSpund1 = Sound.MUSIC_UNDER_WATER;
+            case FIRE -> castSpund1 = Sound.BLOCK_FIRE_AMBIENT;
             case EARTH -> castSpund1 = Sound.MUSIC_UNDER_WATER;
             case WATER -> castSpund1 = Sound.MUSIC_UNDER_WATER;
-            case AIR -> castSpund1 = Sound.MUSIC_UNDER_WATER;
+            case AIR -> castSpund1 = Sound.ENTITY_GENERIC_EXPLODE;
         }
         this.castSound = castSpund1;
         this.isCast = false;
+        this.baseDamage = baseDamage;
         spells.add(this);
     }
-    public Spell(UUID handler, String name, CastAreaEffect castAreaEffect, @NotNull Spell.Element mainElement, int usedMagicules) {
-        this(handler, name, castAreaEffect, mainElement, null, 6);
+    public Spell(UUID handler, String name, @NotNull Spell.Element mainElement, CastAreaEffect castAreaEffect, int usedMagicules) {
+        this(handler, name, mainElement, null, castAreaEffect, 6);
     }
 
     public UUID getHandler() {
@@ -133,37 +167,8 @@ public class Spell {
         return name;
     }
 
-    @Override
-    public String toString() {
-        return "Spell{" +
-                "handler=" + handler +
-                ", castAreaEffect=" + this.castAreaEffect +
-                ", mainElement=" +this. mainElement +
-                ", secondaryElement=" + this.secondaryElement +
-                ", level=" +this.level +
-                ", castCost=" + this.castCost +
-                ", spellType=" + this.spellType +
-                ", travel=" + this.travel +
-                ", speed=" + this.speed +
-                ", castSound=" + this.castSound +
-                ", isCast=" + this.isCast +
-                ", spellRun=" + this.spellRun +
-                '}';
-    }
-    public String toJson() {
-        return "{\n" +
-                "   \"id\":\"" + this.id + "\",\n" +
-                "   \"name\":\"" + this.name + "\",\n" +
-                "   \"handler\":\"" + this.handler.toString() + "\",\n" +
-                "   \"level\":" + this.level + ",\n" +
-                "   \"cast_cost\":" + this.castCost + ",\n" +
-                "   \"main_element\":\"" + this.mainElement + "\",\n" +
-                "   \"secondary_element\":\"" + this.secondaryElement + "\",\n" +
-                "   \"cast_area_effect\":\"" + this.castAreaEffect + "\",\n" +
-                "   \"spell_type\":\"" + this.spellType + "\",\n" +
-                "   \"speed\":" + this.speed + ",\n" +
-                "   \"travel\":" + this.travel + "\n" +
-                "}";
+    public UUID getId() {
+        return id;
     }
     public boolean isCast() {
         return isCast;
@@ -191,6 +196,10 @@ public class Spell {
     }
     public Location getCastLocation() {
         return castLocation;
+    }
+
+    public double getBaseDamage() {
+        return baseDamage;
     }
 
     public void cast(Action action, Location castLocation, float multiplier) {
@@ -240,10 +249,10 @@ public class Spell {
                     }
                 }.runTaskTimer(plugin, 0, 2);
             }
-            case WIDE_RANGE -> {
+            case WIDE -> {
                 this.spellRun = new BukkitRunnable() {
                     private double distance = 0;
-                    private Location sloc = loc;
+                    private final Location sloc = loc;
                     private final List<Integer> hitInts = new ArrayList<>();
                     @Override
                     public void run() {
@@ -278,7 +287,7 @@ public class Spell {
                     }
                 }.runTaskTimer(plugin, 0, 2);
             }
-            case AREA_EFFECT -> {
+            case AREA -> {
                 this.spellRun = new BukkitRunnable() {
                     private double distance = 0;
                     private final List<Integer> hitInts = new ArrayList<>();
@@ -328,5 +337,42 @@ public class Spell {
 
     public void onCollide(SpellCollideEvent event) {
 
+    }
+
+    @Override
+    public String toString() {
+        return "Spell{" +
+                "id=" + id +
+                ", handler=" + handler +
+                ", name='" + name + '\'' +
+                ", castAreaEffect=" + castAreaEffect +
+                ", mainElement=" + mainElement +
+                ", secondaryElement=" + secondaryElement +
+                ", level=" + level +
+                ", castCost=" + castCost +
+                ", spellType=" + spellType +
+                ", travel=" + travel +
+                ", speed=" + speed +
+                ", baseDamage=" + baseDamage +
+                ", castSound=" + castSound +
+                ", isCast=" + isCast +
+                ", castLocation=" + castLocation +
+                ", spellRun=" + spellRun +
+                '}';
+    }
+    public String toJson() {
+        return "{\n" +
+                "   \"id\":\"" + this.id + "\",\n" +
+                "   \"name\":\"" + this.name + "\",\n" +
+                "   \"level\":" + this.level + ",\n" +
+                "   \"cast_cost\":" + this.castCost + ",\n" +
+                "   \"main_element\":\"" + this.mainElement + "\",\n" +
+                "   \"secondary_element\":\"" + this.secondaryElement + "\",\n" +
+                "   \"cast_area_effect\":\"" + this.castAreaEffect + "\",\n" +
+                "   \"spell_type\":\"" + this.spellType + "\",\n" +
+                "   \"base_damage\":" + this.baseDamage + ",\n" +
+                "   \"speed\":" + this.speed + ",\n" +
+                "   \"travel\":" + this.travel + "\n" +
+                "}";
     }
 }

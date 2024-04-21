@@ -7,6 +7,7 @@ import org.bukkit.*;
 import org.bukkit.command.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -32,12 +33,12 @@ import org.tmmi.block.CrafttingCauldron;
 import org.tmmi.block.ForceField;
 import org.tmmi.block.SpellAbsorbingBlock;
 import org.tmmi.block.SpellCrafter;
+import org.tmmi.events.PlayerBlockInteractEvent;
 import org.tmmi.items.FocusWand;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
@@ -53,13 +54,13 @@ import static org.tmmi.items.FocusWand.wands;
 public class Main extends JavaPlugin {
     public static Plugin plugin;
     public Set<Class<?>> classes = new HashSet<>();
+    public static boolean DISABLED;
 
     public static String DTFL;
     public static String PROP_FILE;
     public static String PROP_VERSION = "1.0.0";
     public static String BLOCK_DATAFILE;
-    public static String SPELL_DATAFILE;
-    public static String SPELL_BASE_DATAFILE;
+    public static String PLAYER_DATA;
     public static Map<String, Boolean> BoolProperties = new HashMap<>();
     public static Map<String, String> TextProperties = new HashMap<>();
     public static Map<String, Integer> NumProperties = new HashMap<>();
@@ -120,7 +121,7 @@ public class Main extends JavaPlugin {
         log(Level.INFO, msg);
     }
     public static void log(Level lv, Object message) {
-        Bukkit.getLogger().log(lv, "[TMMI]" + message);
+        Bukkit.getLogger().log(lv, "[TMMI] " + message);
     }
 
     @Override
@@ -177,8 +178,7 @@ public class Main extends JavaPlugin {
             if (boolProp(ENABLED)) {
                 permission = "tmmi.craft." + new NamespacedKey(plugin, "weaver");
                 checkFilesAndCreate();
-                boolean classesLoaded = loadClasses();
-                if (classesLoaded) {
+                if (loadClasses()) {
                     startAutosave();
                     {
                         ItemStack item = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
@@ -194,7 +194,6 @@ public class Main extends JavaPlugin {
                     Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setExecutor(new cmd());
                     Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setTabCompleter(new cmd.cmdTabCom());
 
-                    loadSaveData();
                     log("Plugin loaded successfully");
                 }
             } else {
@@ -202,32 +201,42 @@ public class Main extends JavaPlugin {
             }
         }
     }
-
-    private void loadSaveData() {
-        //Make json for eah player
-        File folder = new File(DTFL + "/playerdata");
+    private static void loadPlayerSaveData(@NotNull Player p) {
+        loadPlayerSaveData(p.getUniqueId());
+    }
+    private static void loadPlayerSaveData(UUID id) {
+        File folder = new File(PLAYER_DATA);
         if (folder.exists()) {
             File[] listOfFiles = folder.listFiles();
             if (listOfFiles != null) {
                 for (File file : listOfFiles) {
-                    if (file.isFile()) {
+                    if (file.isFile() && file.getName().split("\\.")[0].equals(id.toString())) {
                         try {
-                            JSONObject json = new JSONObject(new String(Files.readAllBytes(Path.of(BLOCK_DATAFILE))));
-                            JSONArray ar = json.getJSONArray("spells");
-                            for (int i = 0; i < ar.length(); i++) {
-                                JSONObject j = ar.getJSONObject(i);
-                                try {
-                                    new WeavePlayer();
-                                    Spell s = new Spell(UUID.fromString(j.getString("id")), j.getString("name"), UUID.fromString(j.getString("handler")), j.getInt("level"),
-                                            j.getInt("cast_cost"), Spell.Element.getElement(j.getString("main_element")),
-                                            Spell.Element.getElement(j.getString("secondary_element")), Spell.CastAreaEffect.getAreaEffect(j.getString("cast_area_effect")),
-                                            Spell.SpellType.getSpellType(j.getString("spell_type")),
-                                            j.getDouble("speed"), j.getDouble("travel"));
-                                    log(s.toString());
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
+                            JSONObject json = new JSONObject(new String(Files.readAllBytes(file.toPath())));
+                            try {
+                                JSONArray ar = json.getJSONArray("spells");
+                                UUID pid = UUID.fromString(file.getName().split("\\.")[0]);
+                                new WeavePlayer(Bukkit.getPlayer(pid));
+                                for (int i = 0; i < ar.length(); i++) {
+                                    JSONObject j = ar.getJSONObject(i);
+                                    try {
+                                        Spell s = new Spell(UUID.fromString(j.getString("id")),
+                                                pid,
+                                                j.getString("name"),
+                                                j.getInt("level"),
+                                                j.getInt("cast_cost"),
+                                                Spell.Element.getElement(j.getString("main_element")),
+                                                Spell.Element.getElement(j.getString("secondary_element")),
+                                                Spell.CastAreaEffect.getAreaEffect(j.getString("cast_area_effect")),
+                                                Spell.SpellType.getSpellType(j.getString("spell_type")),
+                                                j.getDouble("base_damage"),
+                                                j.getDouble("speed"), j.getDouble("travel"));
+                                        log(s.toString());
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
                                 }
-                            }
+                            } catch (JSONException ignore) {}
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
@@ -241,6 +250,33 @@ public class Main extends JavaPlugin {
                     "insufficient permission levels for this plugin");
         }
     }
+    private static void savePlayerData(@NotNull Player p) {
+        savePlayerData(p.getUniqueId());
+    }
+    private static void savePlayerData(@NotNull UUID id) {
+        File file = new File(DTFL + "playerdata/" + id + ".json");
+        try {
+            if (!file.exists()) file.createNewFile();
+            if (file.exists()) {
+                FileWriter writer = new FileWriter(file);
+                WeavePlayer w = getWeaver(id);
+                String json = "{\n";
+                if (w != null) {
+                    Spell main = w.getSpellInventory().getMainSpell();
+                    Spell sec = w.getSpellInventory().getSecondarySpell();
+                    json += "   \"spells\":[\n" +
+                                String.join(",\n", w.getSpells().stream().map(Spell::toJson).toList()) +
+                                "\n   ],\n" +
+                                "   \"main\":\"" + (main != null ? main.getId() : "null") + "\",\n" +
+                                "   \"second\":\"" + (sec != null ? sec.getId() : "null") + "\"";
+                }
+                json += "\n}";
+                writer.write(json); writer.close();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     private void startAutosave() {
         if (boolProp(AUTOSAVE)) {
@@ -248,10 +284,12 @@ public class Main extends JavaPlugin {
                 try {
                     while (true) {
                         Thread.sleep((long) (intProp(AUTOSAVE_FREQUENCY) * 1000));
+                        for (Player p : Bukkit.getOnlinePlayers())
+                            savePlayerData(p);
                         if (boolProp(AUTOSAVE_MSG)) log("Autosaving...");
                     }
                 } catch (InterruptedException e) {
-                    log(Level.WARNING, "Autosave interrupted. Plugin data will not be saved until plugin disable and any new data acquired this point will be lost in case of a unprecedented stop");
+                    if (DISABLED) log(Level.WARNING, "Autosave interrupted. Plugin data will not be saved until plugin disable and any new data acquired this point will be lost in case of a unprecedented stop");
                 }
             });
             autosave.start();
@@ -405,20 +443,28 @@ public class Main extends JavaPlugin {
 //                                        }
 //                                    }.runTaskTimer(plugin, 200, 0);
 //                                }
+                                getBlocksInSphere(player.getLocation(), 5).forEach(block -> block.setType(Material.STONE));
                             } else if (args[0].equalsIgnoreCase("getWand")) {
-                                WeavePlayer w = new WeavePlayer(player.getUniqeId(), new SpellInventory());
+                                WeavePlayer w = new WeavePlayer(player, new SpellInventory());
                                 w.setWand(new FocusWand(player.getUniqueId()));
                                 player.getInventory().addItem(w.getWand());
-                                w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.Element.AIR, 10));
+                                Spell s = new Spell(player.getUniqueId(),"Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
+                                w.addSpell(s);
+                                w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, s);
                             } else if (args[0].equalsIgnoreCase("spell")) {
                                 WeavePlayer w = getWeaver(player);
                                 assert w != null;
+                                Spell s = null;
                                 switch (args[1].toLowerCase()) {
-                                    case "a" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink", Spell.CastAreaEffect.DIRECT, Spell.Element.AIR, 10));
-                                    case "b" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink1", Spell.CastAreaEffect.DIRECT, Spell.Element.FIRE, 10));
-                                    case "c" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink2", Spell.CastAreaEffect.DIRECT, Spell.Element.WATER, 10));
-                                    case "d" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"Yoink3", Spell.CastAreaEffect.DIRECT, Spell.Element.EARTH, 10));
-                                    case "e" -> w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, new Spell(player.getUniqueId(),"whak", Spell.CastAreaEffect.WIDE_RANGE, Spell.Element.FIRE, 10));
+                                    case "a" -> s = new Spell(player.getUniqueId(),"Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
+                                    case "b" -> s = new Spell(player.getUniqueId(),"Yoink1", Spell.Element.FIRE, Spell.CastAreaEffect.DIRECT, 10);
+                                    case "c" -> s = new Spell(player.getUniqueId(),"Yoink2", Spell.Element.WATER, Spell.CastAreaEffect.DIRECT, 10);
+                                    case "d" -> s = new Spell(player.getUniqueId(),"Yoink3", Spell.Element.EARTH, Spell.CastAreaEffect.DIRECT, 10);
+                                    case "e" -> s = new Spell(player.getUniqueId(),"whak", Spell.Element.FIRE, Spell.CastAreaEffect.WIDE, 10);
+                                }
+                                if (s != null) {
+                                    w.addSpell(s);
+                                    w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, s);
                                 }
                             } else {
                                 player.sendMessage(ChatColor.RED + "Unknown argument " + ChatColor.ITALIC + args[0]);
@@ -545,9 +591,11 @@ public class Main extends JavaPlugin {
     }
 
     private void checkFilesAndCreate() {
+        PLAYER_DATA = DTFL + "playerdata/";
+        File pdf = new File(PLAYER_DATA);
+        if (!pdf.exists()) pdf.mkdir();
         BLOCK_DATAFILE = DTFL + "block.json";
-        SPELL_DATAFILE = DTFL + "spell.json";
-        List<String> files = new ArrayList<>(Arrays.asList(BLOCK_DATAFILE, SPELL_DATAFILE));
+        List<String> files = new ArrayList<>(Arrays.asList(BLOCK_DATAFILE));
         for (String file : files) {
             Path path = Path.of(file);
             if (!Files.exists(path)) {
@@ -603,6 +651,38 @@ public class Main extends JavaPlugin {
         fuM.setLore(lore);
         fuM.setCustomModelData(365450);
         fusionCrys.setItemMeta(fuM);
+        pg1.addItem(fusionCrys);
+        {
+            Item its = new Item(Material.GOLD_BLOCK);
+            ItemMeta im = its.getItemMeta();
+            assert im != null;
+            fuM.setDisplayName(ChatColor.DARK_AQUA + "MAGIC CARFTIN");
+            List<String> itl = new ArrayList<>();
+            itl.add("A Crystal with the power");
+            itl.add("of 1m brewing stands");
+            im.setLore(itl);
+            im.setCustomModelData(23461);
+            its.setItemMeta(im);
+            SpellCrafter.item = its;
+            pg1.addItem(its);
+        }
+        Item fireElm = new Item(Material.FIRE_CHARGE);
+        ItemMeta feM = fireElm.getItemMeta();
+        assert feM != null;
+        feM.setDisplayName(ChatColor.DARK_AQUA + "Fire");
+        feM.setCustomModelData(245723);
+        fireElm.setItemMeta(feM);
+        Spell.Element.FIRE_ITEM = fireElm;
+        pg1.addItem(fireElm);
+
+        Item dirE = new Item(Material.WRITABLE_BOOK);
+        ItemMeta fdM = dirE.getItemMeta();
+        assert fdM != null;
+        fdM.setDisplayName(ChatColor.DARK_AQUA + "Direct");
+        fdM.setCustomModelData(824574);
+        dirE.setItemMeta(fdM);
+        Spell.CastAreaEffect.DIRECT_ITEM = dirE;
+        pg1.addItem(dirE);
         allItemInv.add(pg1);
 
         NamespacedKey key = new NamespacedKey(this, "crafting_cauldron");
@@ -619,18 +699,22 @@ public class Main extends JavaPlugin {
         Bukkit.getServer().addRecipe(crfCReci);
         Permission permission = new Permission("tmmi.craft."+crfCReci.getKey().getKey(), "Crafting cauldron perm");
         Bukkit.getServer().getPluginManager().addPermission(permission);
+
+        Inventory inv = Bukkit.createInventory(null, 54, "elo");
+        inv.setItem(0, fusionCrys);
+        SpellCrafter.gui = inv;
     }
 
     public static class MainListener implements Listener {
+        @EventHandler
         public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
             Player p = event.getPlayer();
-            p.getInventory().addItem(CrafttingCauldron.item);
-            weavers.putIfAbsent(p.getUniqueId(), new SpellInventory());
+            loadPlayerSaveData(p);
         }
 
         @EventHandler
         public void onPlayerLeave(@NotNull PlayerQuitEvent event) {
-
+            savePlayerData(event.getPlayer());
         }
 
         @EventHandler
@@ -644,6 +728,7 @@ public class Main extends JavaPlugin {
                     new ForceField(loc);
                 } else if (isSim(SpellCrafter.item, i)) {
                     new SpellCrafter(loc);
+                    log("placesc rafter");
                 } else if (isSim(SpellAbsorbingBlock.item, i)) {
                     new SpellAbsorbingBlock(loc);
                 }
@@ -660,16 +745,6 @@ public class Main extends JavaPlugin {
                 }
             }
         }
-//        @EventHandler
-//        public void onPlayerItemHeld(@NotNull BlockBreakEvent event) {
-//            Player player = event.getPlayer();
-//            WeavePlayer weaver = WeavePlayer.getWeaver(event.getPlayer());
-//            if (weaver != null) {
-//                if (item.equals(weaver.getWand().getItem())) {
-//                    weaver.getWand().onUse(event.getAction());
-//                }
-//            }
-//        }
         @EventHandler
         public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
             Player player = event.getPlayer();
@@ -704,6 +779,18 @@ public class Main extends JavaPlugin {
             }
 //            EventExecutor.callEvent(new PlayerItemUseEvent(event.getPlayer(), event.getItem(), event));
         }
+        @EventHandler
+        public static void onBlockClick(@NotNull PlayerInteractEvent event) {
+            log("click");
+            if (event.getClickedBlock() != null) {
+                for (InteractiveBlock b : interactiveBlock) {
+                    if (b.getLoc().getBlock().equals(event.getClickedBlock().getLocation().getBlock())) {
+                        b.onClick(event.getAction(), event.getPlayer(), event);
+                        log("mb");
+                    }
+                }
+            }
+        }
 //        @EventHandler
 //        public void onPickup(@NotNull PlayerPickupItemEvent event) {
 //            this.activeUser = event.getPlayer();
@@ -713,19 +800,37 @@ public class Main extends JavaPlugin {
         @EventHandler
         public void invClick(@NotNull InventoryClickEvent event) {
             ItemStack i = event.getInventory().getItem(0);
-            if (i != null && i.hasItemMeta() && Objects.requireNonNull(i.getItemMeta()).hasCustomModelData()) {
+            ItemStack ci = event.getCurrentItem();
+            if (i != null && ci != null && i.hasItemMeta() && Objects.requireNonNull(i.getItemMeta()).hasCustomModelData()) {
                 if (allItemInv.contains(event.getInventory())) {
-                    event.getWhoClicked().getInventory().addItem(event.getCurrentItem());
+                    event.getWhoClicked().getInventory().addItem(ci);
                     event.setCancelled(true);
                 } else {
                     for (InteractiveBlock inter : interactiveBlock) {
-                        if (inter.getGui().getItem(0) == i) {
-                            inter.onGUIClick(event.getAction(), event.getCurrentItem(), (Player) event.getWhoClicked());
+                        if (isSim(inter.getGui().getItem(0), i)) {
+                            inter.onGUIClick(event.getAction(), ci, (Player) event.getWhoClicked(), event);
                         }
                     }
                 }
             }
         }
+    }
+    public static @NotNull List<org.bukkit.block.Block> getBlocksInSphere(@NotNull Location center, int radius) {
+        List<org.bukkit.block.Block> blocks = new ArrayList<>();
+        int bX = center.getBlockX();
+        int bY = center.getBlockY();
+        int bZ = center.getBlockZ();
+        for (int x = bX - radius; x <= bX + radius; x++) {
+            for (int y = bY - radius; y <= bY + radius; y++) {
+                for (int z = bZ - radius; z <= bZ + radius; z++) {
+                    double distance = ((bX - x) * (bX - x) + ((bZ - z) * (bZ - z)) + ((bY - y) * (bY - y)));
+                    if (distance < radius * radius) {
+                        blocks.add(Objects.requireNonNull(center.getWorld()).getBlockAt(x, y, z));
+                    }
+                }
+            }
+        }
+        return blocks;
     }
     public static boolean isSim(ItemStack i1, ItemStack i2) {
         return (i1 != null && i2 != null) && (i1 == i2 || ((i1.hasItemMeta() && i2.hasItemMeta()) &&
@@ -741,64 +846,48 @@ public class Main extends JavaPlugin {
         }
         return -1;
     }
-    public String playerToJSON(Player plz) {
-        WeavePlayer wev = getWeaver(plz);
-            return "{ \"Player\":\n" +
-                        "\"Name\":\"" + plz.getName() + "\",\n" +
-                        "\"UUID\":\"" + plz.getUniqueId() + "\"" +
-                        (wev == null ? "" : ",") +
-                    "\n}";
+    public static boolean inSphere(@NotNull Location center, int radius, @NotNull Location location) {
+        int dx = center.getBlockX() - location.getBlockX();
+        int dy = center.getBlockY() - location.getBlockY();
+        int dz = center.getBlockZ() - location.getBlockZ();
+        return dx * dx + dy * dy + dz * dz <= radius * radius;
     }
-    @Override
-    public void onDisable() {
-        autosave.interrupt();
-        if (!spells.isEmpty()) {
-            try (Writer w = new FileWriter(BLOCK_DATAFILE)) {
-                w.append(spells.get(0).toJson());
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
+
     public enum TMMIobject {
         SPELL,
         WAND,
         ITEM,
         BLOCK
     }
-    public static @NotNull UUID newUUID(@NotNull TMMIobject type) {
-        String u = "19a4bc21";
-        u+="-000a-";
-        DecimalFormat df = new DecimalFormat("0000");
-        switch (type) {
-            case SPELL -> u += "d049-" + df.format(IntToHex(spells.size()));
-            case WAND -> u += "c213-" + df.format(IntToHex(Wand.wands.size()));
-            case ITEM -> u += "e082-" + df.format(IntToHex(Item.items.size()));
-            case BLOCK -> u += "8b3f-" + df.format(IntToHex(Block.blocks.size()));
-        }
-        u+='-'+getRanUUIDstring(12);
-        System.out.println(u);
-        return UUID.fromString(u);
-    }
     static final String digits = "0123456789abcdef";
-    public static @NotNull String getRanUUIDstring(int amnt) {
-        StringBuilder s = new StringBuilder();
-        Random r = new Random();
-        for (int i = 0; i < amnt; i ++) {
-            s.append(digits.charAt(r.nextInt(16)));
+    public static @NotNull UUID newUUID(@NotNull TMMIobject type) {
+        StringBuilder u = new StringBuilder("19a4bc21-000a-");
+        switch (type) {
+            case SPELL -> u.append("d049-").append(IntToHex(spells.size()));
+            case WAND -> u.append("c213-").append(IntToHex(Wand.wands.size()));
+            case ITEM -> u.append("e082-").append(IntToHex(Item.items.size()));
+            case BLOCK -> u.append("8b3f-").append(IntToHex(Block.blocks.size()));
         }
-        return s.toString();
+        u.append('-');
+        for (int i = 0; i < 8; i ++)
+            u.append(digits.charAt(new Random().nextInt(16)));
+        return UUID.fromString(u.toString());
     }
     public static @NotNull String IntToHex(int i) {
-        if (i <= 0)
-            return "0";
         StringBuilder hex = new StringBuilder();
         while (i > 0) {
             int digit = i % 16;
             hex.insert(0, digits.charAt(digit));
             i = i / 16;
         }
-        return hex.toString();
+        return "0".repeat(Math.max(0, 4 - hex.length())) + hex;
+    }
+    @Override
+    public void onDisable() {
+        autosave.interrupt();
+        for (Player p : Bukkit.getOnlinePlayers()) {
+            savePlayerData(p);
+        }
     }
 }
 

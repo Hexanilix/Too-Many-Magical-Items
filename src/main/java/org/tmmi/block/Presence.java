@@ -42,7 +42,7 @@ public class Presence extends InteractiveBlock implements Listener {
     }
 
     @Override
-    public void onPlace(Location location) {
+    public void onPlace(@NotNull Location location) {
 //        this.location = location;
 //        this.task = new BukkitRunnable() {
 //            @Override
@@ -173,14 +173,14 @@ public class Presence extends InteractiveBlock implements Listener {
     }
 
     @Override
-    public void onClick(Action action, Player player, @NotNull PlayerBlockInteractEvent event) {
+    public void onClick(Action action, Player player, @NotNull PlayerInteractEvent event) {
         if (action == Action.RIGHT_CLICK_BLOCK) {
             player.openInventory(this.gui);
         }
     }
 
     @Override
-    public void onGUIClick(InventoryAction action, ItemStack item, Player player) {
+    public void onGUIClick(InventoryAction action, ItemStack item, Player player, InventoryClickEvent event) {
 
     }
 

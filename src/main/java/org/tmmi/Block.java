@@ -2,7 +2,7 @@ package org.tmmi;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,8 +22,14 @@ public abstract class Block {
         return material;
     }
 
-    public abstract void onPlace(Location location);
-    public abstract void onBreak(Location location);
+    public void onPlace(@NotNull Location location) {
+        this.loc = location;
+    }
+
+    public void onBreak(Location location) {
+        this.loc = null;
+        blocks.remove(this);
+    }
 
     public Location getLoc() {
         return loc;

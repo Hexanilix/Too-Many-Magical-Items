@@ -8,7 +8,7 @@ import org.tmmi.InteractiveItem;
 
 public class GrandBook extends InteractiveItem {
     public GrandBook(@NotNull ItemStack item) {
-        super(item);
+        super(item.getType());
     }
 
     @Override

@@ -2,7 +2,6 @@ package org.tmmi;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.items.GrandBook;
@@ -15,40 +14,35 @@ import static org.tmmi.Main.log;
 
 public class WeavePlayer {
     public static List<WeavePlayer> weavers = new ArrayList<>();
-    public static @Nullable WeavePlayer getWeaver(UUID player) {
-        for (WeavePlayer w : weavers) {
-            if (w.getHandler() == player) return w;
-        }
+    public static @Nullable WeavePlayer getWeaver(@NotNull Player player) {
+        return getWeaver(player.getUniqueId());
+    }
+    public static @Nullable WeavePlayer getWeaver(UUID id) {
+        for (WeavePlayer w : weavers)
+            if (w.getPlayer().getUniqueId() == id) return w;
         return null;
     }
 
-    private final UUID handler;
+    private final Player player;
     private final SpellInventory spellInventory;
     private boolean isWeaving;
     private Wand wand;
-    private List<Spell> spells;
+    private List<Spell> spells = new ArrayList<>();
     private GrandBook grandBook;
 
-    public WeavePlayer(UUID handler, SpellInventory spellInventory) {
-        this.handler = handler;
+    public WeavePlayer(Player handler, SpellInventory spellInventory) {
+        this.player = handler;
         this.spellInventory = spellInventory;
         this.isWeaving = false;
         this.grandBook = null;
         weavers.add(this);
     }
-
-    public String toJson() {
-        return "{ \"Weaver\":\n" +
-                    "{\n" +
-                        "\"Power\":" + this.handler + ",\n" +
-
-                        String.join("\n", this.getSpells().stream().map(Spell::toJson).toList()) +
-                    "}\n" +
-                "}";
+    public WeavePlayer(Player handler) {
+        this(handler, new SpellInventory());
     }
 
-    public UUID getHandler() {
-        return handler;
+    public Player getPlayer() {
+        return player;
     }
 
     public SpellInventory getSpellInventory() {
@@ -59,7 +53,7 @@ public class WeavePlayer {
         Spell s = (action.name().contains("LEFT") ? this.getMainSpell() : this.getSecondarySpell());
         if (s != null) {
             float mul = (this.isWeaving ? wand.getPower() : 1);
-            s.cast(action, this.handler.getEyeLocation(), 5);
+            s.cast(action, this.player.getEyeLocation(), 5);
         }
     }
 

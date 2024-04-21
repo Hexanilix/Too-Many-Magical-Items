@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.Block;
+import org.tmmi.Main;
 import org.tmmi.Spell;
 
 import java.util.Objects;
@@ -24,14 +25,14 @@ public class SpellAbsorbingBlock extends Block {
     }
 
     @Override
-    public void onPlace(Location location) {
+    public void onPlace(@NotNull Location location) {
         Location loc = this.getLoc();
         this.spellGrabTHread = new Thread(() -> {
             while (true) {
                 for (Spell s : Spell.spells) {
                     log("a spell");
                     // fix the check
-                    if (s.isCast() && inSphere(loc, 5, s.getCastLocation())) {
+                    if (s.isCast() && Main.inSphere(loc, 5, s.getCastLocation())) {
                         log("so it is");
                         this.magicules += (float) s.getCastCost() / 5;
                         s.unCast();
@@ -61,13 +62,6 @@ public class SpellAbsorbingBlock extends Block {
                 throw new RuntimeException(e);
             }
         });
-    }
-
-    public static boolean inSphere(@NotNull Location center, int radius, @NotNull Location location) {
-        int dx = center.getBlockX() - location.getBlockX();
-        int dy = center.getBlockY() - location.getBlockY();
-        int dz = center.getBlockZ() - location.getBlockZ();
-        return dx * dx + dy * dy + dz * dz <= radius * radius;
     }
 
     @Override

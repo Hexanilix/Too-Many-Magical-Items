@@ -1,21 +1,24 @@
 package org.tmmi;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.tmmi.items.FocusWand.wands;
 
 public abstract class Wand extends InteractiveItem {
-    public static List<Wand> wands;
+    public static List<Wand> wands = new ArrayList<>();
     private int slot;
     private float power;
     private int level;
@@ -80,7 +83,7 @@ public abstract class Wand extends InteractiveItem {
                 activeUser.sendMessage("Cant use this bruv");
                 return;
             }
-            WeavePlayer weaver = WeavePlayer.getWeaver(activeUser);
+            WeavePlayer weaver = WeavePlayer.getWeaver(activeUser.getUniqueId());
             // selector of spell
             if (weaver != null) {
                 if (weaver.hasGrandBook()) {

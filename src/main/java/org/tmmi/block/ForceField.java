@@ -4,9 +4,12 @@ import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.NotNull;
 import org.tmmi.InteractiveBlock;
 import org.tmmi.events.PlayerBlockInteractEvent;
 
@@ -28,7 +31,7 @@ public class ForceField extends InteractiveBlock {
     }
 
     @Override
-    public void onPlace(Location location) {
+    public void onPlace(@NotNull Location location) {
 //        if (!forceFieldLocations.isEmpty()) {
 //            i++;
 //            for (Location loc : forceFieldLocations) {
@@ -106,12 +109,12 @@ public class ForceField extends InteractiveBlock {
     }
 
     @Override
-    public void onClick(Action action, Player player, PlayerBlockInteractEvent event) {
+    public void onClick(Action action, Player player, PlayerInteractEvent event) {
 
     }
 
     @Override
-    public void onGUIClick(InventoryAction action, ItemStack item, Player player) {
+    public void onGUIClick(InventoryAction action, ItemStack item, Player player, InventoryClickEvent event) {
 
     }
 }
