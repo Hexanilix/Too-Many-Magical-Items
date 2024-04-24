@@ -180,14 +180,7 @@ public class Main extends JavaPlugin {
                 checkFilesAndCreate();
                 if (loadClasses()) {
                     startAutosave();
-                    {
-                        ItemStack item = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
-                        ItemMeta itemMeta = item.getItemMeta();
-                        assert itemMeta != null;
-                        itemMeta.setDisplayName(" ");
-                        item.setItemMeta(itemMeta);
-                        background = item;
-                    }
+                    background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ");
                     setItems();
                     Bukkit.getPluginManager().registerEvents(new MainListener(), this);
 
@@ -264,11 +257,11 @@ public class Main extends JavaPlugin {
                 if (w != null) {
                     Spell main = w.getSpellInventory().getMainSpell();
                     Spell sec = w.getSpellInventory().getSecondarySpell();
-                    json += "   \"spells\":[\n" +
-                                String.join(",\n", w.getSpells().stream().map(Spell::toJson).toList()) +
-                                "\n   ],\n" +
-                                "   \"main\":\"" + (main != null ? main.getId() : "null") + "\",\n" +
-                                "   \"second\":\"" + (sec != null ? sec.getId() : "null") + "\"";
+                    json += "\t\"spells\":[\n" +
+                                String.join("\n\t\t",String.join(",\n", w.getSpells().stream().map(Spell::toJson).toList()).split("\n")) +
+                                "\n\t],\n" +
+                                "\t\"main\":\"" + (main != null ? main.getId() : "null") + "\",\n" +
+                                "\t\"second\":\"" + (sec != null ? sec.getId() : "null") + "\"";
                 }
                 json += "\n}";
                 writer.write(json); writer.close();
@@ -610,99 +603,79 @@ public class Main extends JavaPlugin {
     }
 
     private void setItems() {
-        Inventory pg1 = Bukkit.createInventory(null, 54, "pg1");
-        // Item
-        Item focusWand = new Item(Material.STICK);
-        ItemMeta fcM = focusWand.getItemMeta();
-        assert fcM != null;
-        fcM.setDisplayName(ChatColor.GOLD + "Focus Wand");
-        fcM.setCustomModelData(2140000+wands.size());
-        focusWand.setItemMeta(fcM);
-        pg1.addItem(focusWand);
+        allItemInv.add(Bukkit.createInventory(null, 54, "pg1"));
 
-        // Blocks
-        Item craftCaul = new Item(Material.CAULDRON);
-        ItemMeta crM = craftCaul.getItemMeta();
-        assert crM != null;
-        crM.setDisplayName(ChatColor.LIGHT_PURPLE + "Crafting Cauldron");
-        crM.setLore(List.of("lore"));
-        crM.setCustomModelData(200000);
-        craftCaul.setItemMeta(fcM);
-        CrafttingCauldron.item = craftCaul;
-        pg1.addItem(craftCaul);
-
-        Item spellNaber = new Item(Material.LODESTONE);
-        ItemMeta snM = spellNaber.getItemMeta();
-        assert snM != null;
-        snM.setDisplayName(ChatColor.GOLD + "Spell Condenser");
-        snM.setLore(List.of("lore"));
-        snM.setCustomModelData(200001);
-        spellNaber.setItemMeta(fcM);
-        SpellAbsorbingBlock.item = spellNaber;
-        pg1.addItem(spellNaber);
-
-        Item fusionCrys = new Item(Material.END_CRYSTAL);
-        ItemMeta fuM = fusionCrys.getItemMeta();
-        assert fuM != null;
-        fuM.setDisplayName(ChatColor.DARK_AQUA + "Fusion Crystal");
-        List<String> lore = new ArrayList<>();
-        lore.add("A Crystal with the power");
-        lore.add("of 1m brewing stands");
-        fuM.setLore(lore);
-        fuM.setCustomModelData(365450);
-        fusionCrys.setItemMeta(fuM);
-        pg1.addItem(fusionCrys);
+        CrafttingCauldron.item = newItem(Material.CAULDRON, ChatColor.LIGHT_PURPLE + "Crafting Cauldron", 200000);
+        SpellAbsorbingBlock.item = newItem(Material.LODESTONE, ChatColor.GOLD + "Spell Condenser", 200001);
+        SpellCrafter.item = newItem(Material.GOLD_BLOCK, ChatColor.DARK_AQUA + "MAGIC CARFTIN", 23461, List.of("A Crystal with the power", "of 1m brewing stands"));
+        Spell.Element.FIRE_ITEM = newItem(Material.FIRE_CHARGE, ChatColor.DARK_AQUA + "Fire", 245723);
+        Spell.Element.EARTH_ITEM = newItem(Material.GRASS_BLOCK, ChatColor.DARK_GREEN + "Earth", 245724);
+        Spell.Element.WATER_ITEM = newItem(Material.WATER_BUCKET, ChatColor.DARK_GREEN + "Water", 245725);
+        Spell.Element.AIR_ITEM = newItem(Material.FEATHER, ChatColor.WHITE + "Air", 245726);
+        Spell.CastAreaEffect.DIRECT_ITEM = newItem(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Direct", 824574);
+        Spell.CastAreaEffect.WIDE_ITEM = newItem(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Wide", 824575);
+        Spell.CastAreaEffect.AREA_ITEM = newItem(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Area", 824576);
+        Item fusionCrys = newItem(Material.END_CRYSTAL, ChatColor.DARK_AQUA + "Fusion Crystal", 365450, List.of());
         {
-            Item its = new Item(Material.GOLD_BLOCK);
-            ItemMeta im = its.getItemMeta();
-            assert im != null;
-            fuM.setDisplayName(ChatColor.DARK_AQUA + "MAGIC CARFTIN");
-            List<String> itl = new ArrayList<>();
-            itl.add("A Crystal with the power");
-            itl.add("of 1m brewing stands");
-            im.setLore(itl);
-            im.setCustomModelData(23461);
-            its.setItemMeta(im);
-            SpellCrafter.item = its;
-            pg1.addItem(its);
+            NamespacedKey key = new NamespacedKey(this, "fusion_crystal");
+            ShapedRecipe crfCReci = new ShapedRecipe(key, fusionCrys);
+            crfCReci.shape(
+                    "SAS",
+                    "UAU",
+                    "SES");
+            crfCReci.setIngredient('A', Material.AIR);
+            crfCReci.setIngredient('E', Material.END_CRYSTAL);
+            crfCReci.setIngredient('U', Material.NETHERITE_SCRAP);
+            crfCReci.setIngredient('S', Material.IRON_INGOT);
+            Bukkit.getServer().addRecipe(crfCReci);
+            Permission permission = new Permission("tmmi.craft." + crfCReci.getKey().getKey(), "Fusion crystal perm");
+            Bukkit.getServer().getPluginManager().addPermission(permission);
         }
-        Item fireElm = new Item(Material.FIRE_CHARGE);
-        ItemMeta feM = fireElm.getItemMeta();
-        assert feM != null;
-        feM.setDisplayName(ChatColor.DARK_AQUA + "Fire");
-        feM.setCustomModelData(245723);
-        fireElm.setItemMeta(feM);
-        Spell.Element.FIRE_ITEM = fireElm;
-        pg1.addItem(fireElm);
-
-        Item dirE = new Item(Material.WRITABLE_BOOK);
-        ItemMeta fdM = dirE.getItemMeta();
-        assert fdM != null;
-        fdM.setDisplayName(ChatColor.DARK_AQUA + "Direct");
-        fdM.setCustomModelData(824574);
-        dirE.setItemMeta(fdM);
-        Spell.CastAreaEffect.DIRECT_ITEM = dirE;
-        pg1.addItem(dirE);
-        allItemInv.add(pg1);
-
-        NamespacedKey key = new NamespacedKey(this, "crafting_cauldron");
-        ShapedRecipe crfCReci = new ShapedRecipe(key, CrafttingCauldron.item);
-        crfCReci.shape(
-                "ADA",
-                "ECE",
-                "AUA");
-        crfCReci.setIngredient('A', Material.AIR);
-        crfCReci.setIngredient('E', Material.ECHO_SHARD);
-        crfCReci.setIngredient('U', Material.NETHERITE_SCRAP);
-        crfCReci.setIngredient('C', new RecipeChoice.ExactChoice(fusionCrys));
-        crfCReci.setIngredient('D', Material.DIAMOND);
-        Bukkit.getServer().addRecipe(crfCReci);
-        Permission permission = new Permission("tmmi.craft."+crfCReci.getKey().getKey(), "Crafting cauldron perm");
-        Bukkit.getServer().getPluginManager().addPermission(permission);
-
+        {
+            NamespacedKey key = new NamespacedKey(this, "crafting_cauldron");
+            ShapedRecipe crfCReci = new ShapedRecipe(key, CrafttingCauldron.item);
+            crfCReci.shape(
+                    "ADA",
+                    "ECE",
+                    "AUA");
+            crfCReci.setIngredient('A', Material.AIR);
+            crfCReci.setIngredient('E', Material.ECHO_SHARD);
+            crfCReci.setIngredient('U', Material.NETHERITE_SCRAP);
+            crfCReci.setIngredient('C', new RecipeChoice.ExactChoice(fusionCrys));
+            crfCReci.setIngredient('D', Material.DIAMOND);
+            Bukkit.getServer().addRecipe(crfCReci);
+            Permission permission = new Permission("tmmi.craft." + crfCReci.getKey().getKey(), "Crafting cauldron perm");
+            Bukkit.getServer().getPluginManager().addPermission(permission);
+        }
         Inventory inv = Bukkit.createInventory(null, 54, "elo");
         inv.setItem(0, fusionCrys);
         SpellCrafter.gui = inv;
+    }
+    public static void newItem(Material mat, String name, int data) {
+        newItem(mat, name, data, new ArrayList<>());
+    }
+    public static void newItem(Material mat, String name, int data, List<String> lore) {
+        Item i = new Item(mat);
+        ItemMeta m = i.getItemMeta();
+        assert m != null;
+        m.setDisplayName(name);
+        m.setCustomModelData(data);
+        m.setLore(lore);
+        i.setItemMeta(m);
+        allItemInv.get(0).addItem(i);
+    }
+    public static @NotNull ItemStack newItemStack(Material mat, String name) {
+        return newItemStack(mat, name, 0, null);
+    }
+    public static @NotNull ItemStack newItemStack(Material mat, String name, int data, List<String> lore) {
+        ItemStack i = new ItemStack(mat);
+        ItemMeta m = i.getItemMeta();
+        assert m != null;
+        m.setDisplayName(name);
+        if (data != 0) m.setCustomModelData(data);
+        if (lore != null) m.setLore(lore);
+        i.setItemMeta(m);
+        return i;
     }
 
     public static class MainListener implements Listener {

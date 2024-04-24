@@ -362,17 +362,17 @@ public class Spell {
     }
     public String toJson() {
         return "{\n" +
-                "   \"id\":\"" + this.id + "\",\n" +
-                "   \"name\":\"" + this.name + "\",\n" +
-                "   \"level\":" + this.level + ",\n" +
-                "   \"cast_cost\":" + this.castCost + ",\n" +
-                "   \"main_element\":\"" + this.mainElement + "\",\n" +
-                "   \"secondary_element\":\"" + this.secondaryElement + "\",\n" +
-                "   \"cast_area_effect\":\"" + this.castAreaEffect + "\",\n" +
-                "   \"spell_type\":\"" + this.spellType + "\",\n" +
-                "   \"base_damage\":" + this.baseDamage + ",\n" +
-                "   \"speed\":" + this.speed + ",\n" +
-                "   \"travel\":" + this.travel + "\n" +
+                "\t\"id\":\"" + this.id + "\",\n" +
+                "\t\"name\":\"" + this.name + "\",\n" +
+                "\t\"level\":" + this.level + ",\n" +
+                "\t\"cast_cost\":" + this.castCost + ",\n" +
+                "\t\"main_element\":\"" + this.mainElement + "\",\n" +
+                "\t\"secondary_element\":\"" + this.secondaryElement + "\",\n" +
+                "\t\"cast_area_effect\":\"" + this.castAreaEffect + "\",\n" +
+                "\t\"spell_type\":\"" + this.spellType + "\",\n" +
+                "\t\"base_damage\":" + this.baseDamage + ",\n" +
+                "\t\"speed\":" + this.speed + ",\n" +
+                "\t\"travel\":" + this.travel + "\n" +
                 "}";
     }
 }

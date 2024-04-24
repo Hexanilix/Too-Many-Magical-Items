@@ -33,7 +33,6 @@ public class SpellCrafter extends InteractiveBlock {
     @Override
     public void onClick(Action action, @NotNull Player player, PlayerInteractEvent event) {
         player.openInventory(this.getGui());
-        log("oh ye");
     }
 
     @Override
