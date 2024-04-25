@@ -1,23 +1,25 @@
-package org.tmmi;
+package org.tmmi.items;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
+import org.tmmi.Item;
+import org.tmmi.Main;
+import org.tmmi.Spell;
+import org.tmmi.WeavePlayer;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.tmmi.items.FocusWand.wands;
-
-public abstract class Wand extends InteractiveItem {
+public abstract class Wand extends Item {
     public static List<Wand> wands = new ArrayList<>();
     private int slot;
     private float power;
@@ -74,7 +76,8 @@ public abstract class Wand extends InteractiveItem {
     }
 
     @Override
-    public void onUse(Action action) {
+    public void onUse(@NotNull PlayerInteractEvent event) {
+        Action action = event.getAction();
         if (activeUser == null) {
             activeUser = Bukkit.getPlayer(handler);
         }
@@ -109,13 +112,13 @@ public abstract class Wand extends InteractiveItem {
     }
 
     @Override
-    public void onDrop() {
+    public void onDrop(PlayerDropItemEvent event) {
         this.activeUser = null;
     }
 
     @Override
-    public void onPickup(Player p) {
-        this.activeUser = p;
+    public void onPickup(@NotNull PlayerPickupItemEvent event) {
+        this.activeUser = event.getPlayer();
         this.handler = activeUser.getUniqueId();
     }
 }

@@ -5,6 +5,7 @@ import org.bukkit.event.block.Action;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.items.GrandBook;
+import org.tmmi.items.Wand;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,8 +58,22 @@ public class WeavePlayer {
         }
     }
 
-    public void addSpell(Spell s) {
-        this.spells.add(s);
+    public boolean addSpell(@NotNull Spell s) {
+        int m;
+        List<Spell> l;
+        if (s.getType() == Spell.SpellType.CANTRIP) {
+            if (this.getSpellInventory().getCanSize() < this.getSpellInventory().getCanSpells().size()) {
+                this.getSpellInventory().addSpell(s);
+                return true;
+            }
+            return false;
+        } else {
+            if (this.getSpellInventory().getSorSize() < this.getSpellInventory().getSorcerySpells().size()) {
+                this.getSpellInventory().addSpell(s);
+                return true;
+            }
+            return false;
+        }
     }
 
     private Spell getMainSpell() {

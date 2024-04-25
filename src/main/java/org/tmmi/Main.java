@@ -7,7 +7,6 @@ import org.bukkit.*;
 import org.bukkit.command.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
-import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -32,9 +31,9 @@ import org.json.JSONObject;
 import org.tmmi.block.CrafttingCauldron;
 import org.tmmi.block.ForceField;
 import org.tmmi.block.SpellAbsorbingBlock;
-import org.tmmi.block.SpellCrafter;
-import org.tmmi.events.PlayerBlockInteractEvent;
+import org.tmmi.block.SpellWeaver;
 import org.tmmi.items.FocusWand;
+import org.tmmi.items.Wand;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -43,15 +42,16 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 
+import static org.tmmi.Spell.Element.getElement;
 import static org.tmmi.Spell.spells;
 import static org.tmmi.WeavePlayer.getWeaver;
 import static org.tmmi.block.CrafttingCauldron.craftingCauldronLocations;
 import static org.tmmi.block.Presence.*;
 import static org.tmmi.block.Presence.detectorLocations;
 import static org.tmmi.Properties.*;
-import static org.tmmi.items.FocusWand.wands;
 
 public class Main extends JavaPlugin {
+    static List<UUID> uuids = new ArrayList<>();
     public static Plugin plugin;
     public Set<Class<?>> classes = new HashSet<>();
     public static boolean DISABLED;
@@ -180,7 +180,7 @@ public class Main extends JavaPlugin {
                 checkFilesAndCreate();
                 if (loadClasses()) {
                     startAutosave();
-                    background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ");
+                    background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ", 1010101102);
                     setItems();
                     Bukkit.getPluginManager().registerEvents(new MainListener(), this);
 
@@ -218,8 +218,8 @@ public class Main extends JavaPlugin {
                                                 j.getString("name"),
                                                 j.getInt("level"),
                                                 j.getInt("cast_cost"),
-                                                Spell.Element.getElement(j.getString("main_element")),
-                                                Spell.Element.getElement(j.getString("secondary_element")),
+                                                getElement(j.getString("main_element")),
+                                                getElement(j.getString("secondary_element")),
                                                 Spell.CastAreaEffect.getAreaEffect(j.getString("cast_area_effect")),
                                                 Spell.SpellType.getSpellType(j.getString("spell_type")),
                                                 j.getDouble("base_damage"),
@@ -607,7 +607,7 @@ public class Main extends JavaPlugin {
 
         CrafttingCauldron.item = newItem(Material.CAULDRON, ChatColor.LIGHT_PURPLE + "Crafting Cauldron", 200000);
         SpellAbsorbingBlock.item = newItem(Material.LODESTONE, ChatColor.GOLD + "Spell Condenser", 200001);
-        SpellCrafter.item = newItem(Material.GOLD_BLOCK, ChatColor.DARK_AQUA + "MAGIC CARFTIN", 23461, List.of("A Crystal with the power", "of 1m brewing stands"));
+        SpellWeaver.item = newItem(Material.GOLD_BLOCK, ChatColor.DARK_AQUA + "MAGIC CARFTIN", 23461, List.of("A Crystal with the power", "of 1m brewing stands"));
         Spell.Element.FIRE_ITEM = newItem(Material.FIRE_CHARGE, ChatColor.DARK_AQUA + "Fire", 245723);
         Spell.Element.EARTH_ITEM = newItem(Material.GRASS_BLOCK, ChatColor.DARK_GREEN + "Earth", 245724);
         Spell.Element.WATER_ITEM = newItem(Material.WATER_BUCKET, ChatColor.DARK_GREEN + "Water", 245725);
@@ -647,14 +647,11 @@ public class Main extends JavaPlugin {
             Permission permission = new Permission("tmmi.craft." + crfCReci.getKey().getKey(), "Crafting cauldron perm");
             Bukkit.getServer().getPluginManager().addPermission(permission);
         }
-        Inventory inv = Bukkit.createInventory(null, 54, "elo");
-        inv.setItem(0, fusionCrys);
-        SpellCrafter.gui = inv;
     }
-    public static void newItem(Material mat, String name, int data) {
-        newItem(mat, name, data, new ArrayList<>());
+    public static @NotNull Item newItem(Material mat, String name, int data) {
+        return newItem(mat, name, data, new ArrayList<>());
     }
-    public static void newItem(Material mat, String name, int data, List<String> lore) {
+    public static @NotNull Item newItem(Material mat, String name, int data, List<String> lore) {
         Item i = new Item(mat);
         ItemMeta m = i.getItemMeta();
         assert m != null;
@@ -663,9 +660,13 @@ public class Main extends JavaPlugin {
         m.setLore(lore);
         i.setItemMeta(m);
         allItemInv.get(0).addItem(i);
+        return i;
     }
     public static @NotNull ItemStack newItemStack(Material mat, String name) {
         return newItemStack(mat, name, 0, null);
+    }
+    public static @NotNull ItemStack newItemStack(Material mat, String name, int data) {
+        return newItemStack(mat, name, data, null);
     }
     public static @NotNull ItemStack newItemStack(Material mat, String name, int data, List<String> lore) {
         ItemStack i = new ItemStack(mat);
@@ -699,8 +700,8 @@ public class Main extends JavaPlugin {
                     new CrafttingCauldron(loc);
                 } else if (isSim(ForceField.item, i)) {
                     new ForceField(loc);
-                } else if (isSim(SpellCrafter.item, i)) {
-                    new SpellCrafter(loc);
+                } else if (isSim(SpellWeaver.item, i)) {
+                    new SpellWeaver(loc);
                     log("placesc rafter");
                 } else if (isSim(SpellAbsorbingBlock.item, i)) {
                     new SpellAbsorbingBlock(loc);
@@ -731,35 +732,43 @@ public class Main extends JavaPlugin {
         }
         @EventHandler
         public static void onPlayerInteract(@NotNull PlayerInteractEvent event) {
-            if (!event.hasItem()) {
-                return;
-            }
+            if (!event.hasItem()) return;
             ItemStack item = event.getItem();
-            if (item == null) {
-                return;
-            }
-            if (!item.hasItemMeta()) {
-                return;
-            }
-            if (!Objects.requireNonNull(item.getItemMeta()).hasCustomModelData()) {
-                return;
-            }
+            if (item == null) return;
+            if (!item.hasItemMeta()) return;
+            if (!Objects.requireNonNull(item.getItemMeta()).hasCustomModelData()) return;
+            for (Item i : Item.items)
+                if (isSim(item, i))
+                    i.onUse(event);
             WeavePlayer weaver = getWeaver(event.getPlayer());
-            if (weaver != null) {
-                if (item.equals(weaver.getWand())) {
-                    weaver.getWand().onUse(event.getAction());
-                }
-            }
-//            EventExecutor.callEvent(new PlayerItemUseEvent(event.getPlayer(), event.getItem(), event));
+            if (weaver != null)
+                if (item.equals(weaver.getWand()))
+                    weaver.getWand().onUse(event);
+        }
+        @EventHandler
+        public static void onItemPickup(@NotNull PlayerPickupItemEvent event) {
+            ItemStack item = event.getItem().getItemStack();
+            if (!item.hasItemMeta()) return;
+            if (!Objects.requireNonNull(item.getItemMeta()).hasCustomModelData()) return;
+            for (Item i : Item.items)
+                if (isSim(item, i))
+                    i.onPickup(event);
+        }
+        @EventHandler
+        public static void onItemPickup(@NotNull PlayerDropItemEvent event) {
+            ItemStack item = event.getItemDrop().getItemStack();
+            if (!item.hasItemMeta()) return;
+            if (!Objects.requireNonNull(item.getItemMeta()).hasCustomModelData()) return;
+            for (Item i : Item.items)
+                if (isSim(item, i))
+                    i.onDrop(event);
         }
         @EventHandler
         public static void onBlockClick(@NotNull PlayerInteractEvent event) {
-            log("click");
             if (event.getClickedBlock() != null) {
                 for (InteractiveBlock b : interactiveBlock) {
                     if (b.getLoc().getBlock().equals(event.getClickedBlock().getLocation().getBlock())) {
                         b.onClick(event.getAction(), event.getPlayer(), event);
-                        log("mb");
                     }
                 }
             }
@@ -774,15 +783,13 @@ public class Main extends JavaPlugin {
         public void invClick(@NotNull InventoryClickEvent event) {
             ItemStack i = event.getInventory().getItem(0);
             ItemStack ci = event.getCurrentItem();
-            if (i != null && ci != null && i.hasItemMeta() && Objects.requireNonNull(i.getItemMeta()).hasCustomModelData()) {
-                if (allItemInv.contains(event.getInventory())) {
-                    event.getWhoClicked().getInventory().addItem(ci);
-                    event.setCancelled(true);
-                } else {
-                    for (InteractiveBlock inter : interactiveBlock) {
-                        if (isSim(inter.getGui().getItem(0), i)) {
-                            inter.onGUIClick(event.getAction(), ci, (Player) event.getWhoClicked(), event);
-                        }
+            if (allItemInv.contains(event.getInventory())) {
+                event.getWhoClicked().getInventory().addItem(ci);
+                event.setCancelled(true);
+            } else {
+                for (InteractiveBlock inter : interactiveBlock) {
+                    if (isSim(inter.getGui().getItem(0), i)) {
+                        inter.onGUIClick(event.getAction(), ci, (Player) event.getWhoClicked(), event);
                     }
                 }
             }
@@ -844,6 +851,7 @@ public class Main extends JavaPlugin {
         u.append('-');
         for (int i = 0; i < 8; i ++)
             u.append(digits.charAt(new Random().nextInt(16)));
+        uuids.add(UUID.fromString(u.toString()));
         return UUID.fromString(u.toString());
     }
     public static @NotNull String IntToHex(int i) {

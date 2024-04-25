@@ -1,13 +1,28 @@
 package org.tmmi;
 
+import org.bukkit.Bukkit;
+import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.tmmi.Main.background;
+import static org.tmmi.Main.newItemStack;
 import static org.tmmi.Spell.SpellType.CANTRIP;
 
 public class SpellInventory {
+    public Inventory toInventory() {
+        Inventory inv = Bukkit.createInventory(null, 54, "Spell Weaver");
+        for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, background);
+
+        inv.setItem(10, null);
+        inv.setItem(11, null);
+        inv.setItem(12, null);
+        inv.setItem(13, null);
+        return inv;
+    }
+
     public enum SpellType {
         MAIN,
         SECONDARY
@@ -73,5 +88,13 @@ public class SpellInventory {
 
     public void expandSorSize(int amnt) {
         this.sorSize += amnt;
+    }
+
+    public int getSorSize() {
+        return sorSize;
+    }
+
+    public int getCanSize() {
+        return canSize;
     }
 }

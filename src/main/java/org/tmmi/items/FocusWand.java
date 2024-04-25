@@ -1,19 +1,11 @@
 package org.tmmi.items;
 
-import org.bukkit.*;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.jetbrains.annotations.NotNull;
-import org.tmmi.Wand;
-
 import java.util.*;
 
-import static org.tmmi.Main.plugin;
+import static org.tmmi.Main.newItem;
 
 
 public class FocusWand extends Wand {
-    public static List<FocusWand> wands = new ArrayList<>();
-    public static ItemStack item;
 
     public FocusWand(UUID uuid) {
         super(uuid);

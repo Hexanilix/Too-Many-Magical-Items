@@ -1,5 +1,11 @@
 package org.tmmi;
+
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Nullable;
 
@@ -28,5 +34,17 @@ public class Item extends ItemStack {
 
     public UUID getId() {
         return id;
+    }
+
+    public void onUse(PlayerInteractEvent event) {
+
+    }
+
+    public void onDrop(PlayerDropItemEvent event) {
+
+    }
+
+    public void onPickup(PlayerPickupItemEvent event) {
+
     }
 }

@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import static org.tmmi.Main.isSim;
 import static org.tmmi.Main.plugin;
 
 public class Spell {
@@ -59,11 +60,11 @@ public class Spell {
         }
         @Contract(pure = true)
         public static @Nullable CastAreaEffect getAreaEffect(ItemStack item) {
-            if (item == DIRECT_ITEM) {
+            if (isSim(item, DIRECT_ITEM)) {
                 return DIRECT;
-            } else if (item == WIDE_ITEM) {
+            } else if (isSim(item, WIDE_ITEM)) {
                 return WIDE;
-            } else if (item == AREA_ITEM) {
+            } else if (isSim(item, AREA_ITEM)) {
                 return AREA;
             }
             return null;
@@ -97,13 +98,13 @@ public class Spell {
         @Contract(pure = true)
         public static @Nullable Element getElement(ItemStack item) {
             Element e = null;
-            if (item == FIRE_ITEM) {
+            if (isSim(item, FIRE_ITEM)) {
                 e = FIRE;
-            } else if (item == EARTH_ITEM) {
+            } else if (isSim(item, EARTH_ITEM)) {
                 e = EARTH;
-            } else if (item == WATER_ITEM) {
+            } else if (isSim(item, WATER_ITEM)) {
                 e = WATER;
-            } else if (item == AIR_ITEM) {
+            } else if (isSim(item, AIR_ITEM)) {
                 e = AIR;
             }
             return e;
@@ -128,7 +129,7 @@ public class Spell {
 
     private BukkitTask spellRun;
 
-    public Spell(UUID handler, String name, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, int usedMagicules) {
+    public Spell(UUID handler, String name, @NotNull Element mainElement, Element secondaryElement, @NotNull CastAreaEffect castAreaEffect, int usedMagicules) {
         this(Main.newUUID(Main.TMMIobject.SPELL), handler, name, 1, 10, mainElement, secondaryElement, castAreaEffect, SpellType.CANTRIP, (double) usedMagicules /100, 1, 10);
     }
     public Spell(UUID id, UUID handler, String name, int level, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double baseDamage, double speed, double travel) {
