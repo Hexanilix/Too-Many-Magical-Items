@@ -12,16 +12,6 @@ import static org.tmmi.Main.newItemStack;
 import static org.tmmi.Spell.SpellType.CANTRIP;
 
 public class SpellInventory {
-    public Inventory toInventory() {
-        Inventory inv = Bukkit.createInventory(null, 54, "Spell Weaver");
-        for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, background);
-
-        inv.setItem(10, null);
-        inv.setItem(11, null);
-        inv.setItem(12, null);
-        inv.setItem(13, null);
-        return inv;
-    }
 
     public enum SpellType {
         MAIN,
@@ -91,10 +81,29 @@ public class SpellInventory {
     }
 
     public int getSorSize() {
-        return sorSize;
+        return this.sorSize;
     }
 
     public int getCanSize() {
-        return canSize;
+        return this.canSize;
+    }
+
+    public Inventory toInventory() {
+        Inventory inv = Bukkit.createInventory(null, 54, "Spell Weaver");
+        for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, background);
+        for (int i = 10; i < this.canSize; i++) inv.setItem(i, null);
+        for (Spell s : canSpells) {
+            ItemStack item = s.toItem();
+            if (s == this.getMainSpell()) item.getItemMeta().setAtributes();
+            inv.add(s.toItem());
+        }
+        for (int i = 28; i < this.canSize; i++) inv.setItem((i > 35 ? i+3 : i), null);
+        int j = 28;
+        for (Spell s : sorcerySpells) {
+            ItemStack item = s.toItem();
+            inv.setItem(j, item);
+            j++;
+        }
+        return inv;
     }
 }

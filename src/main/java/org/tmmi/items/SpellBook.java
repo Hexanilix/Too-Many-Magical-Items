@@ -9,6 +9,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.jetbrains.annotations.NotNull;
 import org.tmmi.Item;
 import org.tmmi.WeavePlayer;
 
@@ -27,9 +28,12 @@ public class SpellBook extends Item {
         m.setLore(List.of());
         this.setItemMeta(m);
     }
+    public void invClick(InventoryClickEvent event) {
+
+    }
 
     @Override
-    public void onUse(PlayerInteractEvent event) {
+    public void onUse(@NotNull PlayerInteractEvent event) {
         Player p = event.getPlayer();
         WeavePlayer w = WeavePlayer.getWeaver(p);
         if (w == null) return;

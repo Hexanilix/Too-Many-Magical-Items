@@ -11,8 +11,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.tmmi.Main.log;
-
 public class WeavePlayer {
     public static List<WeavePlayer> weavers = new ArrayList<>();
     public static @Nullable WeavePlayer getWeaver(@NotNull Player player) {
@@ -58,22 +56,21 @@ public class WeavePlayer {
         }
     }
 
-    public boolean addSpell(@NotNull Spell s) {
-        int m;
-        List<Spell> l;
-        if (s.getType() == Spell.SpellType.CANTRIP) {
-            if (this.getSpellInventory().getCanSize() < this.getSpellInventory().getCanSpells().size()) {
-                this.getSpellInventory().addSpell(s);
-                return true;
+    public boolean addSpell(@NotNull Spell @NotNull ... spells) {
+        for (Spell s : spells) {
+            if (s.getType() == Spell.SpellType.CANTRIP) {
+                if (this.getSpellInventory().getCanSize() > this.getSpellInventory().getCanSpells().size()) {
+                    this.getSpellInventory().addSpell(s);
+                    return false;
+                }
+            } else {
+                if (this.getSpellInventory().getSorSize() > this.getSpellInventory().getSorcerySpells().size()) {
+                    this.getSpellInventory().addSpell(s);
+                    return false;
+                }
             }
-            return false;
-        } else {
-            if (this.getSpellInventory().getSorSize() < this.getSpellInventory().getSorcerySpells().size()) {
-                this.getSpellInventory().addSpell(s);
-                return true;
-            }
-            return false;
         }
+        return true;
     }
 
     private Spell getMainSpell() {

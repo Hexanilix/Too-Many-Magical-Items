@@ -156,18 +156,20 @@ public class Main extends JavaPlugin {
                     log(Level.SEVERE, "Could not create properties file at '" + PROP_FILE + "'\nLog:\n" + String.join(Arrays.asList(e.getStackTrace()).toString()) + "\n");
                     return;
                 }
-                List<Pair<Properties, String>> plist = List.of(
+                List<Pair<Properties, Object>> plist = List.of(
                         new Pair<>(COMMENT, "Last automatic modification: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())),
                         new Pair<>(FILEVERSION, PROP_VERSION),
-                        new Pair<>(COMMENT, "Do not change the above values and names, this can cause issues and improper loading in the plugin"),
-                        new Pair<>(COMMENT, "The following values are to be customised"),
+                        new Pair<>(COMMENT, "Do not change the above values, this can cause issues and improper loading in the plugin"),
+                        new Pair<>(COMMENT, "The following values are to be customised, change any value after the '=' char to your liking based"),
+                        new Pair<>(COMMENT, "of this list: "),
                         new Pair<>(ENABLED, "true"),
                         new Pair<>(AUTOSAVE, "true"),
-                        new Pair<>(AUTOSAVE_MSG, "true"),
-                        new Pair<>(AUTOSAVE_FREQUENCY, "600"));
+                        new Pair<>(AUTOSAVE_MSG, true),
+                        new Pair<>(AUTOSAVE_FREQUENCY, 600),
+                        new Pair<>(SPELL_COLLISION, true));
                 try {
                     FileWriter writer = new FileWriter(PROP_FILE);
-                    for (Pair<Properties, String> e : plist) writer.append(e.key().key()).append((e.key().equals(COMMENT) ? "" : "=")).append(e.value()).append("\n");
+                    for (Pair<Properties, Object> e : plist) writer.append(e.key().key()).append((e.key().equals(COMMENT) ? "" : "=")).append(String.valueOf(e.value())).append("\n");
                     writer.close();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -787,6 +789,11 @@ public class Main extends JavaPlugin {
                 event.getWhoClicked().getInventory().addItem(ci);
                 event.setCancelled(true);
             } else {
+                for (Inventory inv : registeredInvs) {
+                    if (event.getClickedInventory() == inv) {
+
+                    }
+                }
                 for (InteractiveBlock inter : interactiveBlock) {
                     if (isSim(inter.getGui().getItem(0), i)) {
                         inter.onGUIClick(event.getAction(), ci, (Player) event.getWhoClicked(), event);

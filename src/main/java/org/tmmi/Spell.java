@@ -14,13 +14,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.events.SpellCollideEvent;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import static org.tmmi.Main.isSim;
-import static org.tmmi.Main.plugin;
+import static org.tmmi.Main.*;
 
 public class Spell {
     public static List<Spell> spells = new ArrayList<>();
@@ -84,6 +85,10 @@ public class Spell {
         public static ItemStack EARTH_ITEM;
         public static ItemStack WATER_ITEM;
         public static ItemStack AIR_ITEM;
+        public static List<Biome> FIRE_BIOMES;
+        public static List<Biome> EARTH_BIOMES;
+        public static List<Biome> WATER_BIOMES;
+        public static List<Biome> AIR_BIOMES;
         @Contract(pure = true)
         public static Element getElement(@NotNull String element) {
             Element e = null;
@@ -98,16 +103,34 @@ public class Spell {
         @Contract(pure = true)
         public static @Nullable Element getElement(ItemStack item) {
             Element e = null;
-            if (isSim(item, FIRE_ITEM)) {
-                e = FIRE;
-            } else if (isSim(item, EARTH_ITEM)) {
-                e = EARTH;
-            } else if (isSim(item, WATER_ITEM)) {
-                e = WATER;
-            } else if (isSim(item, AIR_ITEM)) {
-                e = AIR;
-            }
+            if (isSim(item, FIRE_ITEM)) e = FIRE;
+            else if (isSim(item, EARTH_ITEM)) e = EARTH;
+            else if (isSim(item, WATER_ITEM)) e = WATER;
+            else if (isSim(item, AIR_ITEM)) e = AIR;
             return e;
+        }
+        @Contract(pure = true)
+        public static @Nullable ItemStack getItem(@NotNull Element element) {
+            ItemStack i = null;
+            switch (element) {
+                case AIR -> i = AIR_ITEM;
+                case EARTH -> i = EARTH_ITEM;
+                case WATER -> i = WATER_ITEM;
+                case FIRE -> i = FIRE_ITEM;
+            }
+            return i;
+        }
+
+        @Contract(pure = true)
+        public static @Nullable List<Biome> getOptimalBiomes(@NotNull Element element) {
+            List<Biome> b = null;
+            switch (element) {
+                case AIR -> b = AIR_BIOMES;
+                case EARTH -> b = EARTH_BIOMES;
+                case WATER -> b = WATER_BIOMES;
+                case FIRE -> b = FIRE_BIOMES;
+            }
+            return b;
         }
     }
 
@@ -117,22 +140,23 @@ public class Spell {
     private final CastAreaEffect castAreaEffect;
     private final Element mainElement;
     private final Element secondaryElement;
-    private final int level;
+    private int level;
     private final int castCost;
     private final SpellType spellType;
-    private final double travel;
-    private final double speed;
+    private double travel;
+    private double speed;
     private double baseDamage;
     private final Sound castSound;
     private boolean isCast;
     private Location castLocation;
+    private int XP;
 
     private BukkitTask spellRun;
 
     public Spell(UUID handler, String name, @NotNull Element mainElement, Element secondaryElement, @NotNull CastAreaEffect castAreaEffect, int usedMagicules) {
-        this(Main.newUUID(Main.TMMIobject.SPELL), handler, name, 1, 10, mainElement, secondaryElement, castAreaEffect, SpellType.CANTRIP, (double) usedMagicules /100, 1, 10);
+        this(Main.newUUID(Main.TMMIobject.SPELL), handler, name, 1, 0, 10, mainElement, secondaryElement, castAreaEffect, SpellType.CANTRIP, (double) usedMagicules /100, 1, 10);
     }
-    public Spell(UUID id, UUID handler, String name, int level, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double baseDamage, double speed, double travel) {
+    public Spell(UUID id, UUID handler, String name, int level, int XP, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double baseDamage, double speed, double travel) {
         this.id = id;
         this.handler = handler;
         this.name = name;
@@ -141,17 +165,16 @@ public class Spell {
         this.mainElement = mainElement;
         this.secondaryElement = secondaryElement;
         this.level = level;
+        this.XP = XP;
         this.spellType = spellType;
         this.travel = travel;
         this.speed = speed;
-        Sound castSpund1 = null;
         switch (mainElement) {
-            case FIRE -> castSpund1 = Sound.BLOCK_FIRE_AMBIENT;
-            case EARTH -> castSpund1 = Sound.MUSIC_UNDER_WATER;
-            case WATER -> castSpund1 = Sound.MUSIC_UNDER_WATER;
-            case AIR -> castSpund1 = Sound.ENTITY_GENERIC_EXPLODE;
+            case FIRE -> this.castSound = Sound.BLOCK_FIRE_AMBIENT;
+            case EARTH -> this.castSound = Sound.MUSIC_UNDER_WATER;
+            case WATER -> this.castSound = Sound.MUSIC_UNDER_WATER;
+            default -> this.castSound = Sound.ENTITY_GENERIC_EXPLODE;
         }
-        this.castSound = castSpund1;
         this.isCast = false;
         this.baseDamage = baseDamage;
         spells.add(this);
@@ -203,16 +226,42 @@ public class Spell {
         return baseDamage;
     }
 
+    private void levelUp() {
+        this.level++;
+        float margin = (this.level % 5 == 0 ? 0.3F : 0.1F);
+        this.speed += margin;
+        this.travel += margin*2;
+        this.baseDamage += margin*2;
+    }
+
     public void cast(Action action, Location castLocation, float multiplier) {
         this.castLocation = castLocation;
         this.isCast = true;
+        boolean opB = true;
+        boolean opE = true;
         Particle p = null;
         switch (this.mainElement) {
-            case AIR -> p = Particle.CLOUD;
-            case FIRE -> p = Particle.FLAME;
-            case EARTH -> p = Particle.BLOCK_DUST;
-            case WATER -> p = Particle.WATER_DROP;
+            case AIR -> {
+                p = Particle.CLOUD;
+                for (int i = 0; i < 10; i++)
+                    if (castLocation.getWorld().getBlockAt(castLocation.clone().add(0, i, 0)) != Material.AIR &&
+                            castLocation.getWorld().getBlockAt(castLocation.clone().add(0, -i, 0)) != Material.AIR)
+                        opE = false;
+                if (Element.optimalBiomes().contains(castLocation.getBiome())) {
+
+                }
+            }
+            case FIRE -> {
+                p = Particle.FLAME;
+            }
+            case EARTH -> {
+                p = Particle.BLOCK_DUST;
+            }
+            case WATER -> {
+                p = Particle.WATER_DROP;
+            }
         }
+        this.XP += this.level*2 + (opE ? this.level : 0);
         Particle finalP = p;
         double travDis = this.travel;
         double spellSpeed = this.speed;
@@ -229,7 +278,7 @@ public class Spell {
                     @Override
                     public void run() {
                         if (distance > travDis) {
-                            s.unCast();
+                            s.uncast();
                             cancel();
                             s.castLocation = null;
                         }
@@ -258,7 +307,7 @@ public class Spell {
                     @Override
                     public void run() {
                         if (distance > travDis) {
-                            s.unCast();
+                            s.uncast();
                             cancel();
                             s.castLocation = null;
                         }
@@ -295,7 +344,7 @@ public class Spell {
                     @Override
                     public void run() {
                         if (distance > travDis) {
-                            s.unCast();
+                            s.uncast();
                             cancel();
                             s.castLocation = null;
                         }
@@ -324,10 +373,9 @@ public class Spell {
                 }.runTaskTimer(plugin, 0, 2);
             }
         }
-
     }
 
-    public void unCast() {
+    public void uncast() {
         this.spellRun.cancel();
         this.isCast = false;
     }
@@ -338,6 +386,44 @@ public class Spell {
 
     public void onCollide(SpellCollideEvent event) {
 
+    }
+
+    public ItemStack toItem() {
+        ChatColor c;
+        switch (this.mainElement) {
+            case AIR -> c = ChatColor.WHITE;
+            case FIRE -> c = ChatColor.RED;
+            case EARTH -> c = ChatColor.LIME_GREEN;
+            default -> c = ChatColor.AQUA;
+        }
+        ChatColor sc;
+        switch (this.secondaryElement) {
+            case AIR -> sc = ChatColor.GRAY;
+            case FIRE -> sc = ChatColor.DARK_RED;
+            case EARTH -> sc = ChatColor.GREEN;
+            case WATER -> sc = ChatColor.AQUDARK_AQUAA;
+            default -> sc = c;
+        }
+        ItemStack item = Element.getOptimalBiomes(this.mainElement);
+        ItemMeta m = item.getItemMeta();
+        assert m != null;
+        m.setDIsplayName(c+this.name);
+        int nxtlxp = XP - (lvlXPcalc(this.level));
+        int nxtLvlXP = lvlXPcalc(this.level + 1);
+        int perc = (int) (((float) nxtlxp / nxtLvlXP) * 100);
+        m.setLore(List.of(c+"Level "+this.level, c + "[" +
+                        "-".repeat(Math.max(0, perc/4)) +
+                        sc + "-".repeat(Math.max(0, 25 - perc/4)) +
+                        c + "]" + (nxtlxp >= 1000 ? BigDecimal.valueOf((float) nxtlxp / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtlxp) +
+                        "/" + (nxtLvlXP >= 1000 ? BigDecimal.valueOf((float) nxtLvlXP / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtLvlXP),
+                ChatColor.GRAY + "Total XP: " + this.XP));
+        item.setMeta(m);
+        return item;
+    }
+    private int lvlXPcalc(int lvl) {
+        int j = 10;
+        for (int i = 1; i < lvl; i++) j = (int) (i * 1.5);
+        return j;
     }
 
     @Override
