@@ -1,3 +1,4 @@
+# ❗THIS PLUGIN IS IN ALPHA❗
 # TMMI: A fun Minecraft Magic Plugin
 Too Many Magical Items, or TMMI for short, is a Magic Minecraft plugin made by [Hexanilix](https://github.com/Hexanilix) as a result of some wants and lacks from simmilar plugins.
 This is a free, open source hobby project open to the commiunity to use for themselves.
