@@ -4,6 +4,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
@@ -15,6 +16,8 @@ import org.tmmi.WeavePlayer;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import static org.tmmi.Main.log;
 
 public class SpellBook extends Item {
     public static List<SpellBook> spellbooks = new ArrayList<>();

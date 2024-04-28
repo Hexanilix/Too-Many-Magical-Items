@@ -11,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
@@ -33,6 +34,7 @@ import org.tmmi.block.ForceField;
 import org.tmmi.block.SpellAbsorbingBlock;
 import org.tmmi.block.SpellWeaver;
 import org.tmmi.items.FocusWand;
+import org.tmmi.items.SpellBook;
 import org.tmmi.items.Wand;
 
 import java.io.*;
@@ -43,6 +45,7 @@ import java.util.*;
 import java.util.logging.Level;
 
 import static org.tmmi.Spell.Element.getElement;
+import static org.tmmi.Spell.Element.getItem;
 import static org.tmmi.Spell.spells;
 import static org.tmmi.WeavePlayer.getWeaver;
 import static org.tmmi.block.CrafttingCauldron.craftingCauldronLocations;
@@ -51,6 +54,7 @@ import static org.tmmi.block.Presence.detectorLocations;
 import static org.tmmi.Properties.*;
 
 public class Main extends JavaPlugin {
+    public static int unclickable = 2147837;
     static List<UUID> uuids = new ArrayList<>();
     public static Plugin plugin;
     public Set<Class<?>> classes = new HashSet<>();
@@ -69,7 +73,7 @@ public class Main extends JavaPlugin {
 
     public static Map<UUID, SpellInventory> weavers = new HashMap<>();
     public static List<ItemStack> items;
-    public static List<Inventory> allItemInv = new ArrayList<>();
+    public static List<Inventory> allItemInv = List.of(Bukkit.createInventory(null, 54, "pg1"));
 
     public static ItemStack background;
     private static final List<Integer> customItemSelectorDataList = new ArrayList<>();
@@ -182,7 +186,7 @@ public class Main extends JavaPlugin {
                 checkFilesAndCreate();
                 if (loadClasses()) {
                     startAutosave();
-                    background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ", 1010101102);
+                    background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ", unclickable);
                     setItems();
                     Bukkit.getPluginManager().registerEvents(new MainListener(), this);
 
@@ -219,6 +223,7 @@ public class Main extends JavaPlugin {
                                                 pid,
                                                 j.getString("name"),
                                                 j.getInt("level"),
+                                                j.getInt("experience"),
                                                 j.getInt("cast_cost"),
                                                 getElement(j.getString("main_element")),
                                                 getElement(j.getString("secondary_element")),
@@ -235,7 +240,6 @@ public class Main extends JavaPlugin {
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
-
                     }
                 }
             }
@@ -245,10 +249,10 @@ public class Main extends JavaPlugin {
                     "insufficient permission levels for this plugin");
         }
     }
-    private static void savePlayerData(@NotNull Player p) {
-        savePlayerData(p.getUniqueId());
+    private static boolean savePlayerData(@NotNull Player p) {
+        return savePlayerData(p.getUniqueId());
     }
-    private static void savePlayerData(@NotNull UUID id) {
+    private static boolean savePlayerData(@NotNull UUID id) {
         File file = new File(DTFL + "playerdata/" + id + ".json");
         try {
             if (!file.exists()) file.createNewFile();
@@ -267,10 +271,19 @@ public class Main extends JavaPlugin {
                 }
                 json += "\n}";
                 writer.write(json); writer.close();
+            } else {
+                return false;
             }
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            e.printStackTrace();
+            return false;
         }
+        return true;
+    }
+    private boolean autoSave() {
+        for (Player p : Bukkit.getOnlinePlayers())
+            if (!savePlayerData(p)) return false;
+        return true;
     }
 
     private void startAutosave() {
@@ -279,8 +292,7 @@ public class Main extends JavaPlugin {
                 try {
                     while (true) {
                         Thread.sleep((long) (intProp(AUTOSAVE_FREQUENCY) * 1000));
-                        for (Player p : Bukkit.getOnlinePlayers())
-                            savePlayerData(p);
+                        autoSave();
                         if (boolProp(AUTOSAVE_MSG)) log("Autosaving...");
                     }
                 } catch (InterruptedException e) {
@@ -307,99 +319,79 @@ public class Main extends JavaPlugin {
                     Player player = (Player) sender;
                     if (args.length != 0) {
                         if (player.isOp()) {
-                            if (args[0].equalsIgnoreCase("setPerm")) {
-                                if (args.length >= 2 && args.length < 4) {
-                                    Player desPlayer = Bukkit.getPlayer(args[1]);
-                                    if (desPlayer == null) {
-                                        player.sendMessage(ChatColor.RED + "Unknown player " + ChatColor.ITALIC + args[1]);
-                                    } else {
-                                        PermissionAttachment attachment = desPlayer.addAttachment(Main.this);
-                                        attachment.setPermission(permission, !desPlayer.hasPermission(permission));
-                                        player.sendMessage((desPlayer.hasPermission(permission) ? ChatColor.GREEN : ChatColor.YELLOW) + "Set " + desPlayer.getDisplayName() + "'s permission to use magic to " + desPlayer.hasPermission(permission));
-                                        if (!(args.length == 3 && args[2].equalsIgnoreCase("hide"))) {
-                                            desPlayer.sendMessage((desPlayer.hasPermission(permission) ? ChatColor.GREEN : ChatColor.YELLOW) + "You now " + (desPlayer.hasPermission(permission) ? "have" : "don't have") + " permission to use magic");
-                                        }
-                                        desPlayer.recalculatePermissions();
-                                    }
-                                } else if (args.length < 2) {
-                                    PermissionAttachment attachment = player.addAttachment(Main.this);
-                                    attachment.setPermission(permission, !player.hasPermission(permission));
-                                    player.sendMessage((player.hasPermission(permission) ? ChatColor.GREEN : ChatColor.YELLOW) + "You now " + (player.hasPermission(permission) ? "have" : "don't have") + " permission to use magic");
-                                    player.recalculatePermissions();
-                                } else {
-                                    player.sendMessage(ChatColor.RED + "Too many arguments");
-                                }
-                            } else if (args[0].equalsIgnoreCase("items")) {
-                                if (args.length >= 2) {
-                                    if (args[1].equalsIgnoreCase("removeAllCraftingCauldrons")) {
-                                        String confirm = ChatColor.RED + "You must confirm this action. To do so, add the 'confirm' argument at the end of the command.";
-                                        if (args.length == 2) {
-                                            player.sendMessage(confirm);
-                                        } else if (args.length == 3) {
-                                            if (args[2].equals("confirm")) {
-                                                craftingCauldronLocations.clear();
-                                                player.sendMessage(ChatColor.DARK_GREEN + "Successfully removed all Crafting Cauldrons");
-                                            } else {
-                                                player.sendMessage();
-                                            }
+                            switch (args[0].toLowerCase()) {
+                                case "setperm" -> {
+                                    if (args.length >= 2 && args.length < 4) {
+                                        Player desPlayer = Bukkit.getPlayer(args[1]);
+                                        if (desPlayer == null) {
+                                            player.sendMessage(ChatColor.RED + "Unknown player " + ChatColor.ITALIC + args[1]);
                                         } else {
-                                            player.sendMessage(confirm);
+                                            PermissionAttachment attachment = desPlayer.addAttachment(Main.this);
+                                            attachment.setPermission(permission, !desPlayer.hasPermission(permission));
+                                            player.sendMessage((desPlayer.hasPermission(permission) ? ChatColor.GREEN : ChatColor.YELLOW) + "Set " + desPlayer.getDisplayName() + "'s permission to use magic to " + desPlayer.hasPermission(permission));
+                                            if (!(args.length == 3 && args[2].equalsIgnoreCase("hide"))) {
+                                                desPlayer.sendMessage((desPlayer.hasPermission(permission) ? ChatColor.GREEN : ChatColor.YELLOW) + "You now " + (desPlayer.hasPermission(permission) ? "have" : "don't have") + " permission to use magic");
+                                            }
+                                            desPlayer.recalculatePermissions();
                                         }
-                                    } else if (args[1].equalsIgnoreCase("removeAllPresenceDetectors")) {
-                                        String confirm = ChatColor.RED + "You must confirm this action. To do so, add the 'confirm' argument at the end of the command.";
-                                        if (args.length == 2) {
-                                            player.sendMessage(confirm);
-                                        } else if (args.length == 3) {
-                                            if (args[2].equals("confirm")) {
-                                                for (Location loc : detectorLocations) {
-                                                    detectorName.remove(loc);
-                                                    detectorSize.remove(loc);
+                                    } else if (args.length < 2) {
+                                        player.addAttachment(Main.this).setPermission(permission, !player.hasPermission(permission));
+                                        player.recalculatePermissions();
+                                        player.sendMessage((player.hasPermission(permission) ? ChatColor.GREEN + "You now have " : ChatColor.YELLOW + "You now don't have") + " permission to use magic");
+                                    } else {
+                                        player.sendMessage(ChatColor.RED + "Too many arguments");
+                                    }
+
+                                }
+                                case "items" -> {
+                                    if (args.length >= 2) {
+                                        if (args[1].equalsIgnoreCase("removeAllCraftingCauldrons")) {
+                                            String confirm = ChatColor.RED + "You must confirm this action. To do so, add the 'confirm' argument at the end of the command.";
+                                            if (args.length == 2) {
+                                                player.sendMessage(confirm);
+                                            } else if (args.length == 3) {
+                                                if (args[2].equals("confirm")) {
+                                                    craftingCauldronLocations.clear();
+                                                    player.sendMessage(ChatColor.DARK_GREEN + "Successfully removed all Crafting Cauldrons");
+                                                } else {
+                                                    player.sendMessage();
                                                 }
-                                                detectorLocations.clear();
-                                                player.sendMessage(ChatColor.DARK_GREEN + "Successfully removed all presence detectors");
                                             } else {
                                                 player.sendMessage(confirm);
                                             }
-                                        } else {
-                                            player.sendMessage(confirm);
+                                        } else if (args[1].equalsIgnoreCase("removeAllPresenceDetectors")) {
+                                            String confirm = ChatColor.RED + "You must confirm this action. To do so, add the 'confirm' argument at the end of the command.";
+                                            if (args.length == 2) {
+                                                player.sendMessage(confirm);
+                                            } else if (args.length == 3) {
+                                                if (args[2].equals("confirm")) {
+                                                    for (Location loc : detectorLocations) {
+                                                        detectorName.remove(loc);
+                                                        detectorSize.remove(loc);
+                                                    }
+                                                    detectorLocations.clear();
+                                                    player.sendMessage(ChatColor.DARK_GREEN + "Successfully removed all presence detectors");
+                                                } else {
+                                                    player.sendMessage(confirm);
+                                                }
+                                            } else {
+                                                player.sendMessage(confirm);
+                                            }
                                         }
+                                    } else {
+                                        player.openInventory(allItemInv.get(0));
                                     }
-                                } else {
-                                    player.openInventory(allItemInv.get(0));
                                 }
-                            } else if (args[0].equalsIgnoreCase("getPlayerHead")) {
-//                                if (args.length == 2) {
-////                                    if (playerHeads.containsKey(Bukkit.getOfflinePlayer(args[1]).getUniqueId())) {
-////                                        player.getInventory().addItem(playerHeads.get(Bukkit.getOfflinePlayer(args[1]).getUniqueId()));
-////                                    } else {
-//                                    ItemStack playerHead = new ItemStack(Material.PLAYER_HEAD);
-//                                    SkullMeta skullMeta = (SkullMeta) playerHead.getItemMeta();
-//                                    assert skullMeta != null;
-//                                    skullMeta.setOwningPlayer(Bukkit.getOfflinePlayer(args[1]));
-//                                    skullMeta.setDisplayName(Objects.requireNonNull(Bukkit.getOfflinePlayer(args[1])).getName());
-//                                    playerHead.setItemMeta(skullMeta);
-//                                    player.getInventory().addItem(playerHead);
-//                                    playerHeads.put(Objects.requireNonNull(Bukkit.getPlayer(args[1])).getUniqueId(), playerHead);
-//                                    try {
-//                                        Main.playerHead.save();
-//                                    } catch (IOException e) {
-//                                        throw new RuntimeException(e);
-//                                    }
-////                                    }
-//                                } else {
-//                                    player.sendMessage(ChatColor.RED + "Please select a player");
-//                                }
-                            } else if (args[0].equalsIgnoreCase("about")) {
-                                player.spigot().sendMessage(about());
-                            } else if (args[0].equalsIgnoreCase("guide")) {
-                                Inventory inv = player.getInventory();
-                                if (!inv.contains(guideBook())) {
-                                    inv.addItem(guideBook());
-                                } else {
-                                    player.sendMessage(ChatColor.GREEN + "You already have a guide in your inventory at slot " + (Arrays.asList(inv.getStorageContents()).indexOf(guideBook()) + 1) + "!");
+                                case "guide" -> {
+                                    Inventory inv = player.getInventory();
+                                    if (!inv.contains(guideBook())) {
+                                        inv.addItem(guideBook());
+                                    } else {
+                                        player.sendMessage(ChatColor.GREEN + "You already have a guide in your inventory at slot " + (Arrays.asList(inv.getStorageContents()).indexOf(guideBook()) + 1) + "!");
+                                    }
                                 }
-                            } else if (args[0].equalsIgnoreCase("find_block")) {
-//                                if (args.length == 3) {
+                                case "find_block" -> {
+                                    //                                if (args.length == 3) {
 //                                    Material mat = Material.getMaterial(args[1]);
 //                                    int radius = Integer.parseInt(args[2]);
 //                                    Location center = player.getLocation();
@@ -438,31 +430,45 @@ public class Main extends JavaPlugin {
 //                                        }
 //                                    }.runTaskTimer(plugin, 200, 0);
 //                                }
-                                getBlocksInSphere(player.getLocation(), 5).forEach(block -> block.setType(Material.STONE));
-                            } else if (args[0].equalsIgnoreCase("getWand")) {
-                                WeavePlayer w = new WeavePlayer(player, new SpellInventory());
-                                w.setWand(new FocusWand(player.getUniqueId()));
-                                player.getInventory().addItem(w.getWand());
-                                Spell s = new Spell(player.getUniqueId(),"Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
-                                w.addSpell(s);
-                                w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, s);
-                            } else if (args[0].equalsIgnoreCase("spell")) {
-                                WeavePlayer w = getWeaver(player);
-                                assert w != null;
-                                Spell s = null;
-                                switch (args[1].toLowerCase()) {
-                                    case "a" -> s = new Spell(player.getUniqueId(),"Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
-                                    case "b" -> s = new Spell(player.getUniqueId(),"Yoink1", Spell.Element.FIRE, Spell.CastAreaEffect.DIRECT, 10);
-                                    case "c" -> s = new Spell(player.getUniqueId(),"Yoink2", Spell.Element.WATER, Spell.CastAreaEffect.DIRECT, 10);
-                                    case "d" -> s = new Spell(player.getUniqueId(),"Yoink3", Spell.Element.EARTH, Spell.CastAreaEffect.DIRECT, 10);
-                                    case "e" -> s = new Spell(player.getUniqueId(),"whak", Spell.Element.FIRE, Spell.CastAreaEffect.WIDE, 10);
+                                    getBlocksInSphere(player.getLocation(), 5).forEach(block -> block.setType(Material.STONE));
+
                                 }
-                                if (s != null) {
-                                    w.addSpell(s);
-                                    w.getSpellInventory().setActiveSpells(SpellInventory.SpellType.MAIN, s);
+                                case "save" -> player.sendMessage((autoSave() ? ChatColor.GREEN + "Saved plugin data" : ChatColor.RED + "An error occurred while saving data"));
+
+                                case "spell" -> {
+                                    WeavePlayer w = getWeaver(player);
+                                    assert w != null;
+                                    if (args.length > 1) {
+                                        Spell s = null;
+                                        switch (args[1].toLowerCase()) {
+                                            case "a" ->
+                                                    s = new Spell(player.getUniqueId(), "Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
+                                            case "b" ->
+                                                    s = new Spell(player.getUniqueId(), "Yoink1", Spell.Element.FIRE, Spell.CastAreaEffect.DIRECT, 10);
+                                            case "c" ->
+                                                    s = new Spell(player.getUniqueId(), "Yoink2", Spell.Element.WATER, Spell.CastAreaEffect.DIRECT, 10);
+                                            case "d" ->
+                                                    s = new Spell(player.getUniqueId(), "Yoink3", Spell.Element.EARTH, Spell.CastAreaEffect.DIRECT, 10);
+                                            case "e" ->
+                                                    s = new Spell(player.getUniqueId(), "whak", Spell.Element.FIRE, Spell.CastAreaEffect.WIDE, 10);
+                                        }
+                                        if (s != null) {
+                                            w.addSpell(s);
+                                            w.getSpellInventory().setActiveSpells(SpellInventory.SpellUsage.MAIN, s);
+                                        }
+                                    } else {
+                                        log(String.join("\n" , w.getSpells().stream().map(Spell::toString).toList()));
+                                    }
                                 }
-                            } else {
-                                player.sendMessage(ChatColor.RED + "Unknown argument " + ChatColor.ITALIC + args[0]);
+                                case "getwand" -> {
+                                    WeavePlayer w = new WeavePlayer(player, new SpellInventory());
+                                    w.setWand(new FocusWand(player));
+                                    player.getInventory().addItem(w.getWand(), new SpellBook());
+                                    Spell s = new Spell(player.getUniqueId(),"Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
+                                    log(w.addSpell(s));
+                                    w.getSpellInventory().setActiveSpells(SpellInventory.SpellUsage.MAIN, s);
+                                }
+                                default -> player.sendMessage(ChatColor.RED + "Unknown argument " + ChatColor.ITALIC + args[0]);
                             }
                         } else {
                             if (args[0].equalsIgnoreCase("about")) {
@@ -480,20 +486,6 @@ public class Main extends JavaPlugin {
             }
             return true;
         }
-
-        @NotNull
-        private static ItemStack getItemStack() {
-            ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-            BookMeta bookMeta = (BookMeta) book.getItemMeta();
-            assert bookMeta != null;
-            bookMeta.setTitle("Ma diary");
-            bookMeta.setAuthor("God");
-            List<String> content = List.of("Hex", "is", "cool");
-            bookMeta.setPages(content);
-            book.setItemMeta(bookMeta);
-            return book;
-        }
-
         public static class cmdTabCom implements TabCompleter {
             @Nullable
             @Override
@@ -501,9 +493,8 @@ public class Main extends JavaPlugin {
                 List<String> tab = new ArrayList<>();
                 if (command.getName().equalsIgnoreCase("tmmi")) {
                     if (!(sender instanceof ConsoleCommandSender)) {
-                        Player player = (Player) sender;
-                        if (player.isOp()) {
-                            if (args.length != 0) {
+                        if (sender.isOp()) {
+                            if (args.length != 0)
                                 switch (args[0]) {
                                     case "setPerm" -> {
                                         if (args.length == 3) {
@@ -514,7 +505,6 @@ public class Main extends JavaPlugin {
                                             }
                                         }
                                     }
-                                    case "recipes" -> tab.add("book");
                                     case "getPlayerHead" -> {
                                         for (Player onPlay : Bukkit.getOnlinePlayers()) {
                                             tab.add(onPlay.getName());
@@ -534,15 +524,13 @@ public class Main extends JavaPlugin {
                                         }
                                     }
                                     default -> {
-                                        tab.add("recipes");
                                         tab.add("setPerm");
                                         tab.add("items");
-                                        tab.add("getPlayerHead");
                                         tab.add("about");
                                         tab.add("find_block");
+                                        tab.add("save");
                                     }
                                 }
-                            }
                         } else {
                             tab.add("about");
                         }
@@ -603,21 +591,18 @@ public class Main extends JavaPlugin {
             }
         }
     }
+    public static void setCusData(@NotNull ItemStack i, int data) {
+        ItemMeta m = i.getItemMeta();
+        assert m != null;
+        m.setCustomModelData(data);
+        i.setItemMeta(m);
+    }
 
     private void setItems() {
-        allItemInv.add(Bukkit.createInventory(null, 54, "pg1"));
-
-        CrafttingCauldron.item = newItem(Material.CAULDRON, ChatColor.LIGHT_PURPLE + "Crafting Cauldron", 200000);
-        SpellAbsorbingBlock.item = newItem(Material.LODESTONE, ChatColor.GOLD + "Spell Condenser", 200001);
-        SpellWeaver.item = newItem(Material.GOLD_BLOCK, ChatColor.DARK_AQUA + "MAGIC CARFTIN", 23461, List.of("A Crystal with the power", "of 1m brewing stands"));
-        Spell.Element.FIRE_ITEM = newItem(Material.FIRE_CHARGE, ChatColor.DARK_AQUA + "Fire", 245723);
-        Spell.Element.EARTH_ITEM = newItem(Material.GRASS_BLOCK, ChatColor.DARK_GREEN + "Earth", 245724);
-        Spell.Element.WATER_ITEM = newItem(Material.WATER_BUCKET, ChatColor.DARK_GREEN + "Water", 245725);
-        Spell.Element.AIR_ITEM = newItem(Material.FEATHER, ChatColor.WHITE + "Air", 245726);
-        Spell.CastAreaEffect.DIRECT_ITEM = newItem(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Direct", 824574);
-        Spell.CastAreaEffect.WIDE_ITEM = newItem(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Wide", 824575);
-        Spell.CastAreaEffect.AREA_ITEM = newItem(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Area", 824576);
-        Item fusionCrys = newItem(Material.END_CRYSTAL, ChatColor.DARK_AQUA + "Fusion Crystal", 365450, List.of());
+        ItemStack fusionCrys = newItemStack(Material.END_CRYSTAL, ChatColor.DARK_AQUA + "Fusion Crystal", 365450, List.of());
+        allItemInv.get(0).addItem(SpellWeaver.item);
+        for (Spell.Element e : Spell.Element.values()) allItemInv.get(0).addItem(getItem(e));
+        for (Spell.CastAreaEffect e : Spell.CastAreaEffect.values()) allItemInv.get(0).addItem(Spell.CastAreaEffect.getItem(e));
         {
             NamespacedKey key = new NamespacedKey(this, "fusion_crystal");
             ShapedRecipe crfCReci = new ShapedRecipe(key, fusionCrys);
@@ -661,7 +646,6 @@ public class Main extends JavaPlugin {
         m.setCustomModelData(data);
         m.setLore(lore);
         i.setItemMeta(m);
-        allItemInv.get(0).addItem(i);
         return i;
     }
     public static @NotNull ItemStack newItemStack(Material mat, String name) {
@@ -704,7 +688,6 @@ public class Main extends JavaPlugin {
                     new ForceField(loc);
                 } else if (isSim(SpellWeaver.item, i)) {
                     new SpellWeaver(loc);
-                    log("placesc rafter");
                 } else if (isSim(SpellAbsorbingBlock.item, i)) {
                     new SpellAbsorbingBlock(loc);
                 }
@@ -739,13 +722,11 @@ public class Main extends JavaPlugin {
             if (item == null) return;
             if (!item.hasItemMeta()) return;
             if (!Objects.requireNonNull(item.getItemMeta()).hasCustomModelData()) return;
-            for (Item i : Item.items)
-                if (isSim(item, i))
+            for (Item i : Item.items) {
+                if (isSim(item, i)) {
                     i.onUse(event);
-            WeavePlayer weaver = getWeaver(event.getPlayer());
-            if (weaver != null)
-                if (item.equals(weaver.getWand()))
-                    weaver.getWand().onUse(event);
+                }
+            }
         }
         @EventHandler
         public static void onItemPickup(@NotNull PlayerPickupItemEvent event) {
@@ -768,11 +749,9 @@ public class Main extends JavaPlugin {
         @EventHandler
         public static void onBlockClick(@NotNull PlayerInteractEvent event) {
             if (event.getClickedBlock() != null) {
-                for (InteractiveBlock b : interactiveBlock) {
-                    if (b.getLoc().getBlock().equals(event.getClickedBlock().getLocation().getBlock())) {
+                for (InteractiveBlock b : interactiveBlock)
+                    if (b.getLoc().getBlock().equals(event.getClickedBlock().getLocation().getBlock()))
                         b.onClick(event.getAction(), event.getPlayer(), event);
-                    }
-                }
             }
         }
 //        @EventHandler
@@ -785,20 +764,34 @@ public class Main extends JavaPlugin {
         public void invClick(@NotNull InventoryClickEvent event) {
             ItemStack i = event.getInventory().getItem(0);
             ItemStack ci = event.getCurrentItem();
+            if (ci != null && ci.hasItemMeta() && ci.getItemMeta().hasCustomModelData()
+                    && ci.getItemMeta().getCustomModelData() == unclickable) event.setCancelled(true);
             if (allItemInv.contains(event.getInventory())) {
-                event.getWhoClicked().getInventory().addItem(ci);
+                if (ci != null) event.getWhoClicked().getInventory().addItem(ci);
                 event.setCancelled(true);
             } else {
-                for (Inventory inv : registeredInvs) {
-                    if (event.getClickedInventory() == inv) {
-
-                    }
-                }
-                for (InteractiveBlock inter : interactiveBlock) {
+                for (InteractiveBlock inter : interactiveBlock)
                     if (isSim(inter.getGui().getItem(0), i)) {
                         inter.onGUIClick(event.getAction(), ci, (Player) event.getWhoClicked(), event);
+                        return;
                     }
-                }
+                WeavePlayer weaver = getWeaver(event.getWhoClicked());
+                if (weaver != null)
+                    if (isSim(event.getInventory().getItem(28), weaver.getSpellInventory().getCanSpells().get(0).toItem())) {
+                        event.setCancelled(true);
+                        ItemStack mi = (event.getClick() == ClickType.LEFT ?
+                                weaver.getSpellInventory().getMainSpell().toItem() : weaver.getSpellInventory().getSecondarySpell().toItem());
+                        for (Spell s : spells)
+                            if (isSim(ci, s.toItem())) {
+                                for (ItemStack itemStack : event.getInventory().getContents()) {
+                                    if (isSim(itemStack, mi)) {
+                                        itemStack.removeEnchantments(); break;
+                                    }
+                                }
+                                weaver.getSpellInventory().setActiveSpells((event.getClick() == ClickType.LEFT ? SpellInventory.SpellUsage.MAIN : SpellInventory.SpellUsage.SECONDARY), s);
+//                                ci.addEnchantment(Enchantment.MENDING, 1);
+                            }
+                    }
             }
         }
     }
@@ -872,10 +865,10 @@ public class Main extends JavaPlugin {
     }
     @Override
     public void onDisable() {
-        autosave.interrupt();
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            savePlayerData(p);
-        }
+        if (autosave != null) autosave.interrupt();
+        autoSave();
+        for (SpellAbsorbingBlock s : SpellAbsorbingBlock.SAblocks)
+            if (s.getSpellGrabThread() != null) s.getSpellGrabThread().interrupt();
     }
 }
 

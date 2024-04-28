@@ -1,19 +1,62 @@
 package org.tmmi;
 
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.tmmi.Main.background;
-import static org.tmmi.Main.newItemStack;
+import static org.tmmi.Main.*;
 import static org.tmmi.Spell.SpellType.CANTRIP;
 
 public class SpellInventory {
+    public Inventory toInventory() {
+        Inventory inv = Bukkit.createInventory(null, 54, "Spell Weaver");
+        for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, background);
+        setCusData(inv.getItem(0), 2003245);
+        for (int i = 10; i < 17; i++) {
+            if (i < this.sorcerySpells.size()) {
+                Spell s = this.sorcerySpells.get(i);
+                ItemStack item = s.toItem();
+                if (s == this.getMainSpell()) {
+                    ItemMeta m = item.getItemMeta();
+                    m.addEnchant(Enchantment.DAMAGE_ALL, 0, true);
+                    item.setItemMeta(m);
+                }
+                inv.setItem(i, item);
+            } else inv.setItem(i, (i-10 < this.sorSize ? newItemStack(Material.LIME_STAINED_GLASS_PANE, ChatColor.GREEN + "Empty Slot", unclickable) : newItemStack(Material.RED_STAINED_GLASS_PANE, ChatColor.RED + "Locked Slot", unclickable)));
+        }
+        for (int i = 0; i < 14; i++) {
+            int j = (i > 6 ? i + 30 : i + 28);
+            if (j < this.canSpells.size()) {
+                Spell s = this.canSpells.get(j);
+                ItemStack item = s.toItem();
+                if (s == this.getMainSpell()) {
+                    ItemMeta m = item.getItemMeta();
+                    m.addEnchant(Enchantment.DAMAGE_ALL, 0, true);
+                    item.setItemMeta(m);
+                }
+                inv.setItem(j, item);
+            } else inv.setItem(j, (i < this.canSize ? newItemStack(Material.LIME_STAINED_GLASS_PANE, ChatColor.GREEN + "Empty Slot", unclickable) : newItemStack(Material.RED_STAINED_GLASS_PANE, ChatColor.RED + "Locked Slot", unclickable)));
+        }
+        for (int i = 28; i < this.canSize; i++) inv.setItem((i > 35 ? i+3 : i), null);
+        int j = 28;
+        for (Spell s : this.canSpells) {
+            log(s.getName());
+            ItemStack item = s.toItem();
+            inv.setItem(j, item);
+            j++;
+        }
+        return inv;
+    }
 
-    public enum SpellType {
+    public enum SpellUsage {
         MAIN,
         SECONDARY
     }
@@ -33,7 +76,7 @@ public class SpellInventory {
     }
 
     SpellInventory(List<Spell> canSpells, List<Spell> sorcerySpells) {
-        this(canSpells, sorcerySpells, new Pair<>(null, null), 1, 0);
+        this(canSpells, sorcerySpells, new Pair<>(null, null), 5, 2);
     }
     SpellInventory(List<Spell> canSpells) {
         this(canSpells, new ArrayList<>());
@@ -43,24 +86,31 @@ public class SpellInventory {
     }
 
     public List<Spell> getSorcerySpells() {
-        return sorcerySpells;
+        return this.sorcerySpells;
     }
 
     public List<Spell> getCanSpells() {
-        return canSpells;
+        return this.canSpells;
     }
 
     public Spell getMainSpell() {
-        return activeSpells.key();
+        return this.activeSpells.key();
     }
 
     public Spell getSecondarySpell() {
-        return activeSpells.value();
+        return this.activeSpells.value();
     }
 
-    public void addSpell(@NotNull Spell s) {
-        if (s.getType() == CANTRIP) this.canSpells.add(s);
-        else this.sorcerySpells.add(s);
+    public boolean addSpell(@NotNull Spell s) {
+        log("Attempting add spell " + s.getName());
+        if (s.getType() == Spell.SpellType.CANTRIP) {
+            if (this.canSize <= this.canSpells.size()) return false;
+            else this.canSpells.add(s);
+        } else {
+            if (this.sorSize <= this.sorcerySpells.size()) return false;
+            else this.sorcerySpells.add(s);
+        }
+        return true;
     }
 
     public void removeSpell(@NotNull Spell s) {
@@ -68,8 +118,14 @@ public class SpellInventory {
         else this.sorcerySpells.remove(s);
     }
 
-    public void setActiveSpells(SpellType t, Spell s) {
-        if (t == SpellType.MAIN) this.activeSpells.setKey(s);
+    public void setActiveSpells(@NotNull SpellUsage t, @NotNull Spell s) {
+        log("Setting active " + t.name() + " spell to " + s.getName());
+        if (this.canSpells.contains(s) || this.sorcerySpells.contains(s)) {
+            if (t == SpellUsage.MAIN) this.activeSpells.setKey(s);
+            else this.activeSpells.setValue(s);
+        } else {
+            log("Soft warning: Spell doesn't exist in inventory");
+        }
     }
 
     public void expandCanSize(int amnt) {
@@ -81,29 +137,10 @@ public class SpellInventory {
     }
 
     public int getSorSize() {
-        return this.sorSize;
+        return sorSize;
     }
 
     public int getCanSize() {
-        return this.canSize;
-    }
-
-    public Inventory toInventory() {
-        Inventory inv = Bukkit.createInventory(null, 54, "Spell Weaver");
-        for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, background);
-        for (int i = 10; i < this.canSize; i++) inv.setItem(i, null);
-        for (Spell s : canSpells) {
-            ItemStack item = s.toItem();
-            if (s == this.getMainSpell()) item.getItemMeta().setAtributes();
-            inv.add(s.toItem());
-        }
-        for (int i = 28; i < this.canSize; i++) inv.setItem((i > 35 ? i+3 : i), null);
-        int j = 28;
-        for (Spell s : sorcerySpells) {
-            ItemStack item = s.toItem();
-            inv.setItem(j, item);
-            j++;
-        }
-        return inv;
+        return canSize;
     }
 }

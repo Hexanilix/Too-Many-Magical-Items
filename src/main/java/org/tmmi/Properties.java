@@ -7,8 +7,7 @@ public enum Properties {
     AUTOSAVE("autosave"),
     AUTOSAVE_MSG("autosaveMessage"),
     AUTOSAVE_FREQUENCY("autosaveFrequency"),
-    SPELL_COLLISION("spellCollision"),
-    ;
+    SPELL_COLLISION("spellCollision");
 
     private final String key;
 

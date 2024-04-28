@@ -27,6 +27,7 @@ public class Item extends ItemStack {
     public Item(Material mat, UUID id) {
         super(mat);
         this.id = id;
+        items.add(this);
     }
     public Item(Material mat) {
         this(mat, Main.newUUID(Main.TMMIobject.ITEM));

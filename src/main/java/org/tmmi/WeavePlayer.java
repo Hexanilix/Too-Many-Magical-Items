@@ -1,7 +1,9 @@
 package org.tmmi;
 
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.items.GrandBook;
@@ -15,6 +17,9 @@ public class WeavePlayer {
     public static List<WeavePlayer> weavers = new ArrayList<>();
     public static @Nullable WeavePlayer getWeaver(@NotNull Player player) {
         return getWeaver(player.getUniqueId());
+    }
+    public static @Nullable WeavePlayer getWeaver(@NotNull HumanEntity human) {
+        return getWeaver(human.getUniqueId());
     }
     public static @Nullable WeavePlayer getWeaver(UUID id) {
         for (WeavePlayer w : weavers)
@@ -48,29 +53,16 @@ public class WeavePlayer {
         return spellInventory;
     }
 
-    public void cast(@NotNull Action action) {
-        Spell s = (action.name().contains("LEFT") ? this.getMainSpell() : this.getSecondarySpell());
+    public void cast(@NotNull PlayerInteractEvent event) {
+        Spell s = (event.getAction().name().contains("LEFT") ? this.getMainSpell() : this.getSecondarySpell());
         if (s != null) {
             float mul = (this.isWeaving ? wand.getPower() : 1);
-            s.cast(action, this.player.getEyeLocation(), 5);
+            s.cast(event, this.player.getEyeLocation(), mul);
         }
     }
 
-    public boolean addSpell(@NotNull Spell @NotNull ... spells) {
-        for (Spell s : spells) {
-            if (s.getType() == Spell.SpellType.CANTRIP) {
-                if (this.getSpellInventory().getCanSize() > this.getSpellInventory().getCanSpells().size()) {
-                    this.getSpellInventory().addSpell(s);
-                    return false;
-                }
-            } else {
-                if (this.getSpellInventory().getSorSize() > this.getSpellInventory().getSorcerySpells().size()) {
-                    this.getSpellInventory().addSpell(s);
-                    return false;
-                }
-            }
-        }
-        return true;
+    public boolean addSpell(@NotNull Spell s) {
+        return this.spellInventory.addSpell(s);
     }
 
     private Spell getMainSpell() {

@@ -1,6 +1,5 @@
 package org.tmmi.items;
 
-import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,7 +16,8 @@ import org.tmmi.WeavePlayer;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
+
+import static org.tmmi.Main.log;
 
 public abstract class Wand extends Item {
     public static List<Wand> wands = new ArrayList<>();
@@ -25,26 +25,25 @@ public abstract class Wand extends Item {
     private float power;
     private int level;
     private boolean isWeaving;
-    private UUID handler;
     private int select_cooldown;
     private Spell selSpell;
-    private Player activeUser = null;
+    private Player user = null;
 
-    public Wand(UUID handler, int level, int power) {
+    public Wand(Player player, int level, int power) {
         super(Material.STICK);
         ItemMeta fcM = this.getItemMeta();
         assert fcM != null;
         fcM.setDisplayName(ChatColor.GOLD + "Focus Wand");
         fcM.setCustomModelData(2140000+wands.size());
         this.setItemMeta(fcM);
-        this.handler = handler;
+        this.user = player;
         this.level = 1;
         this.isWeaving = false;
         this.select_cooldown = 0;
         this.power = 1;
     }
-    public Wand(UUID handler) {
-        this(handler, 1, 1);
+    public Wand(Player player) {
+        this(player, 1, 1);
     }
 
     public int getSlot() {
@@ -78,21 +77,18 @@ public abstract class Wand extends Item {
     @Override
     public void onUse(@NotNull PlayerInteractEvent event) {
         Action action = event.getAction();
-        if (activeUser == null) {
-            activeUser = Bukkit.getPlayer(handler);
-        }
-        if (activeUser != null) {
-            if (activeUser.hasPermission(Main.permission)) {
-                activeUser.sendMessage("Cant use this bruv");
+        if (this.user != null) {
+            if (this.user.hasPermission(Main.permission)) {
+                this.user.sendMessage("Cant use this bruv");
                 return;
             }
-            WeavePlayer weaver = WeavePlayer.getWeaver(activeUser.getUniqueId());
+            WeavePlayer weaver = WeavePlayer.getWeaver(event.getPlayer());
             // selector of spell
             if (weaver != null) {
                 if (weaver.hasGrandBook()) {
                     if (this.select_cooldown == 0) {
                         if (selSpell != null) {
-                            weaver.cast(action);
+                            weaver.cast(event);
                             selSpell = null;
                         }
                         if (action == Action.LEFT_CLICK_AIR) {
@@ -106,19 +102,18 @@ public abstract class Wand extends Item {
                         }
                     }
                 }
-                weaver.cast(action);
+                weaver.cast(event);
             }
         }
     }
 
     @Override
     public void onDrop(PlayerDropItemEvent event) {
-        this.activeUser = null;
+        this.user = null;
     }
 
     @Override
     public void onPickup(@NotNull PlayerPickupItemEvent event) {
-        this.activeUser = event.getPlayer();
-        this.handler = activeUser.getUniqueId();
+        this.user = event.getPlayer();
     }
 }

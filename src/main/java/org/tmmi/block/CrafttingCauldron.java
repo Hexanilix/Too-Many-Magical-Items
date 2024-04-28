@@ -13,11 +13,10 @@ import org.tmmi.Recipe;
 
 import java.util.*;
 
-import static org.tmmi.Main.log;
-import static org.tmmi.Main.plugin;
+import static org.tmmi.Main.*;
 
 public class CrafttingCauldron extends Block {
-    public static ItemStack item;
+    public static ItemStack item = newItem(Material.CAULDRON, ChatColor.LIGHT_PURPLE + "Crafting Cauldron", 200000);
     public static List<CrafttingCauldron> cauldron = new ArrayList<>();
 
     public static List<Location> craftingCauldronLocations = new ArrayList<>();

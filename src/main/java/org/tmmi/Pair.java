@@ -22,4 +22,12 @@ public class Pair<P1, P2> {
     public void setValue(P2 v) {
         this.value = v;
     }
+
+    @Override
+    public String toString() {
+        return "Pair{" +
+                "key=" + key +
+                ", value=" + value +
+                '}';
+    }
 }

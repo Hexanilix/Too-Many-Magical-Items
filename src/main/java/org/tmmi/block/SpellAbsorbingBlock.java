@@ -1,22 +1,31 @@
 package org.tmmi.block;
 
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.checkerframework.checker.units.qual.A;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.Block;
 import org.tmmi.Main;
 import org.tmmi.Spell;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
 import static org.tmmi.Main.log;
+import static org.tmmi.Main.newItem;
 
 public class SpellAbsorbingBlock extends Block {
-    public static ItemStack item;
+    public static List<SpellAbsorbingBlock> SAblocks = new ArrayList<>();
+    public static ItemStack item = newItem(Material.LODESTONE, ChatColor.GOLD + "Spell Condenser", 200001);
+    public Thread getSpellGrabThread() {
+        return spellGrabThread;
+    }
 
-    private Thread spellGrabTHread;
+    private Thread spellGrabThread;
     private Thread dripTHread;
     private float magicules;
     public SpellAbsorbingBlock(Location loc) {
@@ -27,10 +36,9 @@ public class SpellAbsorbingBlock extends Block {
     @Override
     public void onPlace(@NotNull Location location) {
         Location loc = this.getLoc();
-        this.spellGrabTHread = new Thread(() -> {
+        this.spellGrabThread = new Thread(() -> {
             while (true) {
                 for (Spell s : Spell.spells) {
-                    log("a spell");
                     // fix the check
                     if (s.isCast() && Main.inSphere(loc, 5, s.getCastLocation())) {
                         log("so it is");
@@ -38,7 +46,6 @@ public class SpellAbsorbingBlock extends Block {
                         s.uncast();
                     }
                 }
-                log("Doing it");
                 try {
                     Thread.sleep(200);
                 } catch (InterruptedException e) {
@@ -46,7 +53,7 @@ public class SpellAbsorbingBlock extends Block {
                 }
             }
         });
-        this.spellGrabTHread.start();
+        this.spellGrabThread.start();
         this.dripTHread = new Thread(() -> {
             try {
                 if (this.magicules > 100) {
@@ -66,6 +73,8 @@ public class SpellAbsorbingBlock extends Block {
 
     @Override
     public void onBreak(Location location) {
-
+        this.setLoc(null);
+        Block.blocks.remove(this);
+        if (this.spellGrabThread != null) this.spellGrabThread.interrupt();
     }
 }

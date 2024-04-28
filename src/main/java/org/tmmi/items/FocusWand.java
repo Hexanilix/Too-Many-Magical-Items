@@ -1,5 +1,8 @@
 package org.tmmi.items;
 
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.meta.ItemMeta;
+
 import java.util.*;
 
 import static org.tmmi.Main.newItem;
@@ -7,8 +10,11 @@ import static org.tmmi.Main.newItem;
 
 public class FocusWand extends Wand {
 
-    public FocusWand(UUID uuid) {
-        super(uuid);
+    public FocusWand(Player player) {
+        super(player);
+        ItemMeta m = this.getItemMeta();
+        m.setLore(List.of(player.toString()));
+        this.setItemMeta(m);
     }
 
 
