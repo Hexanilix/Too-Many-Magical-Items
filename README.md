@@ -1,16 +1,20 @@
 # ❗THIS PLUGIN IS IN ALPHA❗
 # TMMI: A fun Minecraft Magic Plugin
-Too Many Magical Items, or TMMI for short, is a Magic Minecraft plugin made by [Hexanilix](https://github.com/Hexanilix) as a result of some wants and lacks from similar plugins. 
+Too Many Magical Items, or TMMI for short, is a Magic Minecraft plugin made by [Hexanilix](https://github.com/Hexanilix) as a
+result of some wants and lacks from similar plugins. 
 This is a free, open source hobby project open to the community to use for themselves.
 ## Contents:
 - [Getting started](#getting-started)
 - [Modifications](#modifications)
 ## Getting started
 ### Initial Setup
-After downloading the latest release, simply put the .jar file in you **plugins** folder ***(this requiers a paper, spigot or forge server)***, and the plugin will automatically sets everything up and is usable straight out of the box.
+After downloading the latest release, simply put the .jar file in you **plugins** folder ***(this requiers a paper,
+spigot or forge server)***, and the plugin will automatically sets everything up and is usable straight
+out of the box.
 
 ### Optional Setup
-Most options are tuned to fit most cases and generally, so it's not advised to change them if you don't have to, but here are options that are woth changing to fit your needs:
+Most options are tuned to fit most cases and generally, so it's not advised to change them if you don't have to,
+but here are options that are woth changing to fit your needs:
 - enabled
 - autosaveFrequency
 
@@ -47,4 +51,6 @@ disabled_spells:
    - 
 spell_collision: true
 ```
-> This file may be subsequent to change in the plugin itself before its updated here. This can be seen via the ```file_version``` property. You may hheck the release note attached to the release you downloaded, or run ```/tmmi plugin fileversion``` to find the plugins current fileversion. This should not happen but please be ware
+> This file may be subsequent to change in the plugin itself before its updated here. This can be seen via the
+> ```file_version``` property. You may hheck the release note attached to the release you downloaded, or run
+> ```/tmmi plugin fileversion``` to find the plugins current fileversion. This should not happen but please be ware

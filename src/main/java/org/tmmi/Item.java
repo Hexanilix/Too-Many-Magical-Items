@@ -12,7 +12,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.UUID;
+
+import static org.tmmi.Main.digits;
 
 public class Item extends ItemStack {
     public static List<Item> items = new ArrayList<>();
@@ -22,18 +25,21 @@ public class Item extends ItemStack {
         }
         return null;
     }
-    private @NotNull UUID uuid() {
-        return UUID.fromString();
+    public static @NotNull UUID uuid(@NotNull Material mat) {
+        return UUID.fromString(Main.UUID_SEQUENCE + Main.toHex(mat.name(), 4) + '-' +
+                Main.IntToHex(items.size(), 4) + '-' +
+                Main.toHex("09w48nvy5g", 4) + '-' +
+                String.valueOf(digits.charAt(new Random().nextInt(16))).repeat(8));
     }
 
     private final UUID id;
     public Item(Material mat, UUID id) {
         super(mat);
-        this.id = (id == null ? uuid() : id);
+        this.id = (id == null ? uuid(mat) : id);
         items.add(this);
     }
     public Item(Material mat) {
-        this(mat, Main.newUUID(Main.TMMIobject.ITEM));
+        this(mat, null);
     }
 
     public UUID getId() {

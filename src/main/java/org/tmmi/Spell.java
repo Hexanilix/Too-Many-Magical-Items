@@ -170,7 +170,8 @@ public class Spell {
                 toHex(effect, 4) +
                 '-' +
                 toHex(main.name(), 4) +
-                '-' + (second != null ? toHex(second, 4) : "0000") +
+                '-' +
+                (second != null ? toHex(second, 4) : "0000") +
                 String.valueOf(digits.charAt(new Random().nextInt(16))).repeat(8);
         return UUID.fromString(u);
     }
@@ -179,7 +180,6 @@ public class Spell {
     }
     public Spell(UUID id, UUID handler, String name, int level, int XP, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double baseDamage, double speed, double travel) {
         this.id = (id == null ? uuid(castAreaEffect, mainElement, secondaryElement) : id);
-        if (disabled.contains(this.id)) return;
         this.handler = handler;
         this.name = name;
         this.castCost = castCost;
@@ -199,7 +199,7 @@ public class Spell {
         }
         this.isCast = false;
         this.baseDamage = baseDamage;
-        spells.add(this);
+        if (!disabled.contains(this.id)) spells.add(this);
     }
     public Spell(UUID handler, String name, @NotNull Spell.Element mainElement, CastAreaEffect castAreaEffect, int usedMagicules) {
         this(handler, name, mainElement, null, castAreaEffect, usedMagicules);

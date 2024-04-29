@@ -35,7 +35,7 @@ import org.tmmi.block.SpellAbsorbingBlock;
 import org.tmmi.block.SpellWeaver;
 import org.tmmi.items.FocusWand;
 import org.tmmi.items.SpellBook;
-import org.tmmi.items.Wand;
+import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -55,7 +55,7 @@ import static org.tmmi.Properties.*;
 
 public class Main extends JavaPlugin {
     public static String UUID_SEQUENCE = toHex(Main.class.getPackage().getSpecificationVersion(), 4)
-            +toHex(Main.textProp(FILEVERSION), 4)+'-';
+            +toHex(Main.FILE_VERSION, 4)+'-';
     public static int unclickable = 2147837;
     static List<UUID> uuids = new ArrayList<>();
     public static Plugin plugin;
@@ -63,8 +63,8 @@ public class Main extends JavaPlugin {
     public static boolean DISABLED;
 
     public static String DTFL;
-    public static String PROP_FILE;
-    public static String PROP_VERSION = "1.0.0";
+    public static String CONF_FILE;
+    public static String FILE_VERSION = "1.0.0";
     public static String BLOCK_DATAFILE;
     public static String PLAYER_DATA;
     public static Map<String, Object> properties = new HashMap<>();
@@ -159,32 +159,32 @@ public class Main extends JavaPlugin {
                     super.onDisable();
                 }
             }
-            PROP_FILE = DTFL + "config.yml";
-            if (!Files.exists(Path.of(PROP_FILE))) {
+            CONF_FILE = DTFL + "config.yml";
+            if (!Files.exists(Path.of(CONF_FILE))) {
                 try {
-                    Files.createFile(Path.of(PROP_FILE));
-                    log(Level.WARNING, "Created new properties file since it was absent");
+                    Files.createFile(Path.of(CONF_FILE));
+                    log(Level.WARNING, "Created new config file since it was absent");
                 } catch (IOException e) {
                     super.onDisable();
-                    log(Level.SEVERE, "Could not create properties file at '" + PROP_FILE + "'\nLog:\n" + String.join(Arrays.asList(e.getStackTrace()).toString()) + "\n");
+                    log(Level.SEVERE, "Could not create config file at '" + CONF_FILE + "'\nLog:\n" + String.join(Arrays.asList(e.getStackTrace()).toString()) + "\n");
                     return;
                 }
                 List<Pair<Properties, Object>> plist = List.of(
                         new Pair<>(COMMENT, "Last automatic modification: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())),
-                        new Pair<>(FILEVERSION, PROP_VERSION),
+                        new Pair<>(FILEVERSION, FILE_VERSION),
                         new Pair<>(COMMENT, "Do not change the above values, this can cause issues and improper loading in the plugin"),
                         new Pair<>(COMMENT, "The following values are to be customised, change any value after the '=' char to your liking based"),
                         new Pair<>(COMMENT, "of this list: "),
                         new Pair<>(ENABLED, "true"),
                         new Pair<>(AUTOSAVE, "true"),
-                        new Pair<>(AUTOSAVE_FREQUENCY, 600),
+                        new Pair<>(AUTOSAVE_FREQUENCY, 1800),
                         new Pair<>(AUTOSAVE_MSG, true),
                         new Pair<>(AUTOSAVE_MSG_VALUE, "Autosaving..."),
-                        new Pair<>(DISABLED_SPELLS, "\n\t"),
+                        new Pair<>(DISABLED_SPELLS, "\n   - "),
                         new Pair<>(SPELL_COLLISION, true));
                 try {
-                    FileWriter writer = new FileWriter(PROP_FILE);
-                    for (Pair<Properties, Object> e : plist) writer.append(e.key().key()).append((e.key().equals(COMMENT) ? "" : ":")).append(String.valueOf(e.value())).append("\n");
+                    FileWriter writer = new FileWriter(CONF_FILE);
+                    for (Pair<Properties, Object> e : plist) writer.append(e.key().key()).append((e.key().equals(COMMENT) ? "" : ": ")).append(String.valueOf(e.value())).append("\n");
                     writer.close();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -192,7 +192,7 @@ public class Main extends JavaPlugin {
                 }
             }
             //Reading yml
-            try (InputStream input = new FileInputStream(PROP_FILE)) {
+            try (InputStream input = new FileInputStream(CONF_FILE)) {
                 properties = new Yaml().load(input);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -315,7 +315,7 @@ public class Main extends JavaPlugin {
             autosave = new Thread(() -> {
                 try {
                     while (true) {
-                        Thread.sleep((long) (intProp(AUTOSAVE_FREQUENCY) * 1000));
+                        Thread.sleep(Integer.parseInt(numProp(AUTOSAVE_FREQUENCY).toString()) * 1000L);
                         autoSave();
                         if (boolProp(AUTOSAVE_MSG)) log("Autosaving...");
                     }
@@ -828,21 +828,6 @@ public class Main extends JavaPlugin {
         return dx * dx + dy * dy + dz * dz <= radius * radius;
     }
     static final String digits = "0123456789abcdef";
-    public static @NotNull UUID newUUID(@NotNull Object o) {
-        String a = "19a4bc21-000a-0000-0123456789abcdef";
-        switch (type) {
-            case SPELL -> {
-            }
-            case WAND -> u.append("c213-").append(IntToHex(Wand.wands.size()));
-            case ITEM -> u.append("e082-").append(IntToHex(Item.items.size()));
-            case BLOCK -> u.append("8b3f-").append(IntToHex(Block.blocks.size()));
-        }
-        u.append('-');
-        for (int i = 0; i < 8; i ++)
-            u.append(digits.charAt(new Random().nextInt(16)));
-        uuids.add(UUID.fromString(u.toString()));
-        return UUID.fromString(u.toString());
-    }
     public static @NotNull String toHex(Object o, int size) {
         if (o instanceof String s) {
             int m = 0;
