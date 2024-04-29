@@ -3,11 +3,13 @@ package org.tmmi;
 public enum Properties {
     COMMENT("# "),
     ENABLED("enabled"),
-    FILEVERSION("fileversion"),
+    FILEVERSION("file_version"),
     AUTOSAVE("autosave"),
-    AUTOSAVE_MSG("autosaveMessage"),
-    AUTOSAVE_FREQUENCY("autosaveFrequency"),
-    SPELL_COLLISION("spellCollision");
+    AUTOSAVE_MSG("autosave_message"),
+    AUTOSAVE_MSG_VALUE("message_value"),
+    AUTOSAVE_FREQUENCY("autosave_frequency"),
+    SPELL_COLLISION("spell_collision"),
+    DISABLED_SPELLS("disabled_spells");
 
     private final String key;
 

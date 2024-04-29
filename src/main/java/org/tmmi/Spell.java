@@ -18,15 +18,13 @@ import org.tmmi.events.SpellCollideEvent;
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import static org.tmmi.Main.*;
 
 public class Spell {
     public static List<Spell> spells = new ArrayList<>();
+    public static ArrayList<UUID> disabled = new ArrayList<>();
 
     public enum SpellType {
         CANTRIP,
@@ -166,11 +164,22 @@ public class Spell {
 
     private BukkitTask spellRun;
 
+    private @NotNull UUID uuid(CastAreaEffect effect, @NotNull Element main, Element second) {
+        String u = UUID_SEQUENCE + IntToHex(spells.size(), 4) +
+                '-' +
+                toHex(effect, 4) +
+                '-' +
+                toHex(main.name(), 4) +
+                '-' + (second != null ? toHex(second, 4) : "0000") +
+                String.valueOf(digits.charAt(new Random().nextInt(16))).repeat(8);
+        return UUID.fromString(u);
+    }
     public Spell(UUID handler, String name, @NotNull Element mainElement, Element secondaryElement, @NotNull CastAreaEffect castAreaEffect, int usedMagicules) {
-        this(newUUID(TMMIobject.SPELL), handler, name, 1, 0, 10, mainElement, secondaryElement, castAreaEffect, SpellType.CANTRIP, (double) usedMagicules /100, 0.3, 4);
+        this(null, handler, name, 1, 0, 10, mainElement, secondaryElement, castAreaEffect, SpellType.CANTRIP, (double) usedMagicules /100, 0.3, 4);
     }
     public Spell(UUID id, UUID handler, String name, int level, int XP, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double baseDamage, double speed, double travel) {
-        this.id = id;
+        this.id = (id == null ? uuid(castAreaEffect, mainElement, secondaryElement) : id);
+        if (disabled.contains(this.id)) return;
         this.handler = handler;
         this.name = name;
         this.castCost = castCost;

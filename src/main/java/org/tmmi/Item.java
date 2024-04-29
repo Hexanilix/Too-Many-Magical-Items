@@ -7,6 +7,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -21,12 +22,14 @@ public class Item extends ItemStack {
         }
         return null;
     }
-
+    private @NotNull UUID uuid() {
+        return UUID.fromString();
+    }
 
     private final UUID id;
     public Item(Material mat, UUID id) {
         super(mat);
-        this.id = id;
+        this.id = (id == null ? uuid() : id);
         items.add(this);
     }
     public Item(Material mat) {

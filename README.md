@@ -1,7 +1,7 @@
 # ❗THIS PLUGIN IS IN ALPHA❗
 # TMMI: A fun Minecraft Magic Plugin
-Too Many Magical Items, or TMMI for short, is a Magic Minecraft plugin made by [Hexanilix](https://github.com/Hexanilix) as a result of some wants and lacks from simmilar plugins.
-This is a free, open source hobby project open to the commiunity to use for themselves.
+Too Many Magical Items, or TMMI for short, is a Magic Minecraft plugin made by [Hexanilix](https://github.com/Hexanilix) as a result of some wants and lacks from similar plugins. 
+This is a free, open source hobby project open to the community to use for themselves.
 ## Contents:
 - [Getting started](#getting-started)
 - [Modifications](#modifications)
@@ -10,17 +10,17 @@ This is a free, open source hobby project open to the commiunity to use for them
 After downloading the latest release, simply put the .jar file in you **plugins** folder ***(this requiers a paper, spigot or forge server)***, and the plugin will automatically sets everything up and is usable straight out of the box.
 
 ### Optional Setup
-Most options are tuned to fit most cases and generaly, so it's not advised to change them if you don't have to, but here are options that are woth changing to fit your needs:
-- enabeled
+Most options are tuned to fit most cases and generally, so it's not advised to change them if you don't have to, but here are options that are woth changing to fit your needs:
+- enabled
 - autosaveFrequency
 
-> For a more indepth analysys and options, check out [modifications](#modifications).
+> For a more indepth analysis and options, check out [modifications](#modifications).
 
 ## Modifications
 ### Properties Config
-By going into your plugin folder and locating a folder called **TMMI**, you should find a file named ```tmmi.properties```. Inside you'll find variables you can change. **However, you musn't change the properties listed above the comment regarding them, since they hold information about the file and plugin.**
+By going into your plugin folder and locating a folder called **TMMI**, you should find a file named ```config.yml```. Inside you'll find variables you can change. **However, you musn't change the properties listed above the comment regarding them, since they hold information about the file and plugin.**
 
-### Table of changable properties
+### Table of changeable properties
 | Property | Possible Values | Description |
 |---------|:-----------------:|-------------|
 |enabeled|true, false| *If the plugin should be enabled* |
@@ -31,15 +31,20 @@ By going into your plugin folder and locating a folder called **TMMI**, you shou
 > More and more parts of the plugin are becoming able to be toggled and modified, so this list isn't yet complete
 
 
-### Default template for ```tmmi.properties``` file:
+### Default template for ```config.yml``` file:
 ```
-# Last automatic modification: 26/04/2024 19:46:34
-fileversion=1.0.0
-# Do not change the above values and names, this can cause issues and improper loading in the plugin
-# The following values are to be modified:
-enabeled=true
-autosave=true
-autosaveMessage=true
-autosaveFrequency=18000 # 30 minutes
+# Last automatic modification: 29/04/2024 13:16:27
+file_version: 1.0.1
+# Do not change the above values, this can cause issues and improper loading in the plugin
+# The following values are to be customised, change any value after the '=' char to your liking based
+# of this list: 
+enabled: true
+autosave: true
+autosave_frequency: 1800
+autosave_message: true
+message_value: Autosaving...
+disabled_spells: 
+   - 
+spell_collision: true
 ```
-> This file may be subsequent to changes in the plugin itself before its updated here. This can be seen via the ```fileversion``` property. You may hheck the release note attached to the release you downloaded, or run ```/tmmi plugin fileversion``` to find the plugins current fileversion. This should not happen but please be ware
+> This file may be subsequent to change in the plugin itself before its updated here. This can be seen via the ```file_version``` property. You may hheck the release note attached to the release you downloaded, or run ```/tmmi plugin fileversion``` to find the plugins current fileversion. This should not happen but please be ware

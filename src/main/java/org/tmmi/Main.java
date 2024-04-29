@@ -54,6 +54,8 @@ import static org.tmmi.block.Presence.detectorLocations;
 import static org.tmmi.Properties.*;
 
 public class Main extends JavaPlugin {
+    public static String UUID_SEQUENCE = toHex(Main.class.getPackage().getSpecificationVersion(), 4)
+            +toHex(Main.textProp(FILEVERSION), 4)+'-';
     public static int unclickable = 2147837;
     static List<UUID> uuids = new ArrayList<>();
     public static Plugin plugin;
@@ -65,9 +67,7 @@ public class Main extends JavaPlugin {
     public static String PROP_VERSION = "1.0.0";
     public static String BLOCK_DATAFILE;
     public static String PLAYER_DATA;
-    public static Map<String, Boolean> BoolProperties = new HashMap<>();
-    public static Map<String, String> TextProperties = new HashMap<>();
-    public static Map<String, Integer> NumProperties = new HashMap<>();
+    public static Map<String, Object> properties = new HashMap<>();
 
     public static Thread autosave;
 
@@ -127,6 +127,15 @@ public class Main extends JavaPlugin {
     public static void log(Level lv, Object message) {
         Bukkit.getLogger().log(lv, "[TMMI] " + message);
     }
+    public boolean boolProp(@NotNull Properties prop) {
+        return (properties.get(prop.key()) instanceof Boolean && (boolean) properties.get(prop.key()));
+    }
+    public Number numProp(@NotNull Properties prop) {
+        return (properties.get(prop.key()) instanceof Number ? (Number) properties.get(prop.key()) : 0);
+    }
+    public ArrayList<Object> listProp(@NotNull Properties prop) {
+        return properties.get(prop.key()) instanceof ArrayList<?> ? (ArrayList<Object>) properties.get(prop.key()) : new ArrayList<>();
+    }
 
     @Override
     public void onEnable() {
@@ -150,7 +159,7 @@ public class Main extends JavaPlugin {
                     super.onDisable();
                 }
             }
-            PROP_FILE = DTFL + "tmmi.properties";
+            PROP_FILE = DTFL + "config.yml";
             if (!Files.exists(Path.of(PROP_FILE))) {
                 try {
                     Files.createFile(Path.of(PROP_FILE));
@@ -168,19 +177,27 @@ public class Main extends JavaPlugin {
                         new Pair<>(COMMENT, "of this list: "),
                         new Pair<>(ENABLED, "true"),
                         new Pair<>(AUTOSAVE, "true"),
-                        new Pair<>(AUTOSAVE_MSG, true),
                         new Pair<>(AUTOSAVE_FREQUENCY, 600),
+                        new Pair<>(AUTOSAVE_MSG, true),
+                        new Pair<>(AUTOSAVE_MSG_VALUE, "Autosaving..."),
+                        new Pair<>(DISABLED_SPELLS, "\n\t"),
                         new Pair<>(SPELL_COLLISION, true));
                 try {
                     FileWriter writer = new FileWriter(PROP_FILE);
-                    for (Pair<Properties, Object> e : plist) writer.append(e.key().key()).append((e.key().equals(COMMENT) ? "" : "=")).append(String.valueOf(e.value())).append("\n");
+                    for (Pair<Properties, Object> e : plist) writer.append(e.key().key()).append((e.key().equals(COMMENT) ? "" : ":")).append(String.valueOf(e.value())).append("\n");
                     writer.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                     super.onDisable();
                 }
             }
-            readPropFile();
+            //Reading yml
+            try (InputStream input = new FileInputStream(PROP_FILE)) {
+                properties = new Yaml().load(input);
+            } catch (IOException e) {
+                e.printStackTrace();
+                super.onDisable();
+            }
             if (boolProp(ENABLED)) {
                 permission = "tmmi.craft." + new NamespacedKey(plugin, "weaver");
                 checkFilesAndCreate();
@@ -193,6 +210,13 @@ public class Main extends JavaPlugin {
                     Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setExecutor(new cmd());
                     Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setTabCompleter(new cmd.cmdTabCom());
 
+                    for (Object o : listProp(DISABLED_SPELLS)) {
+                        if (o instanceof String s) {
+                            try {
+                                Spell.disabled.add(UUID.fromString(s));
+                            } catch (IllegalArgumentException ignore) {}
+                        }
+                    }
                     log("Plugin loaded successfully");
                 }
             } else {
@@ -303,13 +327,6 @@ public class Main extends JavaPlugin {
         }
     }
 
-    private float intProp(@NotNull Properties key) {
-        return NumProperties.getOrDefault(key.key(), -1);
-    }
-
-    private boolean boolProp(@NotNull Properties key) {
-        return BoolProperties.getOrDefault(key.key(), false);
-    }
 
     private class cmd implements CommandExecutor {
         @Override
@@ -538,28 +555,6 @@ public class Main extends JavaPlugin {
                 }
                 return tab;
             }
-        }
-    }
-
-    private void readPropFile() {
-        try (InputStream input = new FileInputStream(PROP_FILE)) {
-            java.util.Properties prop = new java.util.Properties();
-            prop.load(input);
-            for (String key : prop.stringPropertyNames()) {
-                String val = prop.getProperty(key);
-                if (Objects.equals(val, "true") || Objects.equals(val, "false")) {
-                    BoolProperties.put(key, Boolean.parseBoolean(val));
-                } else {
-                    try {
-                        NumProperties.put(key, Integer.parseInt(val));
-                    } catch (NumberFormatException e) {
-                        TextProperties.put(key, val);
-                    }
-                }
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            super.onDisable();
         }
     }
 
@@ -832,18 +827,12 @@ public class Main extends JavaPlugin {
         int dz = center.getBlockZ() - location.getBlockZ();
         return dx * dx + dy * dy + dz * dz <= radius * radius;
     }
-
-    public enum TMMIobject {
-        SPELL,
-        WAND,
-        ITEM,
-        BLOCK
-    }
     static final String digits = "0123456789abcdef";
-    public static @NotNull UUID newUUID(@NotNull TMMIobject type) {
-        StringBuilder u = new StringBuilder("19a4bc21-000a-");
+    public static @NotNull UUID newUUID(@NotNull Object o) {
+        String a = "19a4bc21-000a-0000-0123456789abcdef";
         switch (type) {
-            case SPELL -> u.append("d049-").append(IntToHex(spells.size()));
+            case SPELL -> {
+            }
             case WAND -> u.append("c213-").append(IntToHex(Wand.wands.size()));
             case ITEM -> u.append("e082-").append(IntToHex(Item.items.size()));
             case BLOCK -> u.append("8b3f-").append(IntToHex(Block.blocks.size()));
@@ -854,14 +843,23 @@ public class Main extends JavaPlugin {
         uuids.add(UUID.fromString(u.toString()));
         return UUID.fromString(u.toString());
     }
-    public static @NotNull String IntToHex(int i) {
+    public static @NotNull String toHex(Object o, int size) {
+        if (o instanceof String s) {
+            int m = 0;
+            for (int i = 0; i < s.length(); i++) m += s.charAt(i);
+            return IntToHex(m, size);
+        } else {
+            return "0".repeat(size);
+        }
+    }
+    public static @NotNull String IntToHex(int i, int size) {
         StringBuilder hex = new StringBuilder();
         while (i > 0) {
             int digit = i % 16;
             hex.insert(0, digits.charAt(digit));
             i = i / 16;
         }
-        return "0".repeat(Math.max(0, 4 - hex.length())) + hex;
+        return "0".repeat(Math.max(0, size - hex.length())) + hex;
     }
     @Override
     public void onDisable() {
