@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public enum Property {
     COMMENT("# ", ""),
     ENABLED("enabled", true),
-    FILEVERSION("file_version", "1.0.0"),
+    FILEVERSION("file_version", "\"" + Main.FILE_VERSION.toString() + "\""),
     AUTOSAVE("autosave", true),
     AUTOSAVE_MSG("autosave_message", true),
     AUTOSAVE_MSG_VALUE("message_value", "Autosaving..."),

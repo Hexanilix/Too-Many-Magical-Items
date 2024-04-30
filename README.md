@@ -28,7 +28,7 @@ By going into your plugin folder and locating a folder called **TMMI**, you shou
 | Property                  | Possible Values | Description                                                                        |
 |---------------------------|:---------------:|------------------------------------------------------------------------------------|
 | enabled                   |   true, false   | *Enable plugin*                                                                    |
-| migration                 |   true, false   | *Allow **[migration](#migration)***                                                |
+| migration                 |   true, false   | *Allow **[migration](Migration.md)***                                              |
 | autosave*                 |   true, false   | *Automatically save data collected over time by the plugin.*                       |
 | autosaveMessage           |   true, false   | *Log when a automatic save is performed to console*                                |
 | autosaveFrequency         |       int       | *Time between auto saves measured in seconds.* Defaults to 10 if value is under 10 |
@@ -36,7 +36,9 @@ By going into your plugin folder and locating a folder called **TMMI**, you shou
 | spell_seed_cap            |     double      | *The maximum speed at which a spell can travel measured in blocks*                 |
 | spell_travel_distance_cap |     double      | *The maximum distance a spell can travel measured in block*                        |
 | spell_damage_cap          |     double      | *The maximum amount of damage a spell can inflict on an entity*                    |
-**autosave:** *Note that this only saves data collected by the plugin, not server data*
+
+***autosave:** *Note that this only saves data collected by the plugin, not server data*
+
 > More and more aspects of the plugin are becoming available to be changed,
 > so this list is going to continue to expand, as well as the `config.yml` file.
 
@@ -61,7 +63,7 @@ Simply, the plugin uses JSON as well as YAML files to store its data.
 ## Files
 
 ## Versions
-The way files save data may become subsequent to change in new releases of the plugin. Some files like the config file
+The way files save data and name it can be changed in new releases of the plugin. Some files like the config file
 is updated on this page since it's not. as well as your plugin config file with new or renamed/changed options. However, if you copy the contents of another config file or have a backup,
 the naming scheme may be incorrect or lack some options. The plugin has functionality to compensate for this however, it only works backwards
 that it can read files backYou can check this by comparing the

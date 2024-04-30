@@ -64,7 +64,7 @@ public class Main extends JavaPlugin {
 
     public static String DTFL;
     public static String CONF_FILE;
-    public static String FILE_VERSION = "1.0.0";
+    public static FileVersion FILE_VERSION = new FileVersion("1.0.0");
     public static String BLOCK_DATAFILE;
     public static String PLAYER_DATA;
     public static Map<String, Object> properties = new HashMap<>();
@@ -188,6 +188,25 @@ public class Main extends JavaPlugin {
                 e.printStackTrace();
                 super.onDisable();
             }
+            if (!Objects.equals(FILE_VERSION.toString(), textProp(FILEVERSION))) {
+                double v = FileVersion.versionDiff(FILE_VERSION, new FileVersion(textProp(FILEVERSION)));
+                log(FILE_VERSION.toString());
+                log(v);
+                if (v < 0) {
+                    try {
+                        FileWriter writer = new FileWriter(CONF_FILE);
+                        for (Property p : Property.values())
+                            writer.append(p.key()).append(": ").append(properties.containsKey(p.key()) ? String.valueOf(properties.get(p.key())) : p.val())
+                                    .append((p.equals(COMMENT) ? "Last automatic modification: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date()) : ": ")).append(String.valueOf(p.val())).append("\n");
+                        writer.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        super.onDisable();
+                    }
+                } else {
+                    log(Level.SEVERE, "Plugin cannot read file version higher that " + FILE_VERSION + ": config.yml file version is " + textProp(FILEVERSION));
+                }
+            }
             if (boolProp(ENABLED)) {
                 permission = "tmmi.craft." + new NamespacedKey(plugin, "weaver");
                 checkFilesAndCreate();
@@ -214,6 +233,7 @@ public class Main extends JavaPlugin {
             }
         }
     }
+
     private static void loadPlayerSaveData(@NotNull Player p) {
         loadPlayerSaveData(p.getUniqueId());
     }
