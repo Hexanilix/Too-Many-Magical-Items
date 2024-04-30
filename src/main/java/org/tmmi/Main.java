@@ -51,7 +51,7 @@ import static org.tmmi.WeavePlayer.getWeaver;
 import static org.tmmi.block.CrafttingCauldron.craftingCauldronLocations;
 import static org.tmmi.block.Presence.*;
 import static org.tmmi.block.Presence.detectorLocations;
-import static org.tmmi.Properties.*;
+import static org.tmmi.Property.*;
 
 public class Main extends JavaPlugin {
     public static String UUID_SEQUENCE = toHex(Main.class.getPackage().getSpecificationVersion(), 4)
@@ -127,13 +127,16 @@ public class Main extends JavaPlugin {
     public static void log(Level lv, Object message) {
         Bukkit.getLogger().log(lv, "[TMMI] " + message);
     }
-    public boolean boolProp(@NotNull Properties prop) {
+    public static boolean boolProp(@NotNull Property prop) {
         return (properties.get(prop.key()) instanceof Boolean && (boolean) properties.get(prop.key()));
     }
-    public Number numProp(@NotNull Properties prop) {
+    public Number numProp(@NotNull Property prop) {
         return (properties.get(prop.key()) instanceof Number ? (Number) properties.get(prop.key()) : 0);
     }
-    public ArrayList<Object> listProp(@NotNull Properties prop) {
+    public static String textProp(@NotNull Property prop) {
+        return (properties.get(prop.key()) instanceof String ? (String) properties.get(prop.key()) : "");
+    }
+    public static ArrayList<Object> listProp(@NotNull Property prop) {
         return properties.get(prop.key()) instanceof ArrayList<?> ? (ArrayList<Object>) properties.get(prop.key()) : new ArrayList<>();
     }
 
@@ -169,22 +172,9 @@ public class Main extends JavaPlugin {
                     log(Level.SEVERE, "Could not create config file at '" + CONF_FILE + "'\nLog:\n" + String.join(Arrays.asList(e.getStackTrace()).toString()) + "\n");
                     return;
                 }
-                List<Pair<Properties, Object>> plist = List.of(
-                        new Pair<>(COMMENT, "Last automatic modification: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())),
-                        new Pair<>(FILEVERSION, FILE_VERSION),
-                        new Pair<>(COMMENT, "Do not change the above values, this can cause issues and improper loading in the plugin"),
-                        new Pair<>(COMMENT, "The following values are to be customised, change any value after the '=' char to your liking based"),
-                        new Pair<>(COMMENT, "of this list: "),
-                        new Pair<>(ENABLED, "true"),
-                        new Pair<>(AUTOSAVE, "true"),
-                        new Pair<>(AUTOSAVE_FREQUENCY, 1800),
-                        new Pair<>(AUTOSAVE_MSG, true),
-                        new Pair<>(AUTOSAVE_MSG_VALUE, "Autosaving..."),
-                        new Pair<>(DISABLED_SPELLS, "\n   - "),
-                        new Pair<>(SPELL_COLLISION, true));
                 try {
                     FileWriter writer = new FileWriter(CONF_FILE);
-                    for (Pair<Properties, Object> e : plist) writer.append(e.key().key()).append((e.key().equals(COMMENT) ? "" : ": ")).append(String.valueOf(e.value())).append("\n");
+                    for (Property p : Property.values()) writer.append(p.key()).append((p.equals(COMMENT) ? "Last automatic modification: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date()) : ": ")).append(String.valueOf(p.val())).append("\n");
                     writer.close();
                 } catch (IOException e) {
                     e.printStackTrace();
