@@ -54,8 +54,9 @@ import static org.tmmi.block.Presence.detectorLocations;
 import static org.tmmi.Property.*;
 
 public class Main extends JavaPlugin {
+    public static FileVersion FILE_VERSION = new FileVersion(1, 0, 1, 6);
     public static String UUID_SEQUENCE = toHex(Main.class.getPackage().getSpecificationVersion(), 4)
-            +toHex(Main.FILE_VERSION, 4)+'-';
+            +toHex(FILE_VERSION, 4)+'-';
     public static int unclickable = 2147837;
     static List<UUID> uuids = new ArrayList<>();
     public static Plugin plugin;
@@ -64,7 +65,6 @@ public class Main extends JavaPlugin {
 
     public static String DTFL;
     public static String CONF_FILE;
-    public static FileVersion FILE_VERSION = new FileVersion("1.0.0");
     public static String BLOCK_DATAFILE;
     public static String PLAYER_DATA;
     public static Map<String, Object> properties = new HashMap<>();
@@ -76,8 +76,6 @@ public class Main extends JavaPlugin {
     public static List<Inventory> allItemInv = List.of(Bukkit.createInventory(null, 54, "pg1"));
 
     public static ItemStack background;
-    private static final List<Integer> customItemSelectorDataList = new ArrayList<>();
-    private static final Map<Player, Object> invToAdd = new HashMap<>();
     public static String permission;
     private @NotNull ItemStack guideBook() {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
@@ -139,6 +137,9 @@ public class Main extends JavaPlugin {
     public static ArrayList<Object> listProp(@NotNull Property prop) {
         return properties.get(prop.key()) instanceof ArrayList<?> ? (ArrayList<Object>) properties.get(prop.key()) : new ArrayList<>();
     }
+    public static void main(String[] args) {
+        System.out.println("rah");
+    }
 
     @Override
     public void onEnable() {
@@ -174,7 +175,7 @@ public class Main extends JavaPlugin {
                 }
                 try {
                     FileWriter writer = new FileWriter(CONF_FILE);
-                    for (Property p : Property.values()) writer.append(p.key()).append((p.equals(COMMENT) ? "Last automatic modification: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date()) : ": ")).append(String.valueOf(p.val())).append("\n");
+                    for (Property p : Property.values()) writer.append(p.key()).append(": ").append(String.valueOf(p.val())).append("\n");
                     writer.close();
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -188,48 +189,51 @@ public class Main extends JavaPlugin {
                 e.printStackTrace();
                 super.onDisable();
             }
-            if (!Objects.equals(FILE_VERSION.toString(), textProp(FILEVERSION))) {
-                double v = FileVersion.versionDiff(FILE_VERSION, new FileVersion(textProp(FILEVERSION)));
-                log(FILE_VERSION.toString());
-                log(v);
-                if (v < 0) {
+            FileVersion.VDating v = FileVersion.versionDiff(new FileVersion(textProp(FILEVERSION)), FILE_VERSION);
+            if (v != FileVersion.VDating.SAME) {
+                if (v == FileVersion.VDating.OBSOLETE) {
+                    properties.replace(FILEVERSION.key(), FILE_VERSION.toString());
                     try {
                         FileWriter writer = new FileWriter(CONF_FILE);
+                        writer.append("# Last automatic modification: ").append(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())).append("\n");
                         for (Property p : Property.values())
-                            writer.append(p.key()).append(": ").append(properties.containsKey(p.key()) ? String.valueOf(properties.get(p.key())) : p.val())
-                                    .append((p.equals(COMMENT) ? "Last automatic modification: " + new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date()) : ": ")).append(String.valueOf(p.val())).append("\n");
+                            writer.append(p.key()).append(": ").append(properties.containsKey(p.key()) ?
+                                    (properties.get(p.key()) instanceof String s ? "\""+s+"\"" : String.valueOf(properties.get(p.key()))) : p.val()).append("\n");
                         writer.close();
                     } catch (IOException e) {
                         e.printStackTrace();
                         super.onDisable();
                     }
                 } else {
-                    log(Level.SEVERE, "Plugin cannot read file version higher that " + FILE_VERSION + ": config.yml file version is " + textProp(FILEVERSION));
+                    log(Level.SEVERE, "Plugin cannot read properly files higher than " + FILE_VERSION + ": config.yml file version is " + textProp(FILEVERSION) +"\n" +
+                            "\tPlugin may default values due to a different naming scheme. Use [link] to convert to older file versions");
                 }
             }
             if (boolProp(ENABLED)) {
                 permission = "tmmi.craft." + new NamespacedKey(plugin, "weaver");
-                checkFilesAndCreate();
-                if (loadClasses()) {
-                    startAutosave();
-                    background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ", unclickable);
-                    setItems();
-                    Bukkit.getPluginManager().registerEvents(new MainListener(), this);
+                if (checkFilesAndCreate()) {
+                    if (loadClasses()) {
+                        startAutosave();
+                        background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ", unclickable);
+                        setItems();
+                        Bukkit.getPluginManager().registerEvents(new MainListener(), this);
 
-                    Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setExecutor(new cmd());
-                    Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setTabCompleter(new cmd.cmdTabCom());
+                        Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setExecutor(new cmd());
+                        Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setTabCompleter(new cmd.cmdTabCom());
 
-                    for (Object o : listProp(DISABLED_SPELLS)) {
-                        if (o instanceof String s) {
-                            try {
-                                Spell.disabled.add(UUID.fromString(s));
-                            } catch (IllegalArgumentException ignore) {}
+                        for (Object o : listProp(DISABLED_SPELLS)) {
+                            if (o instanceof String s) {
+                                try {
+                                    Spell.disabled.add(UUID.fromString(s));
+                                } catch (IllegalArgumentException ignore) {
+                                }
+                            }
                         }
+                        log("Plugin loaded successfully");
                     }
-                    log("Plugin loaded successfully");
                 }
             } else {
-                log(Level.WARNING, "Plugin is disabled in properties, make sure this is a change you wanted");
+                log(Level.WARNING, "Plugin is soft disabled in config, make sure this is a change you wanted");
             }
         }
     }
@@ -578,10 +582,14 @@ public class Main extends JavaPlugin {
         }
     }
 
-    private void checkFilesAndCreate() {
+    private boolean checkFilesAndCreate() {
         PLAYER_DATA = DTFL + "playerdata/";
         File pdf = new File(PLAYER_DATA);
-        if (!pdf.exists()) pdf.mkdir();
+        if (!pdf.exists())
+            if (!pdf.mkdir()) {
+            log(Level.SEVERE, "Couldn't create player data folder at: "  + PLAYER_DATA);
+            return false;
+        }
         BLOCK_DATAFILE = DTFL + "block.json";
         List<String> files = new ArrayList<>(Arrays.asList(BLOCK_DATAFILE));
         for (String file : files) {
@@ -592,9 +600,11 @@ public class Main extends JavaPlugin {
                     log(Level.WARNING, "Created new file at '" + path +"' since it was absent");
                 } catch (IOException e) {
                     log(Level.SEVERE, "Could not create file at '" + path + "'\nLog:\n" + String.join(Arrays.asList(e.getStackTrace()).toString()) + "\n");
+                    return false;
                 }
             }
         }
+        return true;
     }
     public static void setCusData(@NotNull ItemStack i, int data) {
         ItemMeta m = i.getItemMeta();

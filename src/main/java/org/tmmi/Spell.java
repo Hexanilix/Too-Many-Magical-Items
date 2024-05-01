@@ -25,6 +25,9 @@ import static org.tmmi.Main.*;
 public class Spell {
     public static List<Spell> spells = new ArrayList<>();
     public static ArrayList<UUID> disabled = new ArrayList<>();
+    public static double mxT = 20;
+    public static double mxS = 20;
+    public static double mxD = 20;
 
     public enum SpellType {
         CANTRIP,
@@ -157,7 +160,6 @@ public class Spell {
     private double travel;
     private double speed;
     private double baseDamage;
-    private final Sound castSound;
     private boolean isCast;
     private Location castLocation;
     private int XP;
@@ -189,16 +191,12 @@ public class Spell {
         this.level = level;
         this.XP = XP;
         this.spellType = spellType;
-        this.travel = travel;
-        this.speed = speed;
-        switch (mainElement) {
-            case FIRE -> this.castSound = Sound.BLOCK_FIRE_AMBIENT;
-            case EARTH -> this.castSound = Sound.MUSIC_UNDER_WATER;
-            case WATER -> this.castSound = Sound.MUSIC_UNDER_WATER;
-            default -> this.castSound = Sound.ENTITY_GENERIC_EXPLODE;
-        }
+        assert travel > 0;
+        assert speed > 0;
+        this.travel = Math.min(travel, mxT);
+        this.speed = Math.min(speed, mxS);
         this.isCast = false;
-        this.baseDamage = baseDamage;
+        this.baseDamage = Math.min(baseDamage, mxD);
         if (!disabled.contains(this.id)) spells.add(this);
     }
     public Spell(UUID handler, String name, @NotNull Spell.Element mainElement, CastAreaEffect castAreaEffect, int usedMagicules) {
@@ -290,14 +288,20 @@ public class Spell {
         boolean opB = (!Element.getOptimalBiomes(this.mainElement).contains(castLocation.getWorld().getBiome(castLocation)));
         this.XP += Math.round((float) (this.level * this.level) /10)+1;
         Particle finalP = p;
-        double travDis = this.travel + (opE ? 1 : 0) + (opB ? 1.7 : 0);
+        double travDis = this.travel + (opE ? 0.7 : 0) + (opB ? 1 : 0);
         double spellSpeed = BigDecimal.valueOf((this.speed - Math.floor(this.speed)) / 2).round(MathContext.DECIMAL32).doubleValue() + 0.3;
         Vector direction = castLocation.getDirection();
         Location loc = castLocation.clone();
         double speed = this.speed;
         loc.add(direction.multiply(spellSpeed));
         Spell s = this;
-        Sound sound = this.castSound;
+        Sound sound;
+        switch (mainElement) {
+            case FIRE -> sound = Sound.BLOCK_FIRE_AMBIENT;
+            case EARTH -> sound = Sound.MUSIC_UNDER_WATER;
+            case WATER -> sound = Sound.MUSIC_UNDER_WATER;
+            default -> sound = Sound.ENTITY_GENERIC_EXPLODE;
+        }
         int tick = (int) Math.round(5 - this.speed + 0);
         switch (this.castAreaEffect) {
             case DIRECT -> {
@@ -476,7 +480,6 @@ public class Spell {
                 ", travel=" + travel +
                 ", speed=" + speed +
                 ", baseDamage=" + baseDamage +
-                ", castSound=" + castSound +
                 ", isCast=" + isCast +
                 ", castLocation=" + castLocation +
                 ", spellRun=" + spellRun +
