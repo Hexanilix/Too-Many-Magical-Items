@@ -37,8 +37,10 @@ public class SpellBook extends Item {
 
     @Override
     public void onUse(@NotNull PlayerInteractEvent event) {
+        log(WeavePlayer.weavers);
         Player p = event.getPlayer();
         WeavePlayer w = WeavePlayer.getWeaver(p);
+        log(w);
         if (w == null) return;
         p.openInventory(w.getSpellInventory().toInventory());
     }

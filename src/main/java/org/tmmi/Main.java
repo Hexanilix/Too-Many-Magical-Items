@@ -54,11 +54,11 @@ import static org.tmmi.block.Presence.detectorLocations;
 import static org.tmmi.Property.*;
 
 public class Main extends JavaPlugin {
-    public static FileVersion FILE_VERSION = new FileVersion(1, 0, 1, 6);
+    public static FileVersion PLUGIN_VERSION = new FileVersion(1,0,0);
+    public static FileVersion FILE_VERSION = new FileVersion(1,0,0);
     public static String UUID_SEQUENCE = toHex(Main.class.getPackage().getSpecificationVersion(), 4)
             +toHex(FILE_VERSION, 4)+'-';
     public static int unclickable = 2147837;
-    static List<UUID> uuids = new ArrayList<>();
     public static Plugin plugin;
     public Set<Class<?>> classes = new HashSet<>();
     public static boolean DISABLED;
@@ -132,7 +132,7 @@ public class Main extends JavaPlugin {
         return (properties.get(prop.key()) instanceof Number ? (Number) properties.get(prop.key()) : 0);
     }
     public static String textProp(@NotNull Property prop) {
-        return (properties.get(prop.key()) instanceof String ? (String) properties.get(prop.key()) : "");
+        return (properties.get(prop.key()) instanceof String s ? s : String.valueOf(properties.get(prop.key())));
     }
     public static ArrayList<Object> listProp(@NotNull Property prop) {
         return properties.get(prop.key()) instanceof ArrayList<?> ? (ArrayList<Object>) properties.get(prop.key()) : new ArrayList<>();
@@ -185,6 +185,13 @@ public class Main extends JavaPlugin {
             //Reading yml
             try (InputStream input = new FileInputStream(CONF_FILE)) {
                 properties = new Yaml().load(input);
+                if (properties.size() < values().length) {
+                    updateConfig();
+                    log(Level.WARNING, "Some config properties not found, updating config.yml");
+                    for (Property p : Property.values()) {
+                        properties.putIfAbsent(p.key(), p.val());
+                    }
+                }
             } catch (IOException e) {
                 e.printStackTrace();
                 super.onDisable();
@@ -192,24 +199,17 @@ public class Main extends JavaPlugin {
             FileVersion.VDating v = FileVersion.versionDiff(new FileVersion(textProp(FILEVERSION)), FILE_VERSION);
             if (v != FileVersion.VDating.SAME) {
                 if (v == FileVersion.VDating.OBSOLETE) {
-                    properties.replace(FILEVERSION.key(), FILE_VERSION.toString());
-                    try {
-                        FileWriter writer = new FileWriter(CONF_FILE);
-                        writer.append("# Last automatic modification: ").append(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())).append("\n");
-                        for (Property p : Property.values())
-                            writer.append(p.key()).append(": ").append(properties.containsKey(p.key()) ?
-                                    (properties.get(p.key()) instanceof String s ? "\""+s+"\"" : String.valueOf(properties.get(p.key()))) : p.val()).append("\n");
-                        writer.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        super.onDisable();
-                    }
+                    updateConfig();
+                    log(Level.WARNING, "config.yml is obsolete, updating contents of config.yml");
                 } else {
                     log(Level.SEVERE, "Plugin cannot read properly files higher than " + FILE_VERSION + ": config.yml file version is " + textProp(FILEVERSION) +"\n" +
-                            "\tPlugin may default values due to a different naming scheme. Use [link] to convert to older file versions");
+                            "\t\t Plugin will use default values in case of a different naming scheme. Use [link] to convert to older file versions");
                 }
             }
             if (boolProp(ENABLED)) {
+                Spell.mxS = Double.parseDouble(textProp(SPELL_SPEED_CAP));
+                Spell.mxT = Double.parseDouble(textProp(SPELL_TRAVEL_CAP));
+                Spell.mxD = Double.parseDouble(textProp(SPELL_DAMAGE_CAP));
                 permission = "tmmi.craft." + new NamespacedKey(plugin, "weaver");
                 if (checkFilesAndCreate()) {
                     if (loadClasses()) {
@@ -238,6 +238,21 @@ public class Main extends JavaPlugin {
         }
     }
 
+    private void updateConfig() {
+        properties.replace(FILEVERSION.key(), FILE_VERSION.toString());
+        try {
+            FileWriter writer = new FileWriter(CONF_FILE);
+            writer.append("# Last automatic modification: ").append(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())).append("\n");
+            for (Property p : Property.values())
+                writer.append(p.key()).append(": ").append(properties.containsKey(p.key()) ?
+                        (properties.get(p.key()) instanceof String s ? "\""+s+"\"" : String.valueOf(properties.get(p.key()))) : p.sval()).append("\n");
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            super.onDisable();
+        }
+    }
+
     private static void loadPlayerSaveData(@NotNull Player p) {
         loadPlayerSaveData(p.getUniqueId());
     }
@@ -251,28 +266,34 @@ public class Main extends JavaPlugin {
                         try {
                             JSONObject json = new JSONObject(new String(Files.readAllBytes(file.toPath())));
                             try {
-                                JSONArray ar = json.getJSONArray("spells");
-                                UUID pid = UUID.fromString(file.getName().split("\\.")[0]);
-                                new WeavePlayer(Bukkit.getPlayer(pid));
-                                for (int i = 0; i < ar.length(); i++) {
-                                    JSONObject j = ar.getJSONObject(i);
-                                    try {
-                                        Spell s = new Spell(UUID.fromString(j.getString("id")),
-                                                pid,
-                                                j.getString("name"),
-                                                j.getInt("level"),
-                                                j.getInt("experience"),
-                                                j.getInt("cast_cost"),
-                                                getElement(j.getString("main_element")),
-                                                getElement(j.getString("secondary_element")),
-                                                Spell.CastAreaEffect.getAreaEffect(j.getString("cast_area_effect")),
-                                                Spell.SpellType.getSpellType(j.getString("spell_type")),
-                                                j.getDouble("base_damage"),
-                                                j.getDouble("speed"), j.getDouble("travel"));
-                                        log(s.toString());
-                                    } catch (JSONException e) {
-                                        e.printStackTrace();
+                                if (json.has("spells")) {
+                                    JSONArray ar = json.getJSONArray("spells");
+                                    WeavePlayer w = new WeavePlayer(Bukkit.getPlayer(id));
+                                    for (int i = 0; i < ar.length(); i++) {
+                                        JSONObject j = ar.getJSONObject(i);
+                                        try {
+                                            Spell s = new Spell(UUID.fromString(j.getString("id")),
+                                                    id,
+                                                    j.getString("name"),
+                                                    j.getInt("level"),
+                                                    j.getInt("experience"),
+                                                    j.getInt("cast_cost"),
+                                                    getElement(j.getString("main_element")),
+                                                    getElement(j.getString("secondary_element")),
+                                                    Spell.CastAreaEffect.getAreaEffect(j.getString("cast_area_effect")),
+                                                    Spell.SpellType.getSpellType(j.getString("spell_type")),
+                                                    j.getDouble("base_damage"),
+                                                    j.getDouble("speed"),
+                                                    j.getDouble("travel"));
+                                            w.addSpell(s);
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                        }
                                     }
+                                    String main = json.getString("main");
+                                    String sec = json.getString("second");
+                                    if (!main.equals("null")) w.setMain(UUID.fromString(main));
+                                    if (!sec.equals("null")) w.setSecondary(UUID.fromString(sec));
                                 }
                             } catch (JSONException ignore) {}
                         } catch (IOException e) {
@@ -301,11 +322,14 @@ public class Main extends JavaPlugin {
                 if (w != null) {
                     Spell main = w.getSpellInventory().getMainSpell();
                     Spell sec = w.getSpellInventory().getSecondarySpell();
-                    json += "\t\"spells\":[\n" +
-                                String.join("\n\t\t",String.join(",\n", w.getSpells().stream().map(Spell::toJson).toList()).split("\n")) +
-                                "\n\t],\n" +
-                                "\t\"main\":\"" + (main != null ? main.getId() : "null") + "\",\n" +
-                                "\t\"second\":\"" + (sec != null ? sec.getId() : "null") + "\"";
+                    List<String> spells = new ArrayList<>();log(w.getSpells());
+                    log(spells);
+                    for (Spell s : w.getSpells()) spells.add(s.toJson());
+                    json += "\"spells\":[\n" +
+                                String.join("\n\t",spells) +
+                                "\n],\n" +
+                                "\"main\":\"" + (main != null ? main.getId() : "null") + "\",\n" +
+                                "\"second\":\"" + (sec != null ? sec.getId() : "null") + "\"";
                 }
                 json += "\n}";
                 writer.write(json); writer.close();
@@ -465,7 +489,6 @@ public class Main extends JavaPlugin {
 
                                 }
                                 case "save" -> player.sendMessage((autoSave() ? ChatColor.GREEN + "Saved plugin data" : ChatColor.RED + "An error occurred while saving data"));
-
                                 case "spell" -> {
                                     WeavePlayer w = getWeaver(player);
                                     assert w != null;
@@ -492,9 +515,9 @@ public class Main extends JavaPlugin {
                                     }
                                 }
                                 case "getwand" -> {
-                                    WeavePlayer w = new WeavePlayer(player, new SpellInventory());
+                                    WeavePlayer w = new WeavePlayer(player);
                                     w.setWand(new FocusWand(player));
-                                    player.getInventory().addItem(w.getWand(), new SpellBook());
+                                    player.getInventory().addItem(w.getWand());
                                     Spell s = new Spell(player.getUniqueId(),"Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
                                     log(w.addSpell(s));
                                     w.getSpellInventory().setActiveSpells(SpellInventory.SpellUsage.MAIN, s);
@@ -615,7 +638,7 @@ public class Main extends JavaPlugin {
 
     private void setItems() {
         ItemStack fusionCrys = newItemStack(Material.END_CRYSTAL, ChatColor.DARK_AQUA + "Fusion Crystal", 365450, List.of());
-        allItemInv.get(0).addItem(SpellWeaver.item);
+        allItemInv.get(0).addItem(SpellWeaver.item, new SpellBook());
         for (Spell.Element e : Spell.Element.values()) allItemInv.get(0).addItem(getItem(e));
         for (Spell.CastAreaEffect e : Spell.CastAreaEffect.values()) allItemInv.get(0).addItem(Spell.CastAreaEffect.getItem(e));
         {

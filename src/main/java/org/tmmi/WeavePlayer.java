@@ -31,7 +31,7 @@ public class WeavePlayer {
     private final SpellInventory spellInventory;
     private boolean isWeaving;
     private Wand wand;
-    private List<Spell> spells = new ArrayList<>();
+    private final List<Spell> spells = new ArrayList<>();
     private GrandBook grandBook;
 
     public WeavePlayer(Player handler, SpellInventory spellInventory) {
@@ -74,7 +74,9 @@ public class WeavePlayer {
     }
 
     public List<Spell> getSpells() {
-        return this.spells;
+        List<Spell> spl = this.spellInventory.getCanSpells();
+        spl.addAll(this.spellInventory.getSorcerySpells());
+        return spl;
     }
 
     public boolean isWeaving() {
@@ -99,5 +101,24 @@ public class WeavePlayer {
 
     public void setWand(Wand wand) {
         this.wand = wand;
+    }
+
+    public void setMain(Spell s) {
+        this.spellInventory.setActiveSpells(SpellInventory.SpellUsage.MAIN, s);
+    }
+    public void setMain(UUID id) {
+        if (id != null) {
+            Spell s = Spell.getSpell(id);
+            if (s != null) setMain(s);
+        }
+    }
+    public void setSecondary(Spell s) {
+        this.spellInventory.setActiveSpells(SpellInventory.SpellUsage.SECONDARY, s);
+    }
+    public void setSecondary(UUID id) {
+        if (id != null) {
+            Spell s = Spell.getSpell(id);
+            if (s != null) setSecondary(s);
+        }
     }
 }

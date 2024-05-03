@@ -41,6 +41,14 @@ public class FileVersion {
     }
     FileVersion(int @NotNull ... versions) {
         ver = new int[versions.length];
+        try {
+            for (int i = 0; i < versions.length; i++) {
+                if (versions[i] < 0) throw new FileVersionFormatException("FileVersion cannot contain negative numbers");
+                ver[i] = versions[i];
+            }
+        } catch (FileVersionFormatException e) {
+            e.printStackTrace();
+        }
         System.arraycopy(versions, 0, ver, 0, versions.length);
     }
 

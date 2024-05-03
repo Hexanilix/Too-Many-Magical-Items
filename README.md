@@ -36,7 +36,7 @@ By going into your plugin folder and locating a folder called **TMMI**, you shou
 | spell_seed_cap            |     double      | *The maximum speed at which a spell can travel measured in blocks*                 |
 | spell_travel_distance_cap |     double      | *The maximum distance a spell can travel measured in block*                        |
 | spell_damage_cap          |     double      | *The maximum amount of damage a spell can inflict on an entity*                    |
-
+| enable_custom_spells      |   true, false   | *Allow **[custom spells](#custom-spells)***                                        |
 ***autosave:** *Note that this only saves data collected by the plugin, not server data*
 
 > More and more aspects of the plugin are becoming available to be changed,
@@ -61,7 +61,13 @@ spell_collision: true
 # Saved Data
 Simply, the plugin uses JSON as well as YAML files to store its data.
 ## Files
-
+### Here is the file tree on which the plugin operates:
+- ### `TMMI`/
+  - `config.yml` - The config file 
+  - `playerdata`/
+    - `[UUID].json` - Exclusive to each player
+  - `spells`/
+    -  fgh
 ## Versions
 The way files save data and name it can be changed in new releases of the plugin. Some files like the config file
 is updated on this page since it's not. as well as your plugin config file with new or renamed/changed options. However, if you copy the contents of another config file or have a backup,
@@ -69,4 +75,17 @@ the naming scheme may be incorrect or lack some options. The plugin has function
 that it can read files backYou can check this by comparing the
 `file_version` property in the file, with the one in the plugin. You can find it in the note attached to the release you downloaded, or run
 `/tmmi plugin fileversion` in the plugin through console or in game. **This should not occur but please be aware**
+# Migration of data
+Similarly to how you can move minecraft worlds between games, TMMI allows similar functionality for *most* of its files. While this plugin
+offers the option to move player data files (or the whole folder both cases work) between server instances with the
+plugin, that functionality **doesn't work for Blocks**. It's physical block I'm refering to and not the item, and
+the reason is simply due to the fact that
+## Moving items
+As stated before, it's possible to move TMMI items from one server instance to another. However, this doesn't come
+as simple as just copying files.
+**Here is a step-by-step process to migrating items:**
+- ### Step one - Getting files ready:
+  To begin this operation of item migration, you'll first have to get command on your server `/tmmi migrate`,
+  or if you want just migrate one players items `/tmmi migrate [player]`. After executing this command via
+  in game or console, you're going to find a new folder in the plugins folder called `migration`.
 

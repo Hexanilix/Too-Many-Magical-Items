@@ -29,6 +29,13 @@ public class Spell {
     public static double mxS = 20;
     public static double mxD = 20;
 
+    public static @Nullable Spell getSpell(UUID id) {
+        for (Spell s : spells)
+            if (id == s.getId())
+                return s;
+        return null;
+    }
+
     public enum SpellType {
         CANTRIP,
         SORCERY,
@@ -163,8 +170,7 @@ public class Spell {
     private boolean isCast;
     private Location castLocation;
     private int XP;
-
-    private BukkitTask spellRun;
+    private final List<BukkitTask> spellRun = new ArrayList<>();
 
     private @NotNull UUID uuid(CastAreaEffect effect, @NotNull Element main, Element second) {
         String u = UUID_SEQUENCE + IntToHex(spells.size(), 4) +
@@ -178,7 +184,7 @@ public class Spell {
         return UUID.fromString(u);
     }
     public Spell(UUID handler, String name, @NotNull Element mainElement, Element secondaryElement, @NotNull CastAreaEffect castAreaEffect, int usedMagicules) {
-        this(null, handler, name, 1, 0, 10, mainElement, secondaryElement, castAreaEffect, SpellType.CANTRIP, (double) usedMagicules /100, 0.3, 4);
+        this(null, handler, name, 1, 0, 10, mainElement, secondaryElement, castAreaEffect, SpellType.CANTRIP, (double) usedMagicules /100, 0.7, 5);
     }
     public Spell(UUID id, UUID handler, String name, int level, int XP, int castCost, @NotNull Element mainElement, Element secondaryElement, CastAreaEffect castAreaEffect, SpellType spellType, double baseDamage, double speed, double travel) {
         this.id = (id == null ? uuid(castAreaEffect, mainElement, secondaryElement) : id);
@@ -188,6 +194,7 @@ public class Spell {
         this.castAreaEffect = castAreaEffect;
         this.mainElement = mainElement;
         this.secondaryElement = secondaryElement;
+        assert level > 0;
         this.level = level;
         this.XP = XP;
         this.spellType = spellType;
@@ -250,7 +257,7 @@ public class Spell {
     }
 
     private void attemptLvlUP() {
-        if (XP - lvlXPcalc(this.level-1) >= lvlXPcalc(this.level)) {
+        if (XP - xpsum(this.level-1) >= lvlXPcalc(this.level-1)) {
             this.level++;
             if (Bukkit.getPlayer(this.handler) != null) Bukkit.getPlayer(this.handler).sendMessage(this.name + " upgraded to level " + this.level);
             float margin = (this.level % 5 == 0 ? 0.03F : 0.01F);
@@ -262,7 +269,6 @@ public class Spell {
 
     public void cast(PlayerInteractEvent event, Location castLocation, float multiplier) {
         int bxp = this.XP;
-        log("Cast spell " + this.name);
         this.castLocation = castLocation;
         this.isCast = true;
         boolean opE = true;
@@ -286,7 +292,7 @@ public class Spell {
             }
         }
         boolean opB = (!Element.getOptimalBiomes(this.mainElement).contains(castLocation.getWorld().getBiome(castLocation)));
-        this.XP += Math.round((float) (this.level * this.level) /10)+1;
+        this.XP += Math.round((float) (this.level * this.level) /15)+1;
         Particle finalP = p;
         double travDis = this.travel + (opE ? 0.7 : 0) + (opB ? 1 : 0);
         double spellSpeed = BigDecimal.valueOf((this.speed - Math.floor(this.speed)) / 2).round(MathContext.DECIMAL32).doubleValue() + 0.3;
@@ -305,7 +311,7 @@ public class Spell {
         int tick = (int) Math.round(5 - this.speed + 0);
         switch (this.castAreaEffect) {
             case DIRECT -> {
-                this.spellRun = new BukkitRunnable() {
+                this.spellRun.add(new BukkitRunnable() {
                     private double distance = 0;
                     @Override
                     public void run() {
@@ -314,9 +320,8 @@ public class Spell {
                             cancel();
                             s.castLocation = null;
                         }
-                        log(spellSpeed);
                         distance += spellSpeed;
-                        loc.add(direction.multiply(spellSpeed));
+                        loc.add(direction);
                         Objects.requireNonNull(loc.getWorld()).playSound(loc, sound, 1, 1);
                         Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, Math.round(1*multiplier), 0, 0, 0, 0);
                         List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(loc.getWorld()).getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
@@ -333,10 +338,10 @@ public class Spell {
                         }
                         s.attemptLvlUP();
                     }
-                }.runTaskTimer(plugin, 0, tick);
+                }.runTaskTimer(plugin, 0, tick));
             }
             case WIDE -> {
-                this.spellRun = new BukkitRunnable() {
+                this.spellRun.add(new BukkitRunnable() {
                     private double distance = 0;
                     private final Location sloc = loc;
                     private final List<Integer> hitInts = new ArrayList<>();
@@ -372,10 +377,10 @@ public class Spell {
                         distance += spellSpeed;
                         loc.add(direction.multiply(spellSpeed));
                     }
-                }.runTaskTimer(plugin, 0, tick);
+                }.runTaskTimer(plugin, 0, tick));
             }
             case AREA -> {
-                this.spellRun = new BukkitRunnable() {
+                this.spellRun.add(new BukkitRunnable() {
                     private double distance = 0;
                     private final List<Integer> hitInts = new ArrayList<>();
                     @Override
@@ -408,7 +413,7 @@ public class Spell {
                         distance += spellSpeed;
                         loc.add(direction.multiply(spellSpeed));
                     }
-                }.runTaskTimer(plugin, 0, tick);
+                }.runTaskTimer(plugin, 0, tick));
             }
         }
         event.getPlayer().sendMessage("Gained " + (this.XP - bxp) + " xp");
@@ -416,12 +421,7 @@ public class Spell {
     }
 
     public void uncast() {
-        this.spellRun.cancel();
         this.isCast = false;
-    }
-
-    private void castOnBlock() {
-
     }
 
     public void onCollide(SpellCollideEvent event) {
@@ -447,8 +447,8 @@ public class Spell {
         ItemMeta m = item.getItemMeta();
         assert m != null;
         m.setDisplayName(c+this.name);
-        int nxtlxp = XP - (lvlXPcalc(this.level-1));
-        int nxtLvlXP = lvlXPcalc(this.level);
+        int nxtlxp = XP - (xpsum(this.level-1));
+        int nxtLvlXP = lvlXPcalc(this.level-1);
         int perc = (int) (((float) nxtlxp / nxtLvlXP) * 100);
         m.setLore(List.of(c+"Level "+this.level, c + "[" +
                         "-".repeat(Math.max(0, perc/10)) +
@@ -459,11 +459,15 @@ public class Spell {
         item.setItemMeta(m);
         return item;
     }
-    private static int lvlXPcalc(int lvl) {
-        int j = (lvl > 0 ? 10 : 0);
-        for (int i = 1; i < lvl; i++) j = (int) (j * 1.5);
-        return j;
+    private int xpsum(int lvl) {
+        int s = 0;
+        for (int i = 0; i < lvl; i++) s += lvlXPcalc(i);
+        return s;
     }
+    private static int lvlXPcalc(int lvl) {
+        return (int) (lvl < 0 ? 0 : Math.round(((Math.pow(14, 1+lvl))/Math.pow(10, lvl)-4)));
+    }
+
 
     @Override
     public String toString() {
@@ -482,14 +486,17 @@ public class Spell {
                 ", baseDamage=" + baseDamage +
                 ", isCast=" + isCast +
                 ", castLocation=" + castLocation +
+                ", XP=" + XP +
                 ", spellRun=" + spellRun +
                 '}';
     }
+
     public String toJson() {
         return "{\n" +
                 "\t\"id\":\"" + this.id + "\",\n" +
                 "\t\"name\":\"" + this.name + "\",\n" +
                 "\t\"level\":" + this.level + ",\n" +
+                "\t\"experience\":" + this.XP + ",\n" +
                 "\t\"cast_cost\":" + this.castCost + ",\n" +
                 "\t\"main_element\":\"" + this.mainElement + "\",\n" +
                 "\t\"secondary_element\":\"" + this.secondaryElement + "\",\n" +
