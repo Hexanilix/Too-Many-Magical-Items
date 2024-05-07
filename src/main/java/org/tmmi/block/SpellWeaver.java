@@ -11,6 +11,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.InteractiveBlock;
+import org.tmmi.Main;
 import org.tmmi.Spell;
 import org.tmmi.WeavePlayer;
 
@@ -19,13 +20,13 @@ import java.util.*;
 import static org.tmmi.Main.*;
 import static org.tmmi.Spell.CastAreaEffect.getAreaEffect;
 import static org.tmmi.Spell.Element.getElement;
-import static org.tmmi.Spell.Element.getItem;
 
 public class SpellWeaver extends InteractiveBlock {
+    private static final ItemStack NOS = newItemStack(Material.BARRIER, "No spell", unclickable);
     public static @NotNull Inventory gui() {
         Inventory inv = Bukkit.createInventory(null, 54, "Spell Weaver");
         for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, background);
-        inv.setItem(25, newItemStack(Material.ENDER_EYE, ChatColor.GOLD + "Spell", 245782, List.of("Lala", "leh")));
+        inv.setItem(25, NOS);
         inv.setItem(34, newItemStack(Material.RED_WOOL, ChatColor.RED + "Weave", 2367845));
         inv.setItem(10, null);
         inv.setItem(11, null);
@@ -51,7 +52,7 @@ public class SpellWeaver extends InteractiveBlock {
                 invs.putIfAbsent(player.getUniqueId(), gui());
                 player.openInventory(invs.get(player.getUniqueId()));
             } else {
-                this.getLoc().getWorld().spawnParticle(Particle.VILLAGER_ANGRY, this.getLoc().clone().add(0.5, 0.5, 0.5), 0, 0, 0, 0);
+                this.getLoc().getWorld().spawnParticle(Particle.ANGRY_VILLAGER, this.getLoc().clone().add(0.5, 0.5, 0.5), 0, 0, 0, 0);
             }
             event.setCancelled(true);
         } else {
@@ -94,7 +95,7 @@ public class SpellWeaver extends InteractiveBlock {
                         ChatColor.WHITE + "Area Effect: " + c + ef.name(),
                         ChatColor.WHITE + "Spell Type: Cantrip")));
             } else {
-                inv.setItem(25, newItemStack(Material.BARRIER, "No spell"));
+                inv.setItem(25, NOS);
                 inv.setItem(34, newItemStack(Material.RED_WOOL, ChatColor.RED + "Weave", 2367845));
             }
         }).start();

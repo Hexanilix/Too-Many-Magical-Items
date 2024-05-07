@@ -1,5 +1,5 @@
 name: TMMI
-version: P1.11.0-alpha
+version: 1.20.6-v1.0.0P-alpha
 api-version: 1.20
 main: org.tmmi.Main
 commands:

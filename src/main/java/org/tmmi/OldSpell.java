@@ -291,7 +291,7 @@ public class OldSpell {
                                             for (Entity e : collection) {
                                                 if (e != player) {
                                                     if (e instanceof LivingEntity l) {
-                                                        e.getWorld().spawnEntity(e.getLocation(), EntityType.LIGHTNING);
+                                                        e.getWorld().spawnEntity(e.getLocation(), EntityType.LIGHTNING_BOLT);
                                                         world.playSound(loc, Sound.ENTITY_ARROW_HIT_PLAYER, 1, 1);
                                                         l.damage(level);
                                                         points += 0.2F;
@@ -360,7 +360,7 @@ public class OldSpell {
                                                     if (!collection.isEmpty()) {
                                                         for (Entity e : collection) {
                                                             if (e instanceof LivingEntity l) {
-                                                                l.getWorld().spawnEntity(l.getLocation(), EntityType.LIGHTNING);
+                                                                l.getWorld().spawnEntity(l.getLocation(), EntityType.LIGHTNING_BOLT);
                                                                 l.damage((double) level / 2);
                                                             }
                                                         }

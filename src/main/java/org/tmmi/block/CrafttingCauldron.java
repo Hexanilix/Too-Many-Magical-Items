@@ -54,7 +54,7 @@ public class CrafttingCauldron extends Block {
                 double z = loc.getZ() + 0.3 * Math.sin(angle);
                 if (!craftIn.isCrafting()) {
                     if (i >= 10) i = 0;
-                    Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.ENCHANTMENT_TABLE, loc.clone().add(0.5, 2, 0.5), (craftIn.isCrafting() ? 10 : 1), 0, 1, 0);
+                    Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.ENCHANTED_HIT, loc.clone().add(0.5, 2, 0.5), (craftIn.isCrafting() ? 10 : 1), 0, 1, 0);
                     if (craftIn.isGathering()) {
                         iter++;
                         if (iter == 25) {
@@ -62,7 +62,7 @@ public class CrafttingCauldron extends Block {
                             craftIn.setGathering(false);
                             iter = 0;
                         }
-                        loc.getWorld().spawnParticle(Particle.SPELL_WITCH, new Location(loc.getWorld(), x + 0.5, loc.getY() + 0.4, z + 0.5), 1);
+                        loc.getWorld().spawnParticle(Particle.FLAME, new Location(loc.getWorld(), x + 0.5, loc.getY() + 0.4, z + 0.5), 1);
                     } else {
                         loc.getWorld().spawnParticle(Particle.COMPOSTER, new Location(loc.getWorld(), x + 0.5, loc.getY() + 0.4, z + 0.5), 1);
                     }
@@ -77,7 +77,7 @@ public class CrafttingCauldron extends Block {
                             entity.remove();
                             if (!player.hasPermission(org.tmmi.Main.permission)) {
                                 loc.getWorld().playSound(loc.clone().add(0.5, 0.5, 0.5), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 1, -2);
-                                loc.getWorld().spawnParticle(Particle.EXPLOSION_NORMAL, loc, 5);
+                                loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 5);
                                 loc.getWorld().dropItem(loc.clone().add(0.5, 1, 0.5), trIt.getItemStack());
                                 continue;
                             }
@@ -115,13 +115,13 @@ public class CrafttingCauldron extends Block {
                         }.runTaskTimer(plugin, 10, 0);
                         craftIn.setCrafting(false);
                         loc.getWorld().playSound(loc.clone().add(0.5, 0.5, 0.5), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 1, -2);
-                        loc.getWorld().spawnParticle(Particle.EXPLOSION_NORMAL, loc, 5);
+                        loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 5);
                         for (ItemStack i : ingredients) {
                             loc.getWorld().dropItem(loc.clone().add(0.5, 1, 0.5), i);
                         }
                     } else {
                         loc.getWorld().playSound(loc.clone().add(0.5, 0.5, 0.5), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 1, -2);
-                        loc.getWorld().spawnParticle(Particle.EXPLOSION_NORMAL, loc.clone().add(0.5, 0.5, 0.5), 5);
+                        loc.getWorld().spawnParticle(Particle.EXPLOSION, loc.clone().add(0.5, 0.5, 0.5), 5);
                         for (ItemStack i : ingredients) {
                             loc.getWorld().dropItem(loc.clone().add(0.5, 1, 0.5), i);
                         }

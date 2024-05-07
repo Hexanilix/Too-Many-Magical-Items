@@ -95,6 +95,10 @@ public class WeavePlayer {
         return this.wand;
     }
 
+    public boolean hasWand() {
+        return wand != null;
+    }
+
     public boolean hasGrandBook() {
         return grandBook != null;
     }

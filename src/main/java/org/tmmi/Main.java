@@ -220,7 +220,7 @@ public class Main extends JavaPlugin {
 
                         Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setExecutor(new cmd());
                         Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setTabCompleter(new cmd.cmdTabCom());
-
+                        Bukkit.getOnlinePlayers().forEach(Main::loadPlayerSaveData);
                         for (Object o : listProp(DISABLED_SPELLS)) {
                             if (o instanceof String s) {
                                 try {
@@ -232,9 +232,7 @@ public class Main extends JavaPlugin {
                         log("Plugin loaded successfully");
                     }
                 }
-            } else {
-                log(Level.WARNING, "Plugin is soft disabled in config, make sure this is a change you wanted");
-            }
+            } else log(Level.WARNING, "Plugin is soft disabled in config, make sure this is a change you wanted");
         }
     }
 
@@ -322,14 +320,12 @@ public class Main extends JavaPlugin {
                 if (w != null) {
                     Spell main = w.getSpellInventory().getMainSpell();
                     Spell sec = w.getSpellInventory().getSecondarySpell();
-                    List<String> spells = new ArrayList<>();log(w.getSpells());
-                    log(spells);
-                    for (Spell s : w.getSpells()) spells.add(s.toJson());
-                    json += "\"spells\":[\n" +
-                                String.join("\n\t",spells) +
-                                "\n],\n" +
-                                "\"main\":\"" + (main != null ? main.getId() : "null") + "\",\n" +
-                                "\"second\":\"" + (sec != null ? sec.getId() : "null") + "\"";
+                    List<String> spells = w.getSpells().stream().map(Spell::toJson).toList();
+                    json += "   \"spells\": [\n" +
+                                String.join(",\n",spells) +
+                                "\n\t],\n" +
+                                "\t\"main\":\"" + (main != null ? main.getId() : "null") + "\",\n" +
+                                "\t\"second\":\"" + (sec != null ? sec.getId() : "null") + "\"";
                 }
                 json += "\n}";
                 writer.write(json); writer.close();
@@ -515,12 +511,16 @@ public class Main extends JavaPlugin {
                                     }
                                 }
                                 case "getwand" -> {
-                                    WeavePlayer w = new WeavePlayer(player);
-                                    w.setWand(new FocusWand(player));
+                                    WeavePlayer w = WeavePlayer.getWeaver(player);
+                                    if (w == null) {
+                                        w = new WeavePlayer(player);
+                                        w.setWand(new FocusWand(player));
+                                        Spell s = new Spell(player.getUniqueId(),"Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
+                                        log(w.addSpell(s));
+                                        w.getSpellInventory().setActiveSpells(SpellInventory.SpellUsage.MAIN, s);
+                                    }
+                                    if (!w.hasWand()) w.setWand(new FocusWand(player));
                                     player.getInventory().addItem(w.getWand());
-                                    Spell s = new Spell(player.getUniqueId(),"Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
-                                    log(w.addSpell(s));
-                                    w.getSpellInventory().setActiveSpells(SpellInventory.SpellUsage.MAIN, s);
                                 }
                                 default -> player.sendMessage(ChatColor.RED + "Unknown argument " + ChatColor.ITALIC + args[0]);
                             }
@@ -641,37 +641,37 @@ public class Main extends JavaPlugin {
         allItemInv.get(0).addItem(SpellWeaver.item, new SpellBook());
         for (Spell.Element e : Spell.Element.values()) allItemInv.get(0).addItem(getItem(e));
         for (Spell.CastAreaEffect e : Spell.CastAreaEffect.values()) allItemInv.get(0).addItem(Spell.CastAreaEffect.getItem(e));
-        {
-            NamespacedKey key = new NamespacedKey(this, "fusion_crystal");
-            ShapedRecipe crfCReci = new ShapedRecipe(key, fusionCrys);
-            crfCReci.shape(
-                    "SAS",
-                    "UAU",
-                    "SES");
-            crfCReci.setIngredient('A', Material.AIR);
-            crfCReci.setIngredient('E', Material.END_CRYSTAL);
-            crfCReci.setIngredient('U', Material.NETHERITE_SCRAP);
-            crfCReci.setIngredient('S', Material.IRON_INGOT);
-            Bukkit.getServer().addRecipe(crfCReci);
-            Permission permission = new Permission("tmmi.craft." + crfCReci.getKey().getKey(), "Fusion crystal perm");
-            Bukkit.getServer().getPluginManager().addPermission(permission);
-        }
-        {
-            NamespacedKey key = new NamespacedKey(this, "crafting_cauldron");
-            ShapedRecipe crfCReci = new ShapedRecipe(key, CrafttingCauldron.item);
-            crfCReci.shape(
-                    "ADA",
-                    "ECE",
-                    "AUA");
-            crfCReci.setIngredient('A', Material.AIR);
-            crfCReci.setIngredient('E', Material.ECHO_SHARD);
-            crfCReci.setIngredient('U', Material.NETHERITE_SCRAP);
-            crfCReci.setIngredient('C', new RecipeChoice.ExactChoice(fusionCrys));
-            crfCReci.setIngredient('D', Material.DIAMOND);
-            Bukkit.getServer().addRecipe(crfCReci);
-            Permission permission = new Permission("tmmi.craft." + crfCReci.getKey().getKey(), "Crafting cauldron perm");
-            Bukkit.getServer().getPluginManager().addPermission(permission);
-        }
+//        {
+//            NamespacedKey key = new NamespacedKey(this, "fusion_crystal");
+//            ShapedRecipe crfCReci = new ShapedRecipe(key, fusionCrys);
+//            crfCReci.shape(
+//                    "SAS",
+//                    "UAU",
+//                    "SES");
+//            crfCReci.setIngredient('A', Material.AIR);
+//            crfCReci.setIngredient('E', Material.END_CRYSTAL);
+//            crfCReci.setIngredient('U', Material.NETHERITE_SCRAP);
+//            crfCReci.setIngredient('S', Material.IRON_INGOT);
+//            Bukkit.getServer().addRecipe(crfCReci);
+//            Permission permission = new Permission("tmmi.craft." + crfCReci.getKey().getKey(), "Fusion crystal perm");
+//            Bukkit.getServer().getPluginManager().addPermission(permission);
+//        }
+//        {
+//            NamespacedKey key = new NamespacedKey(this, "crafting_cauldron");
+//            ShapedRecipe crfCReci = new ShapedRecipe(key, CrafttingCauldron.item);
+//            crfCReci.shape(
+//                    "ADA",
+//                    "ECE",
+//                    "AUA");
+//            crfCReci.setIngredient('A', Material.AIR);
+//            crfCReci.setIngredient('E', Material.ECHO_SHARD);
+//            crfCReci.setIngredient('U', Material.NETHERITE_SCRAP);
+//            crfCReci.setIngredient('C', new RecipeChoice.ExactChoice(fusionCrys));
+//            crfCReci.setIngredient('D', Material.DIAMOND);
+//            Bukkit.getServer().addRecipe(crfCReci);
+//            Permission permission = new Permission("tmmi.craft." + crfCReci.getKey().getKey(), "Crafting cauldron perm");
+//            Bukkit.getServer().getPluginManager().addPermission(permission);
+//        }
     }
     public static @NotNull Item newItem(Material mat, String name, int data) {
         return newItem(mat, name, data, new ArrayList<>());
@@ -817,18 +817,26 @@ public class Main extends JavaPlugin {
                 if (weaver != null)
                     if (isSim(event.getInventory().getItem(28), weaver.getSpellInventory().getCanSpells().get(0).toItem())) {
                         event.setCancelled(true);
-                        ItemStack mi = (event.getClick() == ClickType.LEFT ?
-                                weaver.getSpellInventory().getMainSpell().toItem() : weaver.getSpellInventory().getSecondarySpell().toItem());
-                        for (Spell s : spells)
-                            if (isSim(ci, s.toItem())) {
-                                for (ItemStack itemStack : event.getInventory().getContents()) {
-                                    if (isSim(itemStack, mi)) {
-                                        itemStack.removeEnchantments(); break;
-                                    }
-                                }
-                                weaver.getSpellInventory().setActiveSpells((event.getClick() == ClickType.LEFT ? SpellInventory.SpellUsage.MAIN : SpellInventory.SpellUsage.SECONDARY), s);
+                        SpellInventory.SpellUsage us = event.getClick() == ClickType.LEFT ? SpellInventory.SpellUsage.MAIN : SpellInventory.SpellUsage.SECONDARY;
+                        ItemStack mi = (us == SpellInventory.SpellUsage.MAIN ?
+                                (weaver.getSpellInventory().getMainSpell() == null ? null
+                                        : weaver.getSpellInventory().getMainSpell().toItem())
+                                : (weaver.getSpellInventory().getSecondarySpell() == null ? null
+                                        : weaver.getSpellInventory().getSecondarySpell().toItem()));
+                        for (Spell s : weaver.getSpells()) {
+                            if (isSim(ci, mi)) {
+                                weaver.getSpellInventory().setActiveSpells(us, null);
+                            } else if (isSim(ci, s.toItem())) {
+                                if (mi != null)
+                                    for (ItemStack itemStack : event.getInventory().getContents())
+                                        if (isSim(itemStack, mi)) {
+                                            itemStack.removeEnchantments();
+                                            break;
+                                        }
+                                weaver.getSpellInventory().setActiveSpells(us, s);
 //                                ci.addEnchantment(Enchantment.MENDING, 1);
                             }
+                        }
                     }
             }
         }

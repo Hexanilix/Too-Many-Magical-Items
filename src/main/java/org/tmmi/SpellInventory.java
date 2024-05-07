@@ -26,7 +26,7 @@ public class SpellInventory {
                 ItemStack item = s.toItem();
                 if (s == this.getMainSpell()) {
                     ItemMeta m = item.getItemMeta();
-                    m.addEnchant(Enchantment.DAMAGE_ALL, 0, true);
+                    m.addEnchant(Enchantment.SHARPNESS, 0, true);
                     item.setItemMeta(m);
                 }
                 inv.setItem(i, item);
@@ -39,7 +39,7 @@ public class SpellInventory {
                 ItemStack item = s.toItem();
                 if (s == this.getMainSpell()) {
                     ItemMeta m = item.getItemMeta();
-                    m.addEnchant(Enchantment.DAMAGE_ALL, 0, true);
+                    m.addEnchant(Enchantment.SHARPNESS, 0, true);
                     item.setItemMeta(m);
                 }
                 inv.setItem(j, item);
@@ -118,7 +118,7 @@ public class SpellInventory {
         else this.sorcerySpells.remove(s);
     }
 
-    public void setActiveSpells(@NotNull SpellUsage t, @NotNull Spell s) {
+    public void setActiveSpells(@NotNull SpellUsage t, Spell s) {
         log("Setting active " + t.name() + " spell to " + s.getName());
         if (this.canSpells.contains(s) || this.sorcerySpells.contains(s)) {
             if (t == SpellUsage.MAIN) this.activeSpells.setKey(s);

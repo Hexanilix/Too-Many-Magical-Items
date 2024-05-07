@@ -285,10 +285,10 @@ public class Spell {
                 p = Particle.FLAME;
             }
             case EARTH -> {
-                p = Particle.BLOCK_DUST;
+                p = Particle.BLOCK;
             }
             case WATER -> {
-                p = Particle.WATER_DROP;
+                p = Particle.DRIPPING_WATER;
             }
         }
         boolean opB = (!Element.getOptimalBiomes(this.mainElement).contains(castLocation.getWorld().getBiome(castLocation)));
@@ -450,11 +450,11 @@ public class Spell {
         int nxtlxp = XP - (xpsum(this.level-1));
         int nxtLvlXP = lvlXPcalc(this.level-1);
         int perc = (int) (((float) nxtlxp / nxtLvlXP) * 100);
-        m.setLore(List.of(c+"Level "+this.level, c + "[" +
+        m.setLore(List.of(sc+"Level "+c+this.level, c + "[" +
                         "-".repeat(Math.max(0, perc/10)) +
                         sc + "-".repeat(Math.max(0, 10 - perc/10)) +
                         c + "]" + (nxtlxp >= 1000 ? BigDecimal.valueOf((float) nxtlxp / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtlxp) +
-                        "/" + (nxtLvlXP >= 1000 ? BigDecimal.valueOf((float) nxtLvlXP / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtLvlXP),
+                        sc + "/" + c + (nxtLvlXP >= 1000 ? BigDecimal.valueOf((float) nxtLvlXP / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtLvlXP),
                 ChatColor.GRAY + "Total XP: " + this.XP));
         item.setItemMeta(m);
         return item;
@@ -492,19 +492,19 @@ public class Spell {
     }
 
     public String toJson() {
-        return "{\n" +
-                "\t\"id\":\"" + this.id + "\",\n" +
-                "\t\"name\":\"" + this.name + "\",\n" +
-                "\t\"level\":" + this.level + ",\n" +
-                "\t\"experience\":" + this.XP + ",\n" +
-                "\t\"cast_cost\":" + this.castCost + ",\n" +
-                "\t\"main_element\":\"" + this.mainElement + "\",\n" +
-                "\t\"secondary_element\":\"" + this.secondaryElement + "\",\n" +
-                "\t\"cast_area_effect\":\"" + this.castAreaEffect + "\",\n" +
-                "\t\"spell_type\":\"" + this.spellType + "\",\n" +
-                "\t\"base_damage\":" + this.baseDamage + ",\n" +
-                "\t\"speed\":" + this.speed + ",\n" +
-                "\t\"travel\":" + this.travel + "\n" +
-                "}";
+        return "\t\t{\n" +
+                "\t\t\t\"id\":\"" + this.id + "\",\n" +
+                "\t\t\t\"name\":\"" + this.name + "\",\n" +
+                "\t\t\t\"level\":" + this.level + ",\n" +
+                "\t\t\t\"experience\":" + this.XP + ",\n" +
+                "\t\t\t\"cast_cost\":" + this.castCost + ",\n" +
+                "\t\t\t\"main_element\":\"" + this.mainElement + "\",\n" +
+                "\t\t\t\"secondary_element\":\"" + this.secondaryElement + "\",\n" +
+                "\t\t\t\"cast_area_effect\":\"" + this.castAreaEffect + "\",\n" +
+                "\t\t\t\"spell_type\":\"" + this.spellType + "\",\n" +
+                "\t\t\t\"base_damage\":" + this.baseDamage + ",\n" +
+                "\t\t\t\"speed\":" + this.speed + ",\n" +
+                "\t\t\t\"travel\":" + this.travel + "\n" +
+                "\t\t}";
     }
 }
