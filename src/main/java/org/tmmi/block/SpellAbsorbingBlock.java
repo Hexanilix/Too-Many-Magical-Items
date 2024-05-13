@@ -4,11 +4,10 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.checkerframework.checker.units.qual.A;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.Block;
 import org.tmmi.Main;
-import org.tmmi.Spell;
+import org.tmmi.Spells.CastSpell;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,11 +15,11 @@ import java.util.Objects;
 import java.util.Random;
 
 import static org.tmmi.Main.log;
-import static org.tmmi.Main.newItem;
+import static org.tmmi.Main.newItemStack;
 
 public class SpellAbsorbingBlock extends Block {
     public static List<SpellAbsorbingBlock> SAblocks = new ArrayList<>();
-    public static ItemStack item = newItem(Material.LODESTONE, ChatColor.GOLD + "Spell Condenser", 200001);
+    public static ItemStack item = newItemStack(Material.LODESTONE, ChatColor.GOLD + "Spell Condenser", 200001);
     public Thread getSpellGrabThread() {
         return spellGrabThread;
     }
@@ -38,9 +37,9 @@ public class SpellAbsorbingBlock extends Block {
         Location loc = this.getLoc();
         this.spellGrabThread = new Thread(() -> {
             while (true) {
-                for (Spell s : Spell.spells) {
+                for (CastSpell s : CastSpell.castSpells) {
                     // fix the check
-                    if (s.isCast() && Main.inSphere(loc, 5, s.getCastLocation())) {
+                    if (Main.inSphere(loc, 5, s.getLoc())) {
                         log("so it is");
                         this.magicules += (float) s.getCastCost() / 5;
                         s.uncast();

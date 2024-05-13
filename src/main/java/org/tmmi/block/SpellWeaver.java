@@ -1,7 +1,6 @@
 package org.tmmi.block;
 
 import org.bukkit.*;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryAction;
@@ -10,16 +9,15 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.tmmi.InteractiveBlock;
-import org.tmmi.Main;
-import org.tmmi.Spell;
-import org.tmmi.WeavePlayer;
+import org.tmmi.*;
+import org.tmmi.Spells.AreaEffect;
+import org.tmmi.Spells.Spell;
 
 import java.util.*;
 
 import static org.tmmi.Main.*;
-import static org.tmmi.Spell.CastAreaEffect.getAreaEffect;
-import static org.tmmi.Spell.Element.getElement;
+import static org.tmmi.Spells.AreaEffect.getAreaEffect;
+import static org.tmmi.Element.getElement;
 
 public class SpellWeaver extends InteractiveBlock {
     private static final ItemStack NOS = newItemStack(Material.BARRIER, "No spell", unclickable);
@@ -35,7 +33,7 @@ public class SpellWeaver extends InteractiveBlock {
         return inv;
     };
     public static List<CrafttingCauldron> cauldron = new ArrayList<>();
-    public static ItemStack item = newItem(Material.GOLD_BLOCK, ChatColor.DARK_AQUA + "MAGIC CARFTIN", 23461, List.of("A Crystal with the power", "of 1m brewing stands"));
+    public static ItemStack item = Main.newItemStack(Material.GOLD_BLOCK, ChatColor.DARK_AQUA + "MAGIC CARFTIN", 23461, List.of("A Crystal with the power", "of 1m brewing stands"));
 
     private int magicules;
     public SpellWeaver(Location loc) {
@@ -71,8 +69,8 @@ public class SpellWeaver extends InteractiveBlock {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            Spell.Element me = getElement(inv.getItem(10));
-            Spell.CastAreaEffect ef = getAreaEffect(inv.getItem(12));
+            Element me = getElement(inv.getItem(10));
+            AreaEffect ef = getAreaEffect(inv.getItem(12));
             if (me != null && ef != null) {
                 inv.setItem(34, newItemStack(Material.LIME_WOOL, ChatColor.GREEN + "Weave", 2367845));
                 ChatColor c;
@@ -82,7 +80,7 @@ public class SpellWeaver extends InteractiveBlock {
                     case EARTH -> c = ChatColor.GREEN;
                     default -> c = ChatColor.AQUA;
                 }
-                Spell.Element se = getElement(inv.getItem(11));
+                Element se = getElement(inv.getItem(11));
                 ChatColor sc;
                 switch (se == null ? me : se) {
                     case AIR -> sc = ChatColor.GRAY;
@@ -108,17 +106,17 @@ public class SpellWeaver extends InteractiveBlock {
             if (item.getType() == Material.LIME_WOOL) {
                 WeavePlayer w = WeavePlayer.getWeaver(player);
                 if (w != null) {
-                    if (w.addSpell(new Spell(player.getUniqueId(), "bohemious",
-                            getElement(inv.getItem(10)),
-                            getElement(inv.getItem(11)),
-                            getAreaEffect(inv.getItem(12)),
-                            1000))) {
-                        invs.replace(player.getUniqueId(), gui());
-                        player.closeInventory();
-                    } else {
-                        player.sendMessage(ChatColor.RED + "Your spell inventory for this spell type if full!");
-                        player.playSound(player.getEyeLocation(), Sound.ENTITY_VILLAGER_NO, 1, 0);
-                    }
+//                    if (w.addSpell(new Spell(player.getUniqueId(), "bohemious",
+//                            getElement(inv.getItem(10)),
+//                            getElement(inv.getItem(11)),
+//                            getAreaEffect(inv.getItem(12)),
+//                            1000))) {
+//                        invs.replace(player.getUniqueId(), gui());
+//                        player.closeInventory();
+//                    } else {
+//                        player.sendMessage(ChatColor.RED + "Your spell inventory for this spell type if full!");
+//                        player.playSound(player.getEyeLocation(), Sound.ENTITY_VILLAGER_NO, 1, 0);
+//                    }
                 }
             }
             event.setCancelled(true);

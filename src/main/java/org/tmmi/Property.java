@@ -9,7 +9,7 @@ public enum Property {
     AUTOSAVE_FREQUENCY("autosave_frequency", 1800),
     SPELL_COLLISION("spell_collision", true),
     CUSTOM_SPELLS("enable_custom_spells", false),
-    DISABLED_SPELLS("disabled_spells", "\n\t- "),
+    DISABLED_SPELLS("disabled_spells", "\n"),
     SPELL_SPEED_CAP("spell_seed_cap", 20),
     SPELL_TRAVEL_CAP("spell_travel_distance_cap", 20),
     SPELL_DAMAGE_CAP("spell_damage_cap", 20);

@@ -6,29 +6,34 @@ import net.md_5.bungee.api.chat.ComponentBuilder;
 import org.bukkit.*;
 import org.bukkit.command.*;
 import org.bukkit.enchantments.Enchantment;
-import org.bukkit.entity.Player;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityShootBowEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.RecipeChoice;
-import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.permissions.Permission;
-import org.bukkit.permissions.PermissionAttachment;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.*;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.tmmi.Spells.*;
 import org.tmmi.block.CrafttingCauldron;
 import org.tmmi.block.ForceField;
 import org.tmmi.block.SpellAbsorbingBlock;
@@ -44,9 +49,9 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 
-import static org.tmmi.Spell.Element.getElement;
-import static org.tmmi.Spell.Element.getItem;
-import static org.tmmi.Spell.spells;
+import static org.tmmi.Element.getElement;
+import static org.tmmi.Element.getItem;
+import static org.tmmi.WeavePlayer.getOrNew;
 import static org.tmmi.WeavePlayer.getWeaver;
 import static org.tmmi.block.CrafttingCauldron.craftingCauldronLocations;
 import static org.tmmi.block.Presence.*;
@@ -54,6 +59,7 @@ import static org.tmmi.block.Presence.detectorLocations;
 import static org.tmmi.Property.*;
 
 public class Main extends JavaPlugin {
+    public static Map<UUID, Boolean> permission = new HashMap<>();
     public static FileVersion PLUGIN_VERSION = new FileVersion(1,0,0);
     public static FileVersion FILE_VERSION = new FileVersion(1,0,0);
     public static String UUID_SEQUENCE = toHex(Main.class.getPackage().getSpecificationVersion(), 4)
@@ -71,12 +77,10 @@ public class Main extends JavaPlugin {
 
     public static Thread autosave;
 
-    public static Map<UUID, SpellInventory> weavers = new HashMap<>();
-    public static List<ItemStack> items;
+    public static Map<UUID, Boolean> spellPerms = new HashMap<>();
     public static List<Inventory> allItemInv = List.of(Bukkit.createInventory(null, 54, "pg1"));
 
     public static ItemStack background;
-    public static String permission;
     private @NotNull ItemStack guideBook() {
         ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
         BookMeta bookMeta = (BookMeta) book.getItemMeta();
@@ -210,7 +214,6 @@ public class Main extends JavaPlugin {
                 Spell.mxS = Double.parseDouble(textProp(SPELL_SPEED_CAP));
                 Spell.mxT = Double.parseDouble(textProp(SPELL_TRAVEL_CAP));
                 Spell.mxD = Double.parseDouble(textProp(SPELL_DAMAGE_CAP));
-                permission = "tmmi.craft." + new NamespacedKey(plugin, "weaver");
                 if (checkFilesAndCreate()) {
                     if (loadClasses()) {
                         startAutosave();
@@ -251,64 +254,10 @@ public class Main extends JavaPlugin {
         }
     }
 
-    private static void loadPlayerSaveData(@NotNull Player p) {
-        loadPlayerSaveData(p.getUniqueId());
-    }
-    private static void loadPlayerSaveData(UUID id) {
-        File folder = new File(PLAYER_DATA);
-        if (folder.exists()) {
-            File[] listOfFiles = folder.listFiles();
-            if (listOfFiles != null) {
-                for (File file : listOfFiles) {
-                    if (file.isFile() && file.getName().split("\\.")[0].equals(id.toString())) {
-                        try {
-                            JSONObject json = new JSONObject(new String(Files.readAllBytes(file.toPath())));
-                            try {
-                                if (json.has("spells")) {
-                                    JSONArray ar = json.getJSONArray("spells");
-                                    WeavePlayer w = new WeavePlayer(Bukkit.getPlayer(id));
-                                    for (int i = 0; i < ar.length(); i++) {
-                                        JSONObject j = ar.getJSONObject(i);
-                                        try {
-                                            Spell s = new Spell(UUID.fromString(j.getString("id")),
-                                                    id,
-                                                    j.getString("name"),
-                                                    j.getInt("level"),
-                                                    j.getInt("experience"),
-                                                    j.getInt("cast_cost"),
-                                                    getElement(j.getString("main_element")),
-                                                    getElement(j.getString("secondary_element")),
-                                                    Spell.CastAreaEffect.getAreaEffect(j.getString("cast_area_effect")),
-                                                    Spell.SpellType.getSpellType(j.getString("spell_type")),
-                                                    j.getDouble("base_damage"),
-                                                    j.getDouble("speed"),
-                                                    j.getDouble("travel"));
-                                            w.addSpell(s);
-                                        } catch (JSONException e) {
-                                            e.printStackTrace();
-                                        }
-                                    }
-                                    String main = json.getString("main");
-                                    String sec = json.getString("second");
-                                    if (!main.equals("null")) w.setMain(UUID.fromString(main));
-                                    if (!sec.equals("null")) w.setSecondary(UUID.fromString(sec));
-                                }
-                            } catch (JSONException ignore) {}
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                }
-            }
-        } else {
-            log(Level.SEVERE, "Player data folder doesn't exist and couldn't be created at " + folder.getAbsolutePath() + "\n"+
-                    "Player data won't be saved, it is advised to restart the plugin and check logs for any reading errors or" +
-                    "insufficient permission levels for this plugin");
-        }
-    }
     private static boolean savePlayerData(@NotNull Player p) {
         return savePlayerData(p.getUniqueId());
     }
+
     private static boolean savePlayerData(@NotNull UUID id) {
         File file = new File(DTFL + "playerdata/" + id + ".json");
         try {
@@ -318,14 +267,15 @@ public class Main extends JavaPlugin {
                 WeavePlayer w = getWeaver(id);
                 String json = "{\n";
                 if (w != null) {
-                    Spell main = w.getSpellInventory().getMainSpell();
-                    Spell sec = w.getSpellInventory().getSecondarySpell();
                     List<String> spells = w.getSpells().stream().map(Spell::toJson).toList();
-                    json += "   \"spells\": [\n" +
-                                String.join(",\n",spells) +
-                                "\n\t],\n" +
-                                "\t\"main\":\"" + (main != null ? main.getId() : "null") + "\",\n" +
-                                "\t\"second\":\"" + (sec != null ? sec.getId() : "null") + "\"";
+                    json += "\t\"element\": \"" + w.getElement() + "\",\n" +
+                            "\t\"can_size\": " + w.getCanSize() + ",\n" +
+                            "\t\"sor_size\": " + w.getSorSize() + ",\n" +
+                            "\t\"spells\": [\n" +
+                            String.join(",\n", spells.stream().map(s -> String.join("\n\t\t", s.split("\n"))).toList()) +
+                            "\n\t],\n" +
+                            "\t\"main\":\"" + (w.getMain() != null ? w.getMain().getId() : "null") + "\",\n" +
+                            "\t\"second\":\"" + ( w.getSecondary() != null ?  w.getSecondary().getId() : "null") + "\"";
                 }
                 json += "\n}";
                 writer.write(json); writer.close();
@@ -360,7 +310,125 @@ public class Main extends JavaPlugin {
             autosave.start();
         }
     }
+    private static void loadPlayerSaveData(@NotNull Player p) {
+        loadPlayerSaveData(p.getUniqueId());
+    }
+    private static void loadPlayerSaveData(UUID id) {
+        File folder = new File(PLAYER_DATA);
+        if (folder.exists()) {
+            File[] listOfFiles = folder.listFiles();
+            if (listOfFiles != null) {
+                for (File file : listOfFiles) {
+                    if (file.isFile() && file.getName().split("\\.")[0].equals(id.toString())) {
+                        try {
+                            JSONObject json = new JSONObject(new String(Files.readAllBytes(file.toPath())));
+                            try {
+                                if (json.has("spells")) {
+                                    JSONArray ar = json.getJSONArray("spells");
+                                    int cs = json.getInt("can_size");
+                                    int ss = json.getInt("sor_size");
+                                    Element el = Element.getElement(json.getString("element"));
+                                    WeavePlayer w = new WeavePlayer(Bukkit.getPlayer(id), el, cs, ss);
+                                    for (int i = 0; i < ar.length(); i++) {
+                                        JSONObject j = ar.getJSONObject(i);
+                                        try {
+                                            Spell s;
+                                            switch (j.getString("type")) {
+                                                case "ATK" -> s = new ATK(
+                                                        UUID.fromString(j.getString("id")),
+                                                        id,
+                                                        j.getString("name"),
+                                                        Weight.getSpellType(j.getString("weight")),
+                                                        j.getInt("level"),
+                                                        j.getInt("experience"),
+                                                        j.getInt("cast_cost"),
+                                                        getElement(j.getString("main_element")),
+                                                        getElement(j.getString("secondary_element")),
+                                                        AreaEffect.getAreaEffect(j.getString("area_effect")),
+                                                        j.getDouble("speed"),
+                                                        j.getDouble("travel"),
+                                                        j.getDouble("base_damage"));
+                                                case "DEF" -> s = new DEF(
+                                                        UUID.fromString(j.getString("id")),
+                                                        id,
+                                                        j.getString("name"),
+                                                        Weight.getSpellType(j.getString("weight")),
+                                                        j.getInt("level"),
+                                                        j.getInt("experience"),
+                                                        j.getInt("cast_cost"),
+                                                        getElement(j.getString("element")),
+                                                        AreaEffect.getAreaEffect(j.getString("area_effect")),
+                                                        j.getInt("hold_time"),
+                                                        j.getInt("durability"));
+                                                case "STI" -> s = new STI(
+                                                        STI.Stat.get(j.getString("stat")),
+                                                        UUID.fromString(j.getString("id")),
+                                                        id,
+                                                        j.getInt("level"),
+                                                        j.getInt("experience"),
+                                                        j.getInt("cast_cost"),
+                                                        j.getInt("effect_time"),
+                                                        j.getInt("multiplier"));
+                                                default -> s = new UTL(
+                                                        UTL.Util.get(j.getString("util")),
+                                                        id,
+                                                        j.getInt("level"),
+                                                        j.getInt("experience"),
+                                                        j.getInt("cast_cost"));
+                                            }
+                                            w.addSpell(s);
+                                        } catch (JSONException e) {
+                                            e.printStackTrace();
+                                        }
+                                    }
+                                    Spell main = json.getString("main").equals("null") ? null : Spell.getSpell(UUID.fromString(json.getString("main")));
+                                    log(main);
+                                    Spell sec = json.getString("second").equals("null") ? null : Spell.getSpell(UUID.fromString(json.getString("second")));
+                                    if (main != null) w.setMain(main);
+                                    if (sec != null) w.setSecondary(sec);
+                                    new BukkitRunnable() {
+                                        @Override
+                                        public void run() {
+                                            Player p = Bukkit.getPlayer(id);
+                                            if (p != null)
+                                                p.getWorld().spawnParticle(Particle.FLAME, p.getLocation().clone().add(0, 1, 0), 1, 0.2, 0.4, 0.2, 0.01);
+                                        }
+                                    }.runTaskTimer(plugin, 80, 80);
+                                }
+                            } catch (JSONException ignore) {}
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }
+            }
+        } else {
+            log(Level.SEVERE, "Player data folder doesn't exist and couldn't be created at " + folder.getAbsolutePath() + "\n"+
+                    "Player data won't be saved, it is advised to restart the plugin and check logs for any reading errors or" +
+                    "insufficient permission levels for this plugin");
+        }
+    }
 
+    //Element mainElement, Element secondaryElement, AreaEffect castAreaEffect , double baseDamage, double speed, double travel
+//    private static Spell newSpell(@NotNull Type t, UUID id, UUID handler, String name, Weight weight, int level, int experience, int castCost, Object... param) {
+//        Spell s = null;
+//        switch (t) {
+//            case ATK -> {
+//                Element me = param[0] instanceof Element e ? e : null;
+//                Element se = param[1] instanceof Element e ? e : null;
+//                AreaEffect ef = param[2] instanceof AreaEffect a ? a : null;
+//                assert me != null;
+//                assert ef != null;
+//                s = new ATK(id, handler, name, weight, level, experience, castCost, me, se, ef, 100);
+//            }
+//            case DEF -> {
+//                AreaEffect ef = param[1] instanceof AreaEffect a ? a : null;
+//                assert ef != null;
+//                s = new DEF(id, handler, name, weight, level, experience, castCost, Element.AIR, ef, 100, 1000);
+//            }
+//        }
+//        return s;
+//    }
 
     private class cmd implements CommandExecutor {
         @Override
@@ -377,22 +445,19 @@ public class Main extends JavaPlugin {
                                         if (desPlayer == null) {
                                             player.sendMessage(ChatColor.RED + "Unknown player " + ChatColor.ITALIC + args[1]);
                                         } else {
-                                            PermissionAttachment attachment = desPlayer.addAttachment(Main.this);
-                                            attachment.setPermission(permission, !desPlayer.hasPermission(permission));
-                                            player.sendMessage((desPlayer.hasPermission(permission) ? ChatColor.GREEN : ChatColor.YELLOW) + "Set " + desPlayer.getDisplayName() + "'s permission to use magic to " + desPlayer.hasPermission(permission));
+                                            permission.replace(desPlayer.getUniqueId(), !permission.get(desPlayer.getUniqueId()));
+                                            player.sendMessage( ChatColor.LIGHT_PURPLE + "Set " + desPlayer.getName() + "'s permission to " + (permission.get(desPlayer.getUniqueId()) ? ChatColor.GREEN + "allow magic" : ChatColor.YELLOW + "forbid magic"));
                                             if (!(args.length == 3 && args[2].equalsIgnoreCase("hide"))) {
-                                                desPlayer.sendMessage((desPlayer.hasPermission(permission) ? ChatColor.GREEN : ChatColor.YELLOW) + "You now " + (desPlayer.hasPermission(permission) ? "have" : "don't have") + " permission to use magic");
+                                                desPlayer.sendMessage("You now" + (permission.get(desPlayer.getUniqueId()) ? ChatColor.GREEN + " have permission to use magic" : ChatColor.YELLOW + "You now don't have permission to use magic"));
                                             }
                                             desPlayer.recalculatePermissions();
                                         }
                                     } else if (args.length < 2) {
-                                        player.addAttachment(Main.this).setPermission(permission, !player.hasPermission(permission));
-                                        player.recalculatePermissions();
-                                        player.sendMessage((player.hasPermission(permission) ? ChatColor.GREEN + "You now have " : ChatColor.YELLOW + "You now don't have") + " permission to use magic");
+                                        permission.replace(player.getUniqueId(), !permission.get(player.getUniqueId()));
+                                        player.sendMessage("You now" + (permission.get(player.getUniqueId()) ? ChatColor.GREEN + " have permission to use magic" : ChatColor.YELLOW + "You now don't have permission to use magic"));
                                     } else {
                                         player.sendMessage(ChatColor.RED + "Too many arguments");
                                     }
-
                                 }
                                 case "items" -> {
                                     if (args.length >= 2) {
@@ -486,41 +551,176 @@ public class Main extends JavaPlugin {
                                 }
                                 case "save" -> player.sendMessage((autoSave() ? ChatColor.GREEN + "Saved plugin data" : ChatColor.RED + "An error occurred while saving data"));
                                 case "spell" -> {
-                                    WeavePlayer w = getWeaver(player);
-                                    assert w != null;
+                                    WeavePlayer w = getOrNew(player);
                                     if (args.length > 1) {
                                         Spell s = null;
                                         switch (args[1].toLowerCase()) {
                                             case "a" ->
-                                                    s = new Spell(player.getUniqueId(), "Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
-                                            case "b" ->
-                                                    s = new Spell(player.getUniqueId(), "Yoink1", Spell.Element.FIRE, Spell.CastAreaEffect.DIRECT, 10);
-                                            case "c" ->
-                                                    s = new Spell(player.getUniqueId(), "Yoink2", Spell.Element.WATER, Spell.CastAreaEffect.DIRECT, 10);
+                                                    s = new ATK(null, player.getUniqueId(), "ATK", Weight.CANTRIP, 1, 0, 10, Element.FIRE, null, AreaEffect.DIRECT, 1, 10, 2);
+                                            case "u" ->
+                                                    s = new UTL(UTL.Util.MINE, player);
                                             case "d" ->
-                                                    s = new Spell(player.getUniqueId(), "Yoink3", Spell.Element.EARTH, Spell.CastAreaEffect.DIRECT, 10);
-                                            case "e" ->
-                                                    s = new Spell(player.getUniqueId(), "whak", Spell.Element.FIRE, Spell.CastAreaEffect.WIDE, 10);
+                                                    s = new DEF(null, player.getUniqueId(), "DEF", Weight.CANTRIP, 1, 0, 10, Element.WATER, AreaEffect.DIRECT, 200, 1000);
+                                            case "s" ->
+                                                    s = new STI(STI.Stat.DMG, player.getUniqueId());
                                         }
                                         if (s != null) {
-                                            w.addSpell(s);
-                                            w.getSpellInventory().setActiveSpells(SpellInventory.SpellUsage.MAIN, s);
+                                            w.setMain(s);
                                         }
                                     } else {
                                         log(String.join("\n" , w.getSpells().stream().map(Spell::toString).toList()));
                                     }
                                 }
+                                case "fm" -> {
+                                    Objects.requireNonNull(player.getWorld()).spawnParticle(Particle.FLAME, player.getLocation().clone().add(0, 1, 0), 10, 0.21, 0.4, 0.21, 0);
+                                }
+                                case "box" -> {
+                                    player.getBoundingBox().expand(1, 1, 1);
+                                }
                                 case "getwand" -> {
                                     WeavePlayer w = WeavePlayer.getWeaver(player);
                                     if (w == null) {
                                         w = new WeavePlayer(player);
-                                        w.setWand(new FocusWand(player));
-                                        Spell s = new Spell(player.getUniqueId(),"Yoink", Spell.Element.AIR, Spell.CastAreaEffect.DIRECT, 10);
-                                        log(w.addSpell(s));
-                                        w.getSpellInventory().setActiveSpells(SpellInventory.SpellUsage.MAIN, s);
+//                                        Spell s = new Spell(player.getUniqueId(),"Yoink", Element.AIR, AreaEffect.DIRECT, 10);
+//                                        w.getSpellInventory().setActiveSpells(SpellInventory.SpellUsage.MAIN, s);
                                     }
-                                    if (!w.hasWand()) w.setWand(new FocusWand(player));
-                                    player.getInventory().addItem(w.getWand());
+                                    player.getInventory().addItem(new FocusWand(player.getUniqueId()));
+                                }
+                                case "meta" -> {
+                                    log(Item.items.get(1).toJSON());
+                                }
+                                case "xp" -> {
+                                    World w = player.getWorld();
+                                    int x = player.getLocation().getBlockX();
+                                    int y = player.getLocation().getBlockY();
+                                    int z = player.getLocation().getBlockZ();
+                                    int m = Integer.parseInt(args[1]);
+                                    for (int i = x-m; i < x+ m; i++)
+                                        for (int j = y-m; j < y + m; j++)
+                                            for (int k = z-m; k < z + m; k++)
+                                                w.spawnEntity(new Location(w, i, j, k), EntityType.EXPERIENCE_BOTTLE);
+                                }
+                                case "tnt" -> {
+                                    World w = player.getWorld();
+                                    int x = player.getLocation().getBlockX();
+                                    int y = player.getLocation().getBlockY();
+                                    int z = player.getLocation().getBlockZ();
+                                    int m = Integer.parseInt(args[1]);
+                                    for (int i = x-m; i < x+ m; i++)
+                                        for (int j = y-m; j < y + m; j++)
+                                            for (int k = z-m; k < z + m; k++)
+                                                w.spawnEntity(player.getLocation(), EntityType.TNT_MINECART);
+                                }
+                                case "auto" -> {
+                                    int s = Integer.parseInt(args[1]);
+                                    List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(player.getWorld()).getNearbyEntities(player.getEyeLocation(), s, s, s);
+                                    for (Entity e : nearbyEntities) {
+                                        if (e == player) continue;
+                                        if (e instanceof LivingEntity l) {
+                                            ArmorStand stand = (ArmorStand) player.getWorld().spawnEntity(player.getLocation(), EntityType.ARMOR_STAND);
+                                            stand.setItemInHand(new ItemStack(Material.DIAMOND_SWORD));
+                                            stand.setVisible(false);
+                                            stand.setRightArmPose(new EulerAngle(270, 0,80));
+                                            new BukkitRunnable() {
+                                                final Location loc = player.getEyeLocation();
+                                                @Override
+                                                public void run() {
+                                                    if (loc.distance(l.getLocation()) < 1 || l.isDead()) {
+                                                        if (!l.isDead()) l.damage(l.getHealth());
+                                                        stand.remove();
+                                                        cancel();
+                                                    }
+                                                    loc.add(genVec(loc, l.getLocation().clone().add(0, 0.5, 0)).multiply(0.4));
+                                                    double distance = loc.distance(stand.getLocation());
+                                                    if (distance > 4)
+                                                        stand.teleport(loc);
+                                                    Vector v = genVec(player.getLocation().toVector().normalize(), nearbyEntities.get(1).getLocation().toVector());
+                                                    stand.setRotation((float) Math.asin(-v.getY()) % 360,(float) Math.atan2(v.getX(), v.getZ() % 180));
+                                                    stand.setVelocity(loc.toVector().subtract(stand.getLocation().toVector()).normalize().multiply(distance));
+                                                }
+                                            }.runTaskTimer(plugin, 0, 1);
+                                        }
+                                    }
+                                }
+                                case "query" -> {
+                                    getSphere(player.getLocation(), Integer.parseInt(args[1])).stream().filter(s -> !s.getType().name().toLowerCase().contains("ore")).forEach(b -> b.setType(Material.AIR));
+                                }
+                                case "mt" -> {
+                                    List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(player.getWorld()).getNearbyEntities(player.getEyeLocation(), 5, 5, 5);
+                                    for (Entity e : nearbyEntities) {
+                                        if (e instanceof org.bukkit.entity.Item i) {
+                                            ItemCommand.getOrNew(i).moveTo(new Location(player.getWorld(), Double.parseDouble(args[1]), Double.parseDouble(args[2]), Double.parseDouble(args[3])), 0.5);
+                                        }
+                                    }
+                                }
+                                case "suck" -> {
+                                    int s = Integer.parseInt(args[1]);
+                                    Collection<Entity> nearbyEntities = player.getWorld().getNearbyEntities(player.getEyeLocation(), s, s, s);
+                                    for (Entity e : nearbyEntities) {
+                                        if (e instanceof org.bukkit.entity.Item i) {
+                                            ItemCommand.getOrNew(i).moveTo(player, 0.5);
+                                        }
+                                    }
+                                }
+                                case "drop" -> {
+                                    getSphere(player.getLocation(), Integer.parseInt(args[1])).forEach(b -> {
+                                        b.getWorld().dropItem(b.getLocation(), new ItemStack(b.getType()));
+                                        b.setType(Material.AIR);
+                                    });
+                                }
+                                case "tp" -> {
+                                    Location loc = Objects.requireNonNull(player.getTargetBlockExact(5)).getLocation().add(0.5, 1.5, 0.5);
+                                    new BukkitRunnable() {
+                                        final Location pl = loc;
+                                        Location dest = null;
+                                        @Override
+                                        public void run() {
+                                            pl.getWorld().spawnParticle(Particle.COMPOSTER, pl, 10, 0.1, 1, 0.1, 0);
+                                            Collection<Entity> ne = pl.getWorld().getNearbyEntities(pl, 0.2, 0.7, 0.2);
+                                            for (Entity e : ne) {
+                                                if (dest == null && e instanceof org.bukkit.entity.Item i && i.getItemStack().getType() == Material.PAPER) {
+                                                    String[] s = Objects.requireNonNull(i.getItemStack().getItemMeta()).getDisplayName().split(" ");
+                                                    try {
+                                                        dest = new Location(pl.getWorld(), Double.parseDouble(s[1]), Double.parseDouble(s[2]), Double.parseDouble(s[3]));
+                                                        i.remove();
+                                                    } catch (NumberFormatException ignore) {}
+                                                } else if (dest != null) {
+                                                    if (e instanceof Player p) {
+//                                                    p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 70, 10));
+                                                        if (new Random().nextInt(10) == 6) {
+                                                            e.getWorld().spawnEntity(e.getLocation(), EntityType.VEX);
+                                                            e.getWorld().spawnEntity(e.getLocation(), EntityType.VEX);
+                                                            dest.getWorld().playSound(e.getLocation(), Sound.ENTITY_ENDERMAN_SCREAM, 3, 0);
+                                                            e.getWorld().spawnParticle(Particle.WITCH, e.getLocation(), 50, 0.5, 1, 0.5);
+                                                        }
+                                                    }
+                                                    dest.getWorld().playSound(e.getLocation(), Sound.ENTITY_ENDERMAN_TELEPORT, 10, 2);
+                                                    e.getWorld().spawnParticle(Particle.ENCHANT, e.getLocation(), (int) pl.distance(dest) / 10, 1, 2, 1);
+                                                    Random r = new Random();
+                                                    Location tpd = dest.clone().add(r.nextInt(10)-5+0.5,0, r.nextInt(10)-5+0.5);
+                                                    e.teleport(tpd);
+                                                    BoundingBox b = e.getBoundingBox();
+                                                    int s = (int) (((b.getMaxX() - b.getMinX()) + (b.getMaxY() - b.getMinY()) + (b.getMaxZ() - b.getMinZ())) / 3);
+                                                    for (int i = 0; i < s; i++) {
+                                                        double angle = i * ((2 * Math.PI) / s);
+                                                        double x = tpd.getX() + ((b.getMaxX() - b.getMinX()) / 2) * Math.cos(angle);
+                                                        double z = tpd.getZ() + ((b.getMaxX() - b.getMinX()) / 2) * Math.sin(angle);
+                                                        Location particleLocation = new Location(dest.getWorld(), x, dest.getY(), z);
+                                                        dest.getWorld().spawnParticle(Particle.END_ROD, particleLocation, 1, 0, 0, 0, 0);
+                                                    }
+                                                }
+                                            }
+                                            if (dest != null) {
+                                                for (int i = 0; i < 10; i++) {
+                                                    double angle = i * ((2 * Math.PI) / 10);
+                                                    double x = dest.getX() + (5) * Math.cos(angle);
+                                                    double z = dest.getZ() + (5) * Math.sin(angle);
+                                                    Location particleLocation = new Location(dest.getWorld(), x, dest.getY(), z);
+                                                    dest.getWorld().spawnParticle(Particle.CRIMSON_SPORE, particleLocation, 1, 0, 0, 0, 0);
+                                                }
+                                            }
+                                        }
+                                    }.runTaskTimer(plugin, 0, 0);
                                 }
                                 default -> player.sendMessage(ChatColor.RED + "Unknown argument " + ChatColor.ITALIC + args[0]);
                             }
@@ -540,6 +740,7 @@ public class Main extends JavaPlugin {
             }
             return true;
         }
+
         public static class cmdTabCom implements TabCompleter {
             @Nullable
             @Override
@@ -595,6 +796,183 @@ public class Main extends JavaPlugin {
         }
     }
 
+    public static org.bukkit.util.@NotNull Vector genVec(@NotNull Location a, @NotNull Location b) {
+        return genVec(a.toVector(), b.toVector());
+    }
+    public static org.bukkit.util.@NotNull Vector genVec(@NotNull Vector a, @NotNull Vector b) {
+        double dX = a.getX() - b.getX();
+        double dY = a.getY() - b.getY();
+        double dZ = a.getZ() - b.getZ();
+        double yaw = Math.atan2(dZ, dX);
+        double pitch = Math.atan2(Math.sqrt(dZ * dZ + dX * dX), dY) + Math.PI;
+        double x = Math.sin(pitch) * Math.cos(yaw);
+        double y = Math.sin(pitch) * Math.sin(yaw);
+        double z = Math.cos(pitch);
+        org.bukkit.util.Vector vector = new org.bukkit.util.Vector(x, z, y);
+        vector = vector.normalize();
+        return vector;
+    }
+    public static class ItemCommand {
+        private final org.bukkit.entity.Item item;
+        private BukkitRunnable operation;
+        private final List<BukkitRunnable> waitlist = new ArrayList<>();
+        ItemCommand(org.bukkit.entity.Item item) {
+            this.item = item;
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    if (operation != null) {
+                        if (operation.isCancelled())
+                            operation = null;
+                    } else if (!waitlist.isEmpty()) {
+                        item.setVelocity(new Vector(0, 0, 0));
+                        operation = waitlist.getFirst();
+                        operation.runTaskTimer(plugin, 0, 0);
+                        waitlist.removeFirst();
+                    }
+                }
+            }.runTaskTimer(plugin, 0, 0);
+        }
+
+        public static @NotNull ItemCommand getOrNew(org.bukkit.entity.Item i) {
+            for (ItemCommand c : itc)
+                if (c.getItem() == i)
+                    return c;
+            return new ItemCommand(i);
+        }
+
+        public org.bukkit.entity.Item getItem() {
+            return item;
+        }
+
+        public void newOperation(BukkitRunnable runnable) {
+            waitlist.add(runnable);
+        }
+        public void moveTo(Location des) {
+            moveTo(des, 1, 1, null);
+        }
+        public void moveTo(Location des, double speed) {
+            moveTo(des, speed,1, null);
+        }
+        public void moveTo(Location des, double speed, double dis) {
+            moveTo(des, speed, dis, null);
+        }
+        public void moveTo(Location des, double speed, double dis, Runnable end) {
+            waitlist.add(new BukkitRunnable() {
+                final org.bukkit.entity.Item item = ItemCommand.this.item;
+                final Location l = item.getLocation();
+                @Override
+                public void run() {
+                    if (item.isDead() || (l.distance(des) < dis)) {
+                        if (end != null) end.run();
+                        cancel();
+                    }
+                    l.add(genVec(l, des).multiply(speed));
+                    Objects.requireNonNull(l.getWorld()).spawnParticle(Particle.END_ROD, l, 1, 0, 0, 0, 0);
+                    Vector direction = l.toVector().subtract(item.getLocation().toVector()).normalize();
+                    double distance = l.distance(item.getLocation());
+                    if (distance > 4) {
+                        item.teleport(l);
+                        item.setVelocity(new Vector(0, 0, 0));
+                    }
+                    item.setVelocity(direction.multiply(distance));
+                }
+            });
+        }
+        public ItemCommand moveTo(Entity des) {
+            return moveTo(des, 1, 1, null);
+        }
+        public ItemCommand moveTo(Entity des, double speed) {
+            return moveTo(des, speed, 1, null);
+        }
+        public ItemCommand moveTo(Entity des, double speed, int dis) {
+            return moveTo(des, speed, dis,null);
+        }
+        public ItemCommand moveTo(@NotNull Entity des, double speed, int dis, Runnable end) {
+            item.setPickupDelay((int) des.getLocation().distance(item.getLocation()));
+            waitlist.add(new BukkitRunnable() {
+                final org.bukkit.entity.Item item = ItemCommand.this.item;
+                final Location l = item.getLocation();
+                @Override
+                public void run() {
+                    if (des.isDead() || item.isDead() || (l.distance(des.getLocation()) < dis)) {
+                        if (end != null) end.run();
+                        ItemCommand.this.operation = null;
+                        cancel();
+                    }
+                    l.add(genVec(l, des.getLocation()).multiply(speed));
+                    Objects.requireNonNull(l.getWorld()).spawnParticle(Particle.END_ROD, l, 1, 0, 0, 0, 0);
+                    Vector direction = l.toVector().subtract(item.getLocation().toVector()).normalize();
+                    double distance = l.distance(item.getLocation());
+                    if (distance > 4) {
+                        item.teleport(l);
+                        item.setVelocity(new Vector(0, 0, 0));
+                    }
+                    item.setVelocity(direction.multiply(distance));
+                }
+            });
+            return this;
+        }
+        public ItemCommand revolve(@NotNull Location loc) {
+            return revolve(loc, 10, 2);
+        }
+        public ItemCommand revolve(@NotNull Location loc, float rspeed, double distance) {
+            waitlist.add(new BukkitRunnable() {
+                final org.bukkit.entity.Item item = ItemCommand.this.item;
+                Location cen = loc.clone();
+                float r = 0;
+                @Override
+                public void run() {
+                    if (item.isDead()) {
+                        ItemCommand.this.operation = null;
+                        cancel();
+                    }
+                    item.setPickupDelay(23452345);
+                    cen = loc.clone();
+                    cen.setYaw(r); cen.setPitch(0);
+                    Location l = cen.clone().add(cen.getDirection().multiply(distance));
+                    Vector direction = l.toVector().subtract(item.getLocation().toVector()).normalize();
+                    Objects.requireNonNull(l.getWorld()).spawnParticle(Particle.END_ROD, l, 1, 0, 0, 0, 0);
+                    double distance = l.distance(item.getLocation());
+                    if (distance > 4) {
+                        item.teleport(l);
+                        item.setVelocity(new Vector(0, 0, 0));
+                    }
+                    item.setVelocity(direction.multiply(distance));
+                    r+=rspeed;
+                }
+            });
+            return this;
+        }
+    }
+    public static List<ItemCommand> itc = new ArrayList<>();
+
+    public static @NotNull List<org.bukkit.block.Block> getSphere(@NotNull Location center, int radius) {
+        List<org.bukkit.block.Block> l = new ArrayList<>();
+        for (double x = center.getX() - radius; x <= center.getX() + radius; x++)
+            for (double y = center.getY() - radius; y <= center.getY() + radius; y++)
+                for (double z = center.getZ() - radius; z <= center.getZ() + radius; z++) {
+                    Location currentLocation = new Location(center.getWorld(), x, y, z);
+                    if (center.distance(currentLocation) <= radius)
+                        l.add(Objects.requireNonNull(center.getWorld()).getBlockAt(currentLocation));
+
+                }
+        return l;
+    }
+    public static Entity nearestEntity(@NotNull Location loc, double rad) {
+        return nearestEntity(loc, rad, new ArrayList<>());
+    }
+    public static Entity nearestEntity(@NotNull Location loc, double rad, List<Entity> exlusions) {
+        Collection<Entity> nearbyEntities = Objects.requireNonNull(loc.getWorld()).getNearbyEntities(loc, rad, rad, rad);
+        Entity n = null;
+        if (!nearbyEntities.isEmpty()) {
+            for (Entity e : nearbyEntities)
+                if ((n == null || e.getLocation().distance(loc) < n.getLocation().distance(loc)) && !exlusions.contains(e))
+                    n = e;
+        }
+        return n;
+    }
+
     public boolean loadClasses() {
         try {
             classes.add(Class.forName("org.tmmi.Main"));
@@ -639,8 +1017,8 @@ public class Main extends JavaPlugin {
     private void setItems() {
         ItemStack fusionCrys = newItemStack(Material.END_CRYSTAL, ChatColor.DARK_AQUA + "Fusion Crystal", 365450, List.of());
         allItemInv.get(0).addItem(SpellWeaver.item, new SpellBook());
-        for (Spell.Element e : Spell.Element.values()) allItemInv.get(0).addItem(getItem(e));
-        for (Spell.CastAreaEffect e : Spell.CastAreaEffect.values()) allItemInv.get(0).addItem(Spell.CastAreaEffect.getItem(e));
+        for (Element e : Element.values()) allItemInv.get(0).addItem(getItem(e));
+        for (AreaEffect e : AreaEffect.values()) allItemInv.get(0).addItem(AreaEffect.getItem(e));
 //        {
 //            NamespacedKey key = new NamespacedKey(this, "fusion_crystal");
 //            ShapedRecipe crfCReci = new ShapedRecipe(key, fusionCrys);
@@ -673,19 +1051,6 @@ public class Main extends JavaPlugin {
 //            Bukkit.getServer().getPluginManager().addPermission(permission);
 //        }
     }
-    public static @NotNull Item newItem(Material mat, String name, int data) {
-        return newItem(mat, name, data, new ArrayList<>());
-    }
-    public static @NotNull Item newItem(Material mat, String name, int data, List<String> lore) {
-        Item i = new Item(mat);
-        ItemMeta m = i.getItemMeta();
-        assert m != null;
-        m.setDisplayName(name);
-        m.setCustomModelData(data);
-        m.setLore(lore);
-        i.setItemMeta(m);
-        return i;
-    }
     public static @NotNull ItemStack newItemStack(Material mat, String name) {
         return newItemStack(mat, name, 0, null);
     }
@@ -702,8 +1067,94 @@ public class Main extends JavaPlugin {
         i.setItemMeta(m);
         return i;
     }
+    private static final List<org.bukkit.entity.Item> selItms = new ArrayList<>();
 
+    private static double vecToNum(@NotNull Vector v) {
+        return (((v.getX()+v.getY()+v.getZ())/3));
+    }
     public static class MainListener implements Listener {
+        @EventHandler
+        public void onBow(@NotNull EntityShootBowEvent event) {
+            if (event.getEntity() instanceof Player player) {
+                new BukkitRunnable() {
+                    LivingEntity liver = null;
+                    final Arrow ar = (Arrow) event.getProjectile();
+
+                    @Override
+                    public void run() {
+                        Location cl = ar.getLocation().clone();
+                        cl.setYaw(-cl.getYaw());
+                        cl.setPitch(-cl.getPitch());
+                        double m = Math.pow(vecToNum(ar.getVelocity())*4, 2) / 4;
+                        cl.add(cl.getDirection().multiply(m));
+                        ar.getLocation().getWorld().spawnParticle(Particle.COMPOSTER, cl, 1, 0, 0, 0,0);
+                        liver = (nearestEntity(cl, 10, List.of(ar, event.getEntity())) instanceof LivingEntity e ? e : null);
+                        liver = (nearestEntity(cl.add(cl.getDirection().multiply(m)), 5, List.of(ar, event.getEntity())) instanceof LivingEntity e ? e : liver);
+                        ar.getLocation().getWorld().spawnParticle(Particle.FLAME, cl, 1, 0, 0, 0,0);
+                        if (ar.isOnGround()) cancel();
+                        if (liver != null && !liver.isDead()) {
+                            if (ar.getLocation().distance(liver.getLocation()) < 1) cancel();
+                            Vector direction = liver.getLocation().toVector().subtract(ar.getLocation().toVector()).normalize();
+                            ar.setVelocity(ar.getVelocity().add(direction.multiply(Math.cbrt(m*((Math.pow(ar.getLocation().distance(liver.getLocation())/4, 2)/10)+0.2)))));
+                        }
+                    }
+                }.runTaskTimer(plugin, 0, 1);
+            }
+        }
+
+        @EventHandler
+        public void onInteract(@NotNull PlayerInteractEvent event) {
+            Location loc = event.getPlayer().getEyeLocation().clone();
+            for (int it = 0; it < 6; it++) {
+                loc.add(loc.getDirection().multiply(0.5));
+                Entity e = Main.nearestEntity(loc, 0.15);
+                if (e instanceof org.bukkit.entity.Item i) {
+                    if (selItms.contains(i)) {
+                        e.setGlowing(false);
+                        selItms.remove(i);
+                    } else {
+                        e.setGlowing(true);
+                        selItms.add(i);
+                    }
+                    event.setCancelled(true);
+                    break;
+                }
+            }
+            Player p = event.getPlayer();
+            if (event.getAction() == Action.LEFT_CLICK_AIR  && p.getInventory().getItemInMainHand().getType() == Material.AIR) {
+//                Location l = p.getEyeLocation().clone().subtract(0, 0.5, 0);
+//                for (int i = 0; i < 12; i++) {
+//                    Entity e = nearestEntity(l.add(l.getDirection().multiply(1)), 0.5);
+////                    if (e != p && e instanceof LivingEntity liv) {
+////                        BoundingBox b = liv.getBoundingBox();
+////                        log((b.getMinX() - b.getMaxX()));
+////                        log(new Location(liv.getWorld(), b.getMinX() +  ((b.getMinX() - b.getMaxX())/10) , b.getMinY() + ((b.getMinY() - b.getMaxY())/10) , b.getMinZ() + ((b.getMinZ() - b.getMaxZ())/10)));
+////                        for (int j = -2; j < 12; j++) {
+////                            Location locer = new Location(liv.getWorld(),
+////                                    b.getMinX() - (((b.getMinX() - b.getMaxX())/10) * j),
+////                                    b.getMinY() - (((b.getMinY() - b.getMaxY())/10) * j),
+////                                    b.getMinZ() - (((b.getMinZ() - b.getMaxZ())/10) * j));
+////                            locer.getWorld().spawnParticle(Particle.FLAME, locer, 1, 0, 0, 0, 0);
+////                        }
+////                        liv.damage(2);
+////                        liv.setFireTicks(20);
+////                        break;
+////                    }
+//                    if (e != p && e instanceof LivingEntity liv) {
+//                        liv.getWorld().spawnParticle(Particle.CLOUD, liv.getLocation(), 5, 0.2, 0.2, 0.2, 0.1);
+//                        liv.damage(0.2);
+//                        liv.setVelocity(liv.getVelocity().subtract(genVec(liv.getLocation(), p.getLocation())).normalize().multiply(0.7));
+//                        break;
+//                    }
+//                }
+                WeavePlayer w = WeavePlayer.getOrNew(p);
+                if (w.getMain() != null) w.getMain().cast(event, p.getEyeLocation(), 1);
+            } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK && p.getInventory().getItemInMainHand().getType() == Material.AIR) {
+                org.bukkit.block.Block b = p.getTargetBlockExact(5);
+                if (b != null) b.getWorld().spawnParticle(Particle.CLOUD, b.getLocation().add(0.5, 1, 0.5), 3, 0.1, 0, 0.1, 0.04);
+                p.setVelocity(p.getVelocity().add(p.getEyeLocation().getDirection().multiply(-0.3d)));
+            }
+        }
         @EventHandler
         public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
             Player p = event.getPlayer();
@@ -713,6 +1164,27 @@ public class Main extends JavaPlugin {
         @EventHandler
         public void onPlayerLeave(@NotNull PlayerQuitEvent event) {
             savePlayerData(event.getPlayer());
+        }
+
+        @EventHandler
+        public void onEntityDmg(@NotNull org.bukkit.event.entity.EntityDamageEvent event) {
+            Entity de = event.getEntity();
+            if (de instanceof Player p) {
+                if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
+                    event.setCancelled(true);
+                    p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 0.2, 0), 3, 0.1, 0, 0.1, Math.sqrt(event.getDamage()));
+                }
+            }
+            Entity ce = event.getDamageSource().getCausingEntity();
+            if (ce != null) {
+                if (de instanceof LivingEntity l) {
+                    l.damage(event.getDamage()*EntityMultiplier.getOrNew(ce).getDmg());
+                }
+            }
+        }
+        @EventHandler
+        public void onEntityDeath(@NotNull EntityDeathEvent event) {
+            EntityMultiplier.instances.remove(EntityMultiplier.get(event.getEntity()));
         }
 
         @EventHandler
@@ -742,19 +1214,20 @@ public class Main extends JavaPlugin {
                 }
             }
         }
-        @EventHandler
-        public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
-            Player player = event.getPlayer();
-            WeavePlayer weaver = getWeaver(player);
-            if (weaver != null) {
-                if (weaver.isWeaving()) {
-                    int nxt = event.getNewSlot();
-                    int move = (weaver.getWandSlot() - nxt > 0 ? 1 : -1);
-                }
-            }
-        }
+//        @EventHandler
+//        public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
+//            Player player = event.getPlayer();
+//            WeavePlayer weaver = getWeaver(player);
+//            if (weaver != null) {
+//                if (weaver.isWeaving()) {
+//                    int nxt = event.getNewSlot();
+//                    int move = (weaver.getWandSlot() - nxt > 0 ? 1 : -1);
+//                }
+//            }
+//        }
         @EventHandler
         public static void onPlayerInteract(@NotNull PlayerInteractEvent event) {
+            log(event.getAction());
             if (!event.hasItem()) return;
             ItemStack item = event.getItem();
             if (item == null) return;
@@ -766,6 +1239,10 @@ public class Main extends JavaPlugin {
                 }
             }
         }
+//        @EventHandler
+//        public void onPlayerRightClick(@NotNull PlayerMoveEvent event) {
+//            log("From to:\n" + event.getFrom() + "\n" + event.getTo());
+//        }
         @EventHandler
         public static void onItemPickup(@NotNull PlayerPickupItemEvent event) {
             ItemStack item = event.getItem().getItemStack();
@@ -800,44 +1277,45 @@ public class Main extends JavaPlugin {
 //        }
         @EventHandler
         public void invClick(@NotNull InventoryClickEvent event) {
-            ItemStack i = event.getInventory().getItem(0);
-            ItemStack ci = event.getCurrentItem();
-            if (ci != null && ci.hasItemMeta() && ci.getItemMeta().hasCustomModelData()
-                    && ci.getItemMeta().getCustomModelData() == unclickable) event.setCancelled(true);
-            if (allItemInv.contains(event.getInventory())) {
-                if (ci != null) event.getWhoClicked().getInventory().addItem(ci);
-                event.setCancelled(true);
-            } else {
-                for (InteractiveBlock inter : interactiveBlock)
-                    if (isSim(inter.getGui().getItem(0), i)) {
-                        inter.onGUIClick(event.getAction(), ci, (Player) event.getWhoClicked(), event);
-                        return;
-                    }
-                WeavePlayer weaver = getWeaver(event.getWhoClicked());
-                if (weaver != null)
-                    if (isSim(event.getInventory().getItem(28), weaver.getSpellInventory().getCanSpells().get(0).toItem())) {
+            if (event.getClickedInventory() != null && (event.getClickedInventory().getType() == InventoryType.PLAYER || event.getClickedInventory().getType() == InventoryType.CHEST)) {
+                ItemStack i = event.getClickedInventory().getItem(0);
+                ItemStack ci = event.getCurrentItem();
+                if (ci != null && ci.hasItemMeta() && ci.getItemMeta().hasCustomModelData()
+                        && ci.getItemMeta().getCustomModelData() == unclickable) event.setCancelled(true);
+                if (allItemInv.contains(event.getClickedInventory())) {
+                    if (ci != null) event.getWhoClicked().getInventory().addItem(ci);
+                    event.setCancelled(true);
+                } else {
+                    for (InteractiveBlock inter : interactiveBlock)
+                        if (isSim(inter.getGui().getItem(0), i)) {
+                            inter.onGUIClick(event.getAction(), ci, (Player) event.getWhoClicked(), event);
+                            return;
+                        }
+                    WeavePlayer weaver = getWeaver(event.getWhoClicked());
+                    if (weaver != null && isSim(event.getClickedInventory(), weaver.inventory())) {
                         event.setCancelled(true);
-                        SpellInventory.SpellUsage us = event.getClick() == ClickType.LEFT ? SpellInventory.SpellUsage.MAIN : SpellInventory.SpellUsage.SECONDARY;
-                        ItemStack mi = (us == SpellInventory.SpellUsage.MAIN ?
-                                (weaver.getSpellInventory().getMainSpell() == null ? null
-                                        : weaver.getSpellInventory().getMainSpell().toItem())
-                                : (weaver.getSpellInventory().getSecondarySpell() == null ? null
-                                        : weaver.getSpellInventory().getSecondarySpell().toItem()));
+                        boolean us = event.getClick() == ClickType.LEFT;
+                        ItemStack mi = us ? (weaver.getMain() == null ? null : weaver.getMain().toItem()) :
+                                (weaver.getSecondary() == null ? null : weaver.getSecondary().toItem());
                         for (Spell s : weaver.getSpells()) {
                             if (isSim(ci, mi)) {
-                                weaver.getSpellInventory().setActiveSpells(us, null);
+                                if (us) weaver.setMain(null);
+                                else weaver.setSecondary(null);
                             } else if (isSim(ci, s.toItem())) {
                                 if (mi != null)
-                                    for (ItemStack itemStack : event.getInventory().getContents())
+                                    for (ItemStack itemStack : event.getClickedInventory().getContents())
                                         if (isSim(itemStack, mi)) {
-                                            itemStack.removeEnchantments();
+                                            Objects.requireNonNull(ci.getItemMeta()).setEnchantmentGlintOverride(false);
                                             break;
                                         }
-                                weaver.getSpellInventory().setActiveSpells(us, s);
-//                                ci.addEnchantment(Enchantment.MENDING, 1);
+                                if (us) weaver.setMain(s);
+                                else weaver.setSecondary(s);
+                                Objects.requireNonNull(ci.getItemMeta()).setEnchantmentGlintOverride(true);
+                                break;
                             }
                         }
                     }
+                }
             }
         }
     }
@@ -858,11 +1336,23 @@ public class Main extends JavaPlugin {
         }
         return blocks;
     }
+    public static boolean isSim(Inventory i1, Inventory i2) {
+        if (i1 == null || i2 == null) return false;
+        if (i1 == i2) return true;
+        if (i1.getSize() != i2.getSize()) return false;
+        for (int i = 0; i < i1.getSize(); i++)
+            if (!isSim(i1.getItem(i), i2.getItem(i))) return false;
+        return true;
+    }
     public static boolean isSim(ItemStack i1, ItemStack i2) {
-        return (i1 != null && i2 != null) && (i1 == i2 || ((i1.hasItemMeta() && i2.hasItemMeta()) &&
-                (i1.getItemMeta().hasCustomModelData() && i2.getItemMeta().hasCustomModelData())
-                && i1.getItemMeta().getCustomModelData() == i2.getItemMeta().getCustomModelData()
-                && i1.getType() == i2.getType()));
+        if (i1 == null || i2 == null) return false;
+        if (i1 == i2) return true;
+        return i1.hasItemMeta() &&
+                i2.hasItemMeta() &&
+                ((i1.getItemMeta().hasCustomModelData() && i2.getItemMeta().hasCustomModelData()) ?
+                    i1.getItemMeta().getCustomModelData() == i2.getItemMeta().getCustomModelData() :
+                        (i1.getItemMeta().hasCustomModelData() == i2.getItemMeta().hasCustomModelData())) &&
+                i1.getType() == i2.getType();
     }
     static int getItemSlot(ItemStack item, @NotNull Inventory inv) {
         for (int i = 0; i < inv.getContents().length; i++) {
@@ -878,8 +1368,9 @@ public class Main extends JavaPlugin {
         int dz = center.getBlockZ() - location.getBlockZ();
         return dx * dx + dy * dy + dz * dz <= radius * radius;
     }
-    static final String digits = "0123456789abcdef";
+    public static final String digits = "0123456789abcdef";
     public static @NotNull String toHex(Object o, int size) {
+        o = o != null ? o.toString() : null;
         if (o instanceof String s) {
             int m = 0;
             for (int i = 0; i < s.length(); i++) m += s.charAt(i);

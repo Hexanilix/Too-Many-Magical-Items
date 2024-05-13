@@ -42,7 +42,7 @@ public class SpellBook extends Item {
         WeavePlayer w = WeavePlayer.getWeaver(p);
         log(w);
         if (w == null) return;
-        p.openInventory(w.getSpellInventory().toInventory());
+        p.openInventory(w.inventory());
     }
 
     public void onDrop(PlayerDropItemEvent event) {

@@ -9,6 +9,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.Block;
+import org.tmmi.Main;
 import org.tmmi.Recipe;
 
 import java.util.*;
@@ -16,7 +17,7 @@ import java.util.*;
 import static org.tmmi.Main.*;
 
 public class CrafttingCauldron extends Block {
-    public static ItemStack item = newItem(Material.CAULDRON, ChatColor.LIGHT_PURPLE + "Crafting Cauldron", 200000);
+    public static ItemStack item = Main.newItemStack(Material.CAULDRON, ChatColor.LIGHT_PURPLE + "Crafting Cauldron", 200000);
     public static List<CrafttingCauldron> cauldron = new ArrayList<>();
 
     public static List<Location> craftingCauldronLocations = new ArrayList<>();
@@ -75,7 +76,7 @@ public class CrafttingCauldron extends Block {
                             Player player = Bukkit.getPlayer(trIt.getThrower());
                             assert player != null;
                             entity.remove();
-                            if (!player.hasPermission(org.tmmi.Main.permission)) {
+                            if (!permission.get(player.getUniqueId())) {
                                 loc.getWorld().playSound(loc.clone().add(0.5, 0.5, 0.5), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 1, -2);
                                 loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 5);
                                 loc.getWorld().dropItem(loc.clone().add(0.5, 1, 0.5), trIt.getItemStack());
@@ -166,7 +167,7 @@ public class CrafttingCauldron extends Block {
 //                isGathering = !ingredients.isEmpty();
 //                if (!this.isCrafting) {
 //                    if (iter >= 10) iter = 0;
-//                    this.loc.getWorld().spawnParticle(Particle.ENCHANTMENT_TABLE, loc.clone().add(0.5, 2, 0.5), (isGathering ? 10 : 1), 0, 1, 0);
+//                    this.loc.getWorld().spawnParticle(Particle.ENCHANT, loc.clone().add(0.5, 2, 0.5), (isGathering ? 10 : 1), 0, 1, 0);
 //                    if (isGathering) {
 //                        isCrafting = iter == 5;
 //                        this.loc.getWorld().spawnParticle(Particle.SPELL_WITCH, new Location(loc.getWorld(), x + 0.5, loc.getY() + 0.4, z + 0.5), 1);
