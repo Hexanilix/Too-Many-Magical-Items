@@ -1,10 +1,7 @@
-package org.tmmi.PotionOf;
+package org.tmmi.potions;
 
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.data.Ageable;
-import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;

@@ -1,17 +1,6 @@
-package org.tmmi.PotionOf;
+package org.tmmi.potions;
 
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.entity.Entity;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.PotionSplashEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Vector;
-import org.jetbrains.annotations.NotNull;
-
-import java.util.List;
-import java.util.Objects;
 
 public class GustWithABot implements Listener {
 //    @EventHandler

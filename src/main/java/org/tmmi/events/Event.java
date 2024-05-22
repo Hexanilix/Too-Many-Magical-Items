@@ -1,4 +1,4 @@
-package org.tmmi;
+package org.tmmi.events;
 
 import org.jetbrains.annotations.NotNull;
 

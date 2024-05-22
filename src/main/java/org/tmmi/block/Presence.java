@@ -1,40 +1,34 @@
 package org.tmmi.block;
 
 import org.bukkit.*;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.player.PlayerChatEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
-import org.tmmi.InteractiveBlock;
-import org.tmmi.events.PlayerBlockInteractEvent;
 
 import java.util.*;
 
-public class Presence extends InteractiveBlock implements Listener {
+import static org.tmmi.Main.plugin;
+
+public class Presence extends InteractiveBlock {
+    public static List<Presence> instances = new ArrayList<>();
+
     public static Inventory inv;
     private ItemStack item;
     private Location location;
     private Inventory gui;
     private BukkitTask task;
-    public static final Map<Location, List<UUID>> detectorWhitelist = new HashMap<>();
-    public static List<Location> detectorLocations = new ArrayList<>();
-    public static Map<Location, String> detectorName = new HashMap<>();
-    public static Map<Location, ArmorStand> detectorVisualName = new HashMap<>();
-    public static Map<Location, Integer> detectorSize = new HashMap<>();
-    public static Map<UUID, Integer> detectorTimeout = new HashMap<>();
-    public static Map<Player, Integer> GUIsizeInterval = new HashMap<>();
-    public static Map<Player, Boolean> setNewName = new HashMap<>();
-    public static Map<Player, Location> currentDetector = new HashMap<>();
-    int i = 0;
+    private int size;
+    private final List<UUID> whitelist = new ArrayList<>();
+    private String name;
+    private int timeout;
 
     public Presence(ItemStack item, Material material, Location loc) {
         super(material, loc, inv);
@@ -43,128 +37,92 @@ public class Presence extends InteractiveBlock implements Listener {
 
     @Override
     public void onPlace(@NotNull Location location) {
-//        this.location = location;
-//        this.task = new BukkitRunnable() {
-//            @Override
-//            public void run() {
-//                for (Player player : Bukkit.getOnlinePlayers()) {
-//                    Location loc = currentDetector.get(player);
-//                    if (player.getOpenInventory().getTopInventory().getSize() == 45) {
-//                        if (Objects.equals(player.getOpenInventory().getTopInventory().getItem(31), description())) {
-//                            if (Objects.equals(Objects.requireNonNull(player.getOpenInventory().getTopInventory().getItem(0)).getType(), Material.RED_STAINED_GLASS_PANE) && detectorTimeout.get(detectorWhitelist.get(loc).get(0)) == 0) {
-//                                player.openInventory(presenceGUI(detectorWhitelist.get(loc).get(0), loc));
-//                            } else if (Objects.equals(Objects.requireNonNull(player.getOpenInventory().getTopInventory().getItem(0)).getType(), Material.LIME_STAINED_GLASS_PANE) && detectorTimeout.get(detectorWhitelist.get(loc).get(0)) > 0) {
-//                                player.openInventory(presenceGUI(detectorWhitelist.get(loc).get(0), loc));
-//                            }
-//                        }
-//                    }
-//                }
-//                if (!detectorLocations.isEmpty()) {
-//                    i++;
-//                    for (Location location : detectorLocations) {
-//                        if (bannedMagicLocation.contains(location)) {
-//                            continue;
-//                        }
-//                        List<UUID> playerList = detectorWhitelist.get(location);
-//                        Particle.DustOptions dustOptions;
-//                        Block mat = Objects.requireNonNull(location.getWorld()).getBlockAt(location);
-//                        if (!mat.getType().equals(presenceDetector().getType())) {
-//                            mat.setType(presenceDetector().getType());
-//                        }
-//                        Location loc = location.getWorld().getBlockAt(location).getLocation().add(0.5, 0, 0.5);
-//                        UUID player = playerList.get(0);
-//                        if (detectorTimeout.get(player) > 0) {
-//                            dustOptions = new Particle.DustOptions(Color.RED, 1);
-//                            World world = loc.getWorld();
-//                            assert world != null;
-//                            world.spawnParticle(Particle.END_ROD, new Location(world, loc.getX(), (loc.getY() + 2.05) - (double) detectorTimeout.get(player) / 2200, loc.getZ()), 1, 0, 0, 0, 0);
-//                            for (double x = loc.getX() - 0.2; x < (loc.getX() + 0.2); x += 0.05) {
-//                                world.spawnParticle(Particle.COMPOSTER, new Location(world, x, loc.getY() + 1.05, loc.getZ() + 0.2), 1, 0, 0, 0, 0);
-//                                world.spawnParticle(Particle.COMPOSTER, new Location(world, x, loc.getY() + 1.05, loc.getZ() - 0.2), 1, 0, 0, 0, 0);
-//                                world.spawnParticle(Particle.COMPOSTER, new Location(world, x, loc.getY() + 1.95, loc.getZ() + 0.2), 1, 0, 0, 0, 0);
-//                                world.spawnParticle(Particle.COMPOSTER, new Location(world, x, loc.getY() + 1.95, loc.getZ() - 0.2), 1, 0, 0, 0, 0);
-//                            }
-//                            for (double z = loc.getZ() - 0.2; z < (loc.getZ() + 0.2); z += 0.05) {
-//                                world.spawnParticle(Particle.COMPOSTER, new Location(world, loc.getX() + 0.2, loc.getY() + 1.05, z), 1, 0, 0, 0, 0);
-//                                world.spawnParticle(Particle.COMPOSTER, new Location(world, loc.getX() - 0.2, loc.getY() + 1.05, z), 1, 0, 0, 0, 0);
-//                                world.spawnParticle(Particle.COMPOSTER, new Location(world, loc.getX() + 0.2, loc.getY() + 1.95, z), 1, 0, 0, 0, 0);
-//                                world.spawnParticle(Particle.COMPOSTER, new Location(world, loc.getX() - 0.2, loc.getY() + 1.95, z), 1, 0, 0, 0, 0);
-//                            }
-//                            detectorTimeout.replace(player, detectorTimeout.get(player) - 1);
-//                        } else {
-//                            dustOptions = new Particle.DustOptions(Color.GREEN, 1);
-//                            int Radius = detectorSize.get(location) / 2;
-//                            {
-//                                double angle = i * ((2 * Math.PI) / 360);
-//                                double x = loc.getX() + Radius * Math.cos(angle);
-//                                double z = loc.getZ() + Radius * Math.sin(angle);
-//                                Location particleLocation = new Location(loc.getWorld(), x, loc.getY() + 0.1, z);
-//                                if (!bannedMagicLocation.contains(Objects.requireNonNull(particleLocation.getWorld()).getBlockAt(particleLocation).getLocation())) {
-//                                    Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.END_ROD, particleLocation, 1, 0, 0, 0, 0);
-//                                }
-//                                double angle2 = (i - 180) * ((2 * Math.PI) / 360);
-//                                double x2 = loc.getX() + Radius * (Math.cos(angle2));
-//                                double z2 = loc.getZ() + Radius * (Math.sin(angle2));
-//                                Location particleLocation2 = new Location(loc.getWorld(), x2, loc.getY() + 0.1, z2);
-//                                if (!bannedMagicLocation.contains(Objects.requireNonNull(particleLocation2.getWorld()).getBlockAt(particleLocation2).getLocation())) {
-//                                    Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.END_ROD, particleLocation2, 1, 0, 0, 0, 0);
-//                                }
-//                            }
-//                            for (Player Inplayer : Objects.requireNonNull(loc.getWorld()).getPlayers()) {
-//                                if (bannedMagicLocation.contains(Inplayer.getWorld().getBlockAt(Inplayer.getLocation()).getLocation())) {
-//                                    continue;
-//                                }
-//                                if (Inplayer.getGameMode() != GameMode.SPECTATOR) {
-//                                    if (!playerList.contains(Inplayer.getUniqueId())) {
-//                                        if (isPlayerWithinLocation(Inplayer, loc.clone(), Radius, false)) {
-//                                            for (UUID notifiers : playerList) {
-//                                                Player onlinePLayer = Bukkit.getPlayer(notifiers);
-//                                                if (onlinePLayer != null) {
-//                                                    onlinePLayer.sendMessage(ChatColor.BOLD + ChatColor.RED.toString() + "[" + detectorName.get(location) + "]" + " A player presence has been detected!");
-//                                                    playerWeaving.get(Bukkit.getPlayer(player)).addCredit(5);
-//                                                }
-//                                            }
-//                                            Inplayer.getWorld().spawnParticle(Particle.REDSTONE, Inplayer.getLocation().clone().add(0, 1, 0), 10, 0.5, 1, 0.5, 0, new Particle.DustOptions(Color.RED, 1));
-//                                            Inplayer.getWorld().playSound(Inplayer.getEyeLocation(), Sound.ENTITY_GHAST_HURT, 1, 1);
-//                                            {
-//                                                for (int i = 0; i < 360; i++) {
-//                                                    double angle = i * ((2 * Math.PI) / 360);
-//                                                    double x = loc.getX() + Radius * Math.cos(angle);
-//                                                    double z = loc.getZ() + Radius * Math.sin(angle);
-//                                                    Location particleLocation = new Location(loc.getWorld(), x, loc.getY(), z);
-//                                                    Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.REDSTONE, particleLocation.add(0, 1, 0), 1, 0, 0, 0, 0, new Particle.DustOptions(Color.RED, 1));
-//                                                }
-//                                            }
-//                                            detectorTimeout.replace(player, 1800);
-//                                            break;
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        }
-//                        World world = loc.getWorld();
-//                        double y = location.getY();
-//                        assert world != null;
-//                        Particle particle = Particle.REDSTONE;
-//                        for (double x = loc.getX() - 0.5; x < (loc.getX() + 0.5); x += 0.1) {
-//                            world.spawnParticle(particle, new Location(world, x, y, loc.getZ() + 0.5), 1, 0, 0, 0, 0, dustOptions);
-//                            world.spawnParticle(particle, new Location(world, x, y, loc.getZ() - 0.5), 1, 0, 0, 0, 0, dustOptions);
-//                            world.spawnParticle(particle, new Location(world, x, y + 1, loc.getZ() + 0.5), 1, 0, 0, 0, 0, dustOptions);
-//                            world.spawnParticle(particle, new Location(world, x, y + 1, loc.getZ() - 0.5), 1, 0, 0, 0, 0, dustOptions);
-//                        }
-//                        for (double z = loc.getZ() - 0.5; z < (loc.getZ() + 0.5); z += 0.1) {
-//                            world.spawnParticle(particle, new Location(world, loc.getX() + 0.5, y, z), 1, 0, 0, 0, 0, dustOptions);
-//                            world.spawnParticle(particle, new Location(world, loc.getX() - 0.5, y, z), 1, 0, 0, 0, 0, dustOptions);
-//                            world.spawnParticle(particle, new Location(world, loc.getX() + 0.5, y + 1, z), 1, 0, 0, 0, 0, dustOptions);
-//                            world.spawnParticle(particle, new Location(world, loc.getX() - 0.5, y + 1, z), 1, 0, 0, 0, 0, dustOptions);
-//                        }
-//                    }
-//                    if (i == 360) {
-//                        i = 0;
-//                    }
-//                }
-//            }
-//        }.runTaskTimer(hexplug, 0, 10);
+        this.location = location;
+        this.task = new BukkitRunnable() {
+            private int i = 0;
+            @Override
+            public void run() {
+                Particle.DustOptions dustOptions;
+                Location loc = location.getWorld().getBlockAt(location).getLocation().add(0.5, 0, 0.5);
+                if (timeout > 0) {
+                    dustOptions = new Particle.DustOptions(Color.RED, 1);
+                    World world = loc.getWorld();
+                    assert world != null;
+                    world.spawnParticle(Particle.END_ROD, new Location(world, loc.getX(), (loc.getY() + 2.05) - (double) timeout / 2200, loc.getZ()), 1, 0, 0, 0, 0);
+                    for (double x = loc.getX() - 0.2; x < (loc.getX() + 0.2); x += 0.05) {
+                        world.spawnParticle(Particle.COMPOSTER, new Location(world, x, loc.getY() + 1.05, loc.getZ() + 0.2), 1, 0, 0, 0, 0);
+                        world.spawnParticle(Particle.COMPOSTER, new Location(world, x, loc.getY() + 1.05, loc.getZ() - 0.2), 1, 0, 0, 0, 0);
+                        world.spawnParticle(Particle.COMPOSTER, new Location(world, x, loc.getY() + 1.95, loc.getZ() + 0.2), 1, 0, 0, 0, 0);
+                        world.spawnParticle(Particle.COMPOSTER, new Location(world, x, loc.getY() + 1.95, loc.getZ() - 0.2), 1, 0, 0, 0, 0);
+                    }
+                    for (double z = loc.getZ() - 0.2; z < (loc.getZ() + 0.2); z += 0.05) {
+                        world.spawnParticle(Particle.COMPOSTER, new Location(world, loc.getX() + 0.2, loc.getY() + 1.05, z), 1, 0, 0, 0, 0);
+                        world.spawnParticle(Particle.COMPOSTER, new Location(world, loc.getX() - 0.2, loc.getY() + 1.05, z), 1, 0, 0, 0, 0);
+                        world.spawnParticle(Particle.COMPOSTER, new Location(world, loc.getX() + 0.2, loc.getY() + 1.95, z), 1, 0, 0, 0, 0);
+                        world.spawnParticle(Particle.COMPOSTER, new Location(world, loc.getX() - 0.2, loc.getY() + 1.95, z), 1, 0, 0, 0, 0);
+                    }
+                    timeout--;
+                } else {
+                    dustOptions = new Particle.DustOptions(Color.GREEN, 1);
+                    int radius = size / 2;
+                    {
+                        double angle = i * ((2 * Math.PI) / 360);
+                        double x = loc.getX() + radius * Math.cos(angle);
+                        double z = loc.getZ() + radius * Math.sin(angle);
+                        Location particleLocation = new Location(loc.getWorld(), x, loc.getY() + 0.1, z);
+                        Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.END_ROD, particleLocation, 1, 0, 0, 0, 0);
+                        double angle2 = (i - 180) * ((2 * Math.PI) / 360);
+                        double x2 = loc.getX() + radius * (Math.cos(angle2));
+                        double z2 = loc.getZ() + radius * (Math.sin(angle2));
+                        Location particleLocation2 = new Location(loc.getWorld(), x2, loc.getY() + 0.1, z2);
+                        Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.END_ROD, particleLocation2, 1, 0, 0, 0, 0);
+                    }
+                    for (Player p : Objects.requireNonNull(loc.getWorld()).getPlayers()) {
+                        if (p.getGameMode() != GameMode.SPECTATOR) {
+                            if (!whitelist.contains(p.getUniqueId())) {
+                                if (p.getLocation().distance(loc) < radius) {
+                                    for (UUID notifiers : whitelist) {
+                                        Player onlinePLayer = Bukkit.getPlayer(notifiers);
+                                        if (onlinePLayer != null)
+                                            onlinePLayer.sendMessage(ChatColor.BOLD + ChatColor.RED.toString() + "[" + name + "]" + " A player presence has been detected!");
+                                    }
+                                    p.getWorld().spawnParticle(Particle.DUST, p.getLocation().clone().add(0, 1, 0), 10, 0.5, 1, 0.5, 0, new Particle.DustOptions(Color.RED, 1));
+                                    p.getWorld().playSound(p.getEyeLocation(), Sound.ENTITY_GHAST_HURT, 1, 1);
+                                    {
+                                        for (int i = 0; i < 360; i++) {
+                                            double angle = i * ((2 * Math.PI) / 360);
+                                            double x = loc.getX() + radius * Math.cos(angle);
+                                            double z = loc.getZ() + radius * Math.sin(angle);
+                                            Location particleLocation = new Location(loc.getWorld(), x, loc.getY(), z);
+                                            Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.DUST, particleLocation.add(0, 1, 0), 1, 0, 0, 0, 0, new Particle.DustOptions(Color.RED, 1));
+                                        }
+                                    }
+                                    timeout = 1800;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                World world = loc.getWorld();
+                double y = location.getY();
+                assert world != null;
+                Particle particle = Particle.DUST;
+                for (double x = loc.getX() - 0.5; x < (loc.getX() + 0.5); x += 0.1) {
+                    world.spawnParticle(particle, new Location(world, x, y, loc.getZ() + 0.5), 1, 0, 0, 0, 0, dustOptions);
+                    world.spawnParticle(particle, new Location(world, x, y, loc.getZ() - 0.5), 1, 0, 0, 0, 0, dustOptions);
+                    world.spawnParticle(particle, new Location(world, x, y + 1, loc.getZ() + 0.5), 1, 0, 0, 0, 0, dustOptions);
+                    world.spawnParticle(particle, new Location(world, x, y + 1, loc.getZ() - 0.5), 1, 0, 0, 0, 0, dustOptions);
+                }
+                for (double z = loc.getZ() - 0.5; z < (loc.getZ() + 0.5); z += 0.1) {
+                    world.spawnParticle(particle, new Location(world, loc.getX() + 0.5, y, z), 1, 0, 0, 0, 0, dustOptions);
+                    world.spawnParticle(particle, new Location(world, loc.getX() - 0.5, y, z), 1, 0, 0, 0, 0, dustOptions);
+                    world.spawnParticle(particle, new Location(world, loc.getX() + 0.5, y + 1, z), 1, 0, 0, 0, 0, dustOptions);
+                    world.spawnParticle(particle, new Location(world, loc.getX() - 0.5, y + 1, z), 1, 0, 0, 0, 0, dustOptions);
+                }
+                i++;
+            }
+        }.runTaskTimer(plugin, 0, 10);
     }
 
     @Override
@@ -320,27 +278,15 @@ public class Presence extends InteractiveBlock implements Listener {
 //        }
     }
 
-    @EventHandler
-    public void onChat(@NotNull PlayerChatEvent event) {
-//        Player player = event.getPlayer();
-//        if (setNewName.containsKey(player)) {
-//            if (setNewName.get(player)) {
-//                if (event.getMessage().equalsIgnoreCase("cancel")) {
-//                    event.setCancelled(true);
-//                    setNewName.replace(player, false);
-//                    Location loc = currentDetector.get(player);
-//                    player.openInventory(presenceGUI(detectorWhitelist.get(loc).get(0), loc));
-//                    player.sendMessage(ChatColor.RED + "Cancelled setting new name");
-//                } else {
-//                    event.setCancelled(true);
-//                    Location loc = currentDetector.get(player);
-//                    detectorName.replace(loc, (event.getMessage().isEmpty() ? "Detector" : event.getMessage()));
-//                    setNewName.replace(player, false);
-//                    player.openInventory(presenceGUI(detectorWhitelist.get(loc).get(0), loc));
-//                    detectorVisualName.get(loc).setCustomName(event.getMessage());
-//                    player.sendMessage(ChatColor.GREEN + "Successfully changes detector name to " + ChatColor.BOLD + event.getMessage());
-//                }
-//            }
-//        }
+    @Override
+    public String toJSON() {
+        return  "\t\t{\n" +
+                "\t\"type\":\"SPELL_WEAVER\",\n" +
+                "\t\"world\":\"" + this.getWorld() + "\",\n" +
+                "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
+                "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
+                "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +
+                "}";
+
     }
 }

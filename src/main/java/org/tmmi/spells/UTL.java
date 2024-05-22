@@ -1,4 +1,4 @@
-package org.tmmi.Spells;
+package org.tmmi.spells;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -13,7 +13,9 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.tmmi.items.ItemCommand;
 import org.tmmi.Main;
+import org.tmmi.spells.atributes.Weight;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -75,7 +77,7 @@ public class UTL extends Spell {
                                         if (loc.distance(b.getLocation()) < 1) {
                                             cancel();
                                             org.bukkit.entity.Item i = b.getWorld().dropItem(b.getLocation(), new ItemStack(b.getType()));
-                                            Main.ItemCommand c = Main.ItemCommand.getOrNew(i);
+                                            ItemCommand c = ItemCommand.getOrNew(i);
                                             c.moveTo(player, 0.1, 1);
                                             b.setType(Material.AIR);
                                         }

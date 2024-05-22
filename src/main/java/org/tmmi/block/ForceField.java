@@ -10,12 +10,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
-import org.tmmi.InteractiveBlock;
-import org.tmmi.events.PlayerBlockInteractEvent;
 
 import java.util.*;
-
-import static org.tmmi.Main.plugin;
 
 public class ForceField extends InteractiveBlock {
     public static Inventory inv;
@@ -105,6 +101,18 @@ public class ForceField extends InteractiveBlock {
 
     @Override
     public void onBreak(Location location) {
+
+    }
+
+    @Override
+    public String toJSON() {
+        return  "\t\t{\n" +
+                "\t\"type\":\"SPELL_WEAVER\",\n" +
+                "\t\"world\":\"" + this.getWorld() + "\",\n" +
+                "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
+                "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
+                "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +
+                "}";
 
     }
 

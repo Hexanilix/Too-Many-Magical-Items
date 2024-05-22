@@ -10,13 +10,12 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.*;
-import org.tmmi.Spells.AreaEffect;
-import org.tmmi.Spells.Spell;
+import org.tmmi.spells.atributes.AreaEffect;
 
 import java.util.*;
 
 import static org.tmmi.Main.*;
-import static org.tmmi.Spells.AreaEffect.getAreaEffect;
+import static org.tmmi.spells.atributes.AreaEffect.getAreaEffect;
 import static org.tmmi.Element.getElement;
 
 public class SpellWeaver extends InteractiveBlock {
@@ -32,7 +31,7 @@ public class SpellWeaver extends InteractiveBlock {
         inv.setItem(13, null);
         return inv;
     };
-    public static List<CrafttingCauldron> cauldron = new ArrayList<>();
+    public static List<CraftingCauldron> cauldron = new ArrayList<>();
     public static ItemStack item = Main.newItemStack(Material.GOLD_BLOCK, ChatColor.DARK_AQUA + "MAGIC CARFTIN", 23461, List.of("A Crystal with the power", "of 1m brewing stands"));
 
     private int magicules;
@@ -124,5 +123,18 @@ public class SpellWeaver extends InteractiveBlock {
     }
     public int getMagicules() {
         return 20;
+    }
+
+    @Override
+    public String toJSON() {
+        return  "\t\t{\n" +
+                "\t\"type\":\"SPELL_WEAVER\",\n" +
+                "\t\"world\":\"" + this.getWorld() + "\",\n" +
+                "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
+                "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
+                "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +
+                "\t\"magicules\":\"" + this.getMagicules() + "\"\n" +
+                "}";
+
     }
 }

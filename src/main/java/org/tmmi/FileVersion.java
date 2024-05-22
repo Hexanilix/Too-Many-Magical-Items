@@ -8,19 +8,14 @@ public class FileVersion {
             super(e);
         }
     }
-    public enum VDating {
-        NEWER,
-        SAME,
-        OBSOLETE;
-    }
-    public static VDating versionDiff(@NotNull FileVersion comp, @NotNull FileVersion base) {
+    public static int versionDiff(@NotNull FileVersion comp, @NotNull FileVersion base) {
         for (int i = 0; i < Math.max(comp.ver.length, base.ver.length); i++) {
             int v1 = (i < comp.ver.length ? comp.ver[i] : 0);
             int v2 = (i < base.ver.length ? base.ver[i] : 0);
-            if (v1 > v2) return VDating.NEWER;
-            else if (v1 < v2) return VDating.OBSOLETE;
+            if (v1 > v2) return 1;
+            else if (v1 < v2) return -1;
         }
-        return VDating.SAME;
+        return 0;
     }
 
     private final int[] ver;
@@ -52,7 +47,7 @@ public class FileVersion {
         System.arraycopy(versions, 0, ver, 0, versions.length);
     }
 
-    public int[] getVer() {
+    public int[] getVersions() {
         return ver;
     }
 

@@ -1,16 +1,10 @@
-package org.tmmi;
+package org.tmmi.events;
 
 
-import org.bukkit.Bukkit;
-import org.jetbrains.annotations.NotNull;
+import org.tmmi.PlayerEvent;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.logging.Level;
 

@@ -1,4 +1,4 @@
-package org.tmmi.Spells;
+package org.tmmi.spells;
 
 import org.bukkit.*;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -8,6 +8,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.tmmi.Element;
+import org.tmmi.spells.atributes.AreaEffect;
+import org.tmmi.spells.atributes.Weight;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

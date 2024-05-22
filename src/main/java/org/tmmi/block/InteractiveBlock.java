@@ -1,4 +1,4 @@
-package org.tmmi;
+package org.tmmi.block;
 
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -9,19 +9,18 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.tmmi.events.PlayerBlockInteractEvent;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public abstract class InteractiveBlock extends Block {
-    public static List<InteractiveBlock> interactiveBlock = new ArrayList<>();
+    public static List<InteractiveBlock> instances = new ArrayList<>();
     private final Inventory gui;
 
     public InteractiveBlock(Material material, Location loc, Inventory gui) {
         super(material, loc);
         this.gui = gui;
-        interactiveBlock.add(this);
+        instances.add(this);
     }
 
     public Inventory getGui() {

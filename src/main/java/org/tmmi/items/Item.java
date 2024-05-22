@@ -1,22 +1,14 @@
-package org.tmmi;
+package org.tmmi.items;
 
 import org.bukkit.Material;
-import org.bukkit.entity.Player;
-import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-
-import static org.tmmi.Main.digits;
 
 public abstract class Item extends ItemStack {
     public static List<Item> items = new ArrayList<>();

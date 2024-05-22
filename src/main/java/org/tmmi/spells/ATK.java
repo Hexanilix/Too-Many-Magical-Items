@@ -1,4 +1,4 @@
-package org.tmmi.Spells;
+package org.tmmi.spells;
 
 import org.bukkit.*;
 import org.bukkit.entity.Entity;
@@ -11,6 +11,8 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.Element;
+import org.tmmi.spells.atributes.AreaEffect;
+import org.tmmi.spells.atributes.Weight;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -153,7 +155,7 @@ public class ATK extends Spell {
         ItemMeta m = item.getItemMeta();
         assert m != null;
         m.setDisplayName(c+this.getName() + " (" + this.getWeight() + ")");
-        int nxtlxp = this.getXP() - (xpsum(this.getLevel()-1));
+        int nxtlxp = this.getXP() - (this.xpsum(this.getLevel()-1));
         int nxtLvlXP = lvlXPcalc(this.getLevel()-1);
         int perc = (int) (((float) nxtlxp / nxtLvlXP) * 100);
         m.setLore(List.of(sc+"Level "+c+this.getLevel(), c + "[" +

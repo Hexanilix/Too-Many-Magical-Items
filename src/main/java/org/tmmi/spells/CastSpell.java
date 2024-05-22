@@ -1,4 +1,4 @@
-package org.tmmi.Spells;
+package org.tmmi.spells;
 
 import org.bukkit.Location;
 import org.bukkit.World;

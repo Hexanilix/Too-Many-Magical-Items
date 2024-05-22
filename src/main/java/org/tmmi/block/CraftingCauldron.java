@@ -8,7 +8,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
-import org.tmmi.Block;
 import org.tmmi.Main;
 import org.tmmi.Recipe;
 
@@ -16,16 +15,14 @@ import java.util.*;
 
 import static org.tmmi.Main.*;
 
-public class CrafttingCauldron extends Block {
+public class CraftingCauldron extends Block {
     public static ItemStack item = Main.newItemStack(Material.CAULDRON, ChatColor.LIGHT_PURPLE + "Crafting Cauldron", 200000);
-    public static List<CrafttingCauldron> cauldron = new ArrayList<>();
-
-    public static List<Location> craftingCauldronLocations = new ArrayList<>();
+    public static List<CraftingCauldron> cauldron = new ArrayList<>();
     private Boolean isCrafting;
     private Boolean isGathering;
     private BukkitTask thread;
 
-    public CrafttingCauldron(Location loc) {
+    public CraftingCauldron(Location loc) {
         super(Material.CAULDRON, loc);
         this.onPlace(loc);
         this.isCrafting = false;
@@ -36,9 +33,9 @@ public class CrafttingCauldron extends Block {
     @Override
     public void onPlace(@NotNull Location location) {
         location.getBlock().setType(Material.CAULDRON);
-        CrafttingCauldron craft = this;
+        CraftingCauldron craft = this;
         this.thread = new BukkitRunnable() {
-            private final CrafttingCauldron craftIn = craft;
+            private final CraftingCauldron craftIn = craft;
             private int i = 0;
             private int iter = 0;
             private final List<ItemStack> ingredients = new ArrayList<>();
@@ -256,5 +253,17 @@ public class CrafttingCauldron extends Block {
 
     public Boolean isGathering() {
         return isGathering;
+    }
+
+    @Override
+    public String toJSON() {
+        return  "\t\t{\n" +
+                "\t\"type\":\"SPELL_WEAVER\",\n" +
+                "\t\"world\":\"" + this.getWorld() + "\",\n" +
+                "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
+                "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
+                "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +
+                "}";
+
     }
 }

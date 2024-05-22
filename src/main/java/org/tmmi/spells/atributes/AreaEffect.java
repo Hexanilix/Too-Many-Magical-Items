@@ -1,4 +1,4 @@
-package org.tmmi.Spells;
+package org.tmmi.spells.atributes;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -7,7 +7,6 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.Main;
-import org.tmmi.Spells.Spell;
 
 import static org.tmmi.Main.isSim;
 

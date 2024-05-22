@@ -12,16 +12,16 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.tmmi.Spells.Spell;
 import org.tmmi.items.GrandBook;
+import org.tmmi.spells.Spell;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.tmmi.Main.*;
-import static org.tmmi.Spells.Weight.CANTRIP;
-import static org.tmmi.Spells.Weight.SORCERY;
+import static org.tmmi.spells.atributes.Weight.CANTRIP;
+import static org.tmmi.spells.atributes.Weight.SORCERY;
 
 public class WeavePlayer {
     public static List<WeavePlayer> weavers = new ArrayList<>();

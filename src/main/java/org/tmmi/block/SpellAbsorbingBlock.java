@@ -5,9 +5,8 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.tmmi.Block;
 import org.tmmi.Main;
-import org.tmmi.Spells.CastSpell;
+import org.tmmi.spells.CastSpell;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +26,10 @@ public class SpellAbsorbingBlock extends Block {
     private Thread spellGrabThread;
     private Thread dripTHread;
     private float magicules;
+    public SpellAbsorbingBlock(Location loc, float magicules) {
+        super(Material.LODESTONE, loc);
+        this.onPlace(loc);
+    }
     public SpellAbsorbingBlock(Location loc) {
         super(Material.LODESTONE, loc);
         this.onPlace(loc);
@@ -68,12 +71,30 @@ public class SpellAbsorbingBlock extends Block {
                 throw new RuntimeException(e);
             }
         });
+        this.dripTHread.start();
     }
 
     @Override
     public void onBreak(Location location) {
         this.setLoc(null);
-        Block.blocks.remove(this);
+        Block.instances.remove(this);
         if (this.spellGrabThread != null) this.spellGrabThread.interrupt();
+    }
+
+    public float getMagicules() {
+        return magicules;
+    }
+
+    @Override
+    public String toJSON() {
+        return  "\t\t{\n" +
+                "\t\"type\":\"SPELL_WEAVER\",\n" +
+                "\t\"world\":\"" + this.getWorld() + "\",\n" +
+                "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
+                "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
+                "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +
+                "\t\"magicules\":\"" + this.getMagicules() + "\"\n" +
+                "}";
+
     }
 }

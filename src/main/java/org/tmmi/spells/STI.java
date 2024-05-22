@@ -1,4 +1,4 @@
-package org.tmmi.Spells;
+package org.tmmi.spells;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -12,10 +12,8 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.tmmi.Element;
-import org.tmmi.EntityMultiplier;
-import org.tmmi.Main;
-import org.tmmi.WeavePlayer;
+import org.tmmi.*;
+import org.tmmi.spells.atributes.Weight;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

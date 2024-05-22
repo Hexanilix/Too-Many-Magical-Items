@@ -1,4 +1,4 @@
-package org.tmmi.Spells;
+package org.tmmi.spells;
 
 import org.bukkit.*;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -7,6 +7,8 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.Main;
+import org.tmmi.Property;
+import org.tmmi.spells.atributes.Weight;
 import org.tmmi.events.SpellCollideEvent;
 
 import java.util.*;
@@ -61,7 +63,7 @@ public abstract class Spell {
         this.weight = weight;
         this.box = box;
         this.id = (id == null ? uuid() : id);
-        if (!disabled.contains(this.id)) spells.add(this);
+        if (!Property.DISABLED_SPELLS.v().contains(this.id)) spells.add(this);
     }
 
     public UUID getHandler() {
@@ -96,7 +98,7 @@ public abstract class Spell {
     public Weight getWeight() {
         return weight;
     }
-    void attemptLvlUP() {
+    public void attemptLvlUP() {
         if (XP - xpsum(this.level-1) >= lvlXPcalc(this.level-1)) {
             this.level++;
             if (Bukkit.getPlayer(this.handler) != null) Bukkit.getPlayer(this.handler).sendMessage(this.name + " upgraded to level " + this.level);
@@ -111,12 +113,12 @@ public abstract class Spell {
     public void onCollide(SpellCollideEvent event) {}
 
     public abstract ItemStack toItem();
-    int xpsum(int lvl) {
+    public int xpsum(int lvl) {
         int s = 0;
         for (int i = 0; i < lvl; i++) s += lvlXPcalc(i);
         return s;
     }
-    static int lvlXPcalc(int lvl) {
+    public static int lvlXPcalc(int lvl) {
         return (int) (lvl < 0 ? 0 : Math.round(((Math.pow(14, 1+lvl))/Math.pow(10, lvl)-4)));
     }
 
