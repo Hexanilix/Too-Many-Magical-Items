@@ -15,16 +15,14 @@ import org.jetbrains.annotations.Nullable;
 import org.tmmi.items.GrandBook;
 import org.tmmi.spells.Spell;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static org.tmmi.Main.*;
 import static org.tmmi.spells.atributes.Weight.CANTRIP;
 import static org.tmmi.spells.atributes.Weight.SORCERY;
 
 public class WeavePlayer {
-    public static List<WeavePlayer> weavers = new ArrayList<>();
+    public static Collection<WeavePlayer> weavers = new HashSet<>();
     public static @Nullable WeavePlayer getWeaver(@NotNull Player player) {
         return getWeaver(player.getUniqueId());
     }

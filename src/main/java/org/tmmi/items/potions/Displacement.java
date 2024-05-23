@@ -1,4 +1,4 @@
-package org.tmmi.potions;
+package org.tmmi.items.potions;
 
 import org.bukkit.*;
 import org.bukkit.entity.Entity;
@@ -15,8 +15,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
-import static org.tmmi.Main.permission;
-import static org.tmmi.Main.plugin;
+import static org.tmmi.Main.*;
 
 public class Displacement implements Listener {
     private final Map<Player, Integer> portalTier = new HashMap<>();
@@ -26,7 +25,7 @@ public class Displacement implements Listener {
     public void onPotionConsume(@NotNull PlayerItemConsumeEvent event) {
         if (Objects.requireNonNull(event.getItem().getItemMeta()).getDisplayName().contains("Potion of Displacement")) {
             Player player = event.getPlayer();
-            if (permission.get(player.getUniqueId())) {
+            if (spellPerms.get(player.getUniqueId())) {
                 player.sendMessage(ChatColor.GOLD + "Provide the x and z cords to teleport to:");
                 BukkitRunnable runnable = new BukkitRunnable() {
                     int i = 0;

@@ -129,6 +129,41 @@ public class ATK extends Spell {
                     }
                 };
             }
+//            case WIDE -> {
+//                return new CastSpell(this, loc, getCastCost()) {
+//
+//                    @Override
+//                    public BukkitTask cast(CastSpell casts) {
+//                        return new BukkitRunnable() {
+//                            private double distance = 0;
+//                            @Override
+//                            public void run() {
+//                                if (distance > travDis) {
+//                                    casts.uncast();
+//                                    ATK.this.attemptLvlUP();
+//                                }
+//                                distance += spellSpeed;
+//                                loc.add(direction.multiply(speed));
+//                                Objects.requireNonNull(loc.getWorld()).playSound(loc, sound, 1, 1);
+//                                Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, (int) Math.ceil(baseDamage/2), 0, 0, 0, 0);
+//                                Collection<Entity> nearbyEntities = loc.getWorld().getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
+//                                if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
+//                                    for (Entity e : nearbyEntities) {
+//                                        if (e instanceof LivingEntity liv) {
+//                                            if (liv.getUniqueId() == event.getPlayer().getUniqueId()) continue;
+//                                            liv.damage(ATK.this.getBaseDamage());
+//                                            Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, 10, 1, 1, 1, 0.3);
+//                                            cancel();
+//                                        }
+//                                    }
+//                                }
+//                                ATK.this.attemptLvlUP();
+//                            }
+//                        }.runTaskTimer(plugin, 0, tick);
+//                    }
+//                };
+//
+//            }
             default -> {
                 return null;
             }

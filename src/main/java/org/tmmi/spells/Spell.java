@@ -16,7 +16,7 @@ import java.util.*;
 import static org.tmmi.Main.*;
 
 public abstract class Spell {
-    public static List<Spell> spells = new ArrayList<>();
+    public static Collection<Spell> spells = new HashSet<>();
     public static ArrayList<UUID> disabled = new ArrayList<>();
     public static double mxT = 20;
     public static double mxS = 20;

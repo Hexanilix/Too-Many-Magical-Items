@@ -23,16 +23,7 @@ public class CraftingCauldron extends Block {
     private BukkitTask thread;
 
     public CraftingCauldron(Location loc) {
-        super(Material.CAULDRON, loc);
-        this.onPlace(loc);
-        this.isCrafting = false;
-        this.isGathering = false;
-        cauldron.add(this);
-    }
-
-    @Override
-    public void onPlace(@NotNull Location location) {
-        location.getBlock().setType(Material.CAULDRON);
+        super(Material.CAULDRON, loc, item);
         CraftingCauldron craft = this;
         this.thread = new BukkitRunnable() {
             private final CraftingCauldron craftIn = craft;
@@ -73,7 +64,7 @@ public class CraftingCauldron extends Block {
                             Player player = Bukkit.getPlayer(trIt.getThrower());
                             assert player != null;
                             entity.remove();
-                            if (!permission.get(player.getUniqueId())) {
+                            if (!spellPerms.get(player.getUniqueId())) {
                                 loc.getWorld().playSound(loc.clone().add(0.5, 0.5, 0.5), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 1, -2);
                                 loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 5);
                                 loc.getWorld().dropItem(loc.clone().add(0.5, 1, 0.5), trIt.getItemStack());
@@ -129,12 +120,13 @@ public class CraftingCauldron extends Block {
                 }
             }
         }.runTaskTimer(plugin, 0, 2);
-        this.setLoc(location);
+        this.isCrafting = false;
+        this.isGathering = false;
+        cauldron.add(this);
     }
 
     @Override
-    public void onBreak(@NotNull Location location) {
-        Objects.requireNonNull(location.getWorld()).dropItem(location.clone().add(0.5,0.5,0.5), item);
+    public void onBreak() {
         this.thread.cancel();
         cauldron.remove(this);
     }
@@ -259,7 +251,7 @@ public class CraftingCauldron extends Block {
     public String toJSON() {
         return  "\t\t{\n" +
                 "\t\"type\":\"SPELL_WEAVER\",\n" +
-                "\t\"world\":\"" + this.getWorld() + "\",\n" +
+                "\t\"world\":\"" + this.getWorld().getName() + "\",\n" +
                 "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
                 "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
                 "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +

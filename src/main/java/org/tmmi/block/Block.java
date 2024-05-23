@@ -3,46 +3,77 @@ package org.tmmi.block;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.Set;
+
+import static org.tmmi.Main.isSimBlk;
+import static org.tmmi.Main.log;
 
 public abstract class Block {
-    public static Set<Block> instances = new HashSet<>();
+    public static Collection<Block> blocks = new HashSet<>();
 
-    private Location loc;
-    private final Material material;
-    public Block(Material material, Location loc) {
-        this.material = material;
-        this.loc = loc;
-        instances.add(this);
+    public static class BlockLocationExists extends Exception {
+        public BlockLocationExists(String e) {
+            super(e);
+        }
+    }
+
+    ItemStack item;
+    org.bukkit.block.Block block;
+    Material material;
+    public Block(Material material, org.bukkit.block.Block block, ItemStack item) {
+        try {
+            for (Block b : blocks)
+                if (isSimBlk(b.getBlock(), block)) throw new BlockLocationExists("Block already exists at " + block);
+            this.material = material;
+            this.item = item;
+            this.block = block;
+            blocks.add(this);
+        } catch (BlockLocationExists e) {
+            e.printStackTrace();
+        }
+        onPlace();
+    }
+    public Block(Material material, @NotNull Location loc, ItemStack item) {
+        this(material, loc.getBlock(), item);
+    }
+    public Block(Material material, @NotNull Location block) {
+        this(material, block.getBlock(), new ItemStack(material));
+    }
+    public Block(Material material, @NotNull org.bukkit.block.Block block) {
+        this(material, block, new ItemStack(material));
+    }
+    public org.bukkit.block.Block getBlock() {
+        return block;
     }
 
     public Material getMaterial() {
         return material;
     }
 
-    public void onPlace(@NotNull Location location) {
-        this.loc = location;
+    public void onPlace() {}
+
+    public final void remove(boolean drop) {
+        blocks.remove(this);
+        log("jhbrefg");
+        if (this instanceof InteractiveBlock)
+            InteractiveBlock.instances.remove(this);
+        if (drop) block.getWorld().dropItem(block.getLocation().add(0.5,0.5,0.5), item);
+        onBreak();
     }
 
-    public void onBreak(Location location) {
-        this.loc = null;
-        instances.remove(this);
-    }
+    public void onBreak() {}
 
     public Location getLoc() {
-        return loc;
-    }
-
-    public void setLoc(Location loc) {
-        this.loc = loc;
+        return block.getLocation();
     }
 
     public abstract String toJSON();
 
     protected World getWorld() {
-        return loc.getWorld();
+        return block.getWorld();
     }
 }

@@ -36,8 +36,7 @@ public class Presence extends InteractiveBlock {
     }
 
     @Override
-    public void onPlace(@NotNull Location location) {
-        this.location = location;
+    public void onPlace() {
         this.task = new BukkitRunnable() {
             private int i = 0;
             @Override
@@ -126,7 +125,7 @@ public class Presence extends InteractiveBlock {
     }
 
     @Override
-    public void onBreak(Location location) {
+    public void onBreak() {
 
     }
 
@@ -282,7 +281,7 @@ public class Presence extends InteractiveBlock {
     public String toJSON() {
         return  "\t\t{\n" +
                 "\t\"type\":\"SPELL_WEAVER\",\n" +
-                "\t\"world\":\"" + this.getWorld() + "\",\n" +
+                "\t\"world\":\"" + this.getWorld().getName() + "\",\n" +
                 "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
                 "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
                 "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +

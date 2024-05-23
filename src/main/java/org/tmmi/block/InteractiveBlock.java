@@ -11,12 +11,29 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 public abstract class InteractiveBlock extends Block {
-    public static List<InteractiveBlock> instances = new ArrayList<>();
+    public static Collection<InteractiveBlock> instances = new HashSet<>();
     private final Inventory gui;
 
+    public InteractiveBlock(Material material, org.bukkit.block.Block loc, ItemStack item, Inventory gui) {
+        super(material, loc, item);
+        this.gui = gui;
+        instances.add(this);
+    }
+    public InteractiveBlock(Material material, Location loc, ItemStack item, Inventory gui) {
+        super(material, loc, item);
+        this.gui = gui;
+        instances.add(this);
+    }
+    public InteractiveBlock(Material material, org.bukkit.block.Block loc, Inventory gui) {
+        super(material, loc);
+        this.gui = gui;
+        instances.add(this);
+    }
     public InteractiveBlock(Material material, Location loc, Inventory gui) {
         super(material, loc);
         this.gui = gui;

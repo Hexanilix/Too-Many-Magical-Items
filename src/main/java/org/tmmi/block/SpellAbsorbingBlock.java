@@ -4,7 +4,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 import org.tmmi.Main;
 import org.tmmi.spells.CastSpell;
 
@@ -28,19 +27,17 @@ public class SpellAbsorbingBlock extends Block {
     private float magicules;
     public SpellAbsorbingBlock(Location loc, float magicules) {
         super(Material.LODESTONE, loc);
-        this.onPlace(loc);
     }
     public SpellAbsorbingBlock(Location loc) {
-        super(Material.LODESTONE, loc);
-        this.onPlace(loc);
+        this(loc, 0);
     }
 
     @Override
-    public void onPlace(@NotNull Location location) {
+    public void onPlace() {
         Location loc = this.getLoc();
         this.spellGrabThread = new Thread(() -> {
             while (true) {
-                for (CastSpell s : CastSpell.castSpells) {
+                for (CastSpell s : CastSpell.instances) {
                     // fix the check
                     if (Main.inSphere(loc, 5, s.getLoc())) {
                         log("so it is");
@@ -75,9 +72,7 @@ public class SpellAbsorbingBlock extends Block {
     }
 
     @Override
-    public void onBreak(Location location) {
-        this.setLoc(null);
-        Block.instances.remove(this);
+    public void onBreak() {
         if (this.spellGrabThread != null) this.spellGrabThread.interrupt();
     }
 
@@ -89,7 +84,7 @@ public class SpellAbsorbingBlock extends Block {
     public String toJSON() {
         return  "\t\t{\n" +
                 "\t\"type\":\"SPELL_WEAVER\",\n" +
-                "\t\"world\":\"" + this.getWorld() + "\",\n" +
+                "\t\"world\":\"" + this.getWorld().getName() + "\",\n" +
                 "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
                 "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
                 "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +

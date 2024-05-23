@@ -5,9 +5,7 @@ import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 
 public abstract class CastSpell {
     public static @NotNull Collection<CastSpell> getNearbyCasts(Location loc, double radius) {
@@ -15,13 +13,13 @@ public abstract class CastSpell {
     }
     public static @NotNull Collection<CastSpell> getNearbyCasts(Location loc, double radius, CastSpell ex) {
         List<CastSpell> c = new ArrayList<>();
-        for (CastSpell s : castSpells)
+        for (CastSpell s : instances)
             if (s.getWorld() == loc.getWorld() && s != ex && s.getLoc().distance(loc) <= radius)
                 c.add(s);
         return c;
     }
 
-    public static Collection<CastSpell> castSpells = new ArrayList<>();
+    public static Collection<CastSpell> instances = new HashSet<>();
     private final Spell s;
     private Location loc;
     private final BukkitTask run;
@@ -31,7 +29,7 @@ public abstract class CastSpell {
         this.loc = loc;
         this.cost = cost;
         this.run = this.cast(this);
-        castSpells.add(this);
+        instances.add(this);
     }
     public abstract BukkitTask cast(CastSpell casts);
 
@@ -54,7 +52,7 @@ public abstract class CastSpell {
 
     public void uncast() {
         run.cancel();
-        castSpells.remove(this);
+        instances.remove(this);
     }
 
     public int getCastCost() {

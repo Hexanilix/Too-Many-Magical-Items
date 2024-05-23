@@ -8,10 +8,12 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 public abstract class Item extends ItemStack {
-    public static List<Item> items = new ArrayList<>();
+    public static Collection<Item> items = new HashSet<>();
     public Item(Material mat) {
         super(mat);
         items.add(this);
