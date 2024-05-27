@@ -77,7 +77,7 @@ public abstract class Wand extends Item {
     @Override
     public void onUse(@NotNull PlayerInteractEvent event) {
         Action action = event.getAction();
-        if (Main.spellPerms.get(event.getPlayer().getUniqueId())) {
+        if (Main.spellPerms.getOrDefault(event.getPlayer().getUniqueId(), false)) {
             event.getPlayer().sendMessage("Cant use this bruv");
             return;
         }

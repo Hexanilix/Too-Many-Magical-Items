@@ -19,6 +19,7 @@ public class EntityMultiplier {
         this.dmg = dmg;
         this.rsp = rsp;
         this.rtd = rtd;
+        instances.add(this);
     }
     EntityMultiplier(@NotNull Entity e) {
         this(e.getUniqueId(), 1, 1, 1);
@@ -26,7 +27,7 @@ public class EntityMultiplier {
 
     public static @Nullable EntityMultiplier get(Entity ce) {
         for (EntityMultiplier em : instances)
-            if (em.getEntity() == ce.getUniqueId())
+            if (em.getEntity().compareTo(ce.getUniqueId()) == 0)
                 return em;
         return null;
     }
@@ -51,6 +52,9 @@ public class EntityMultiplier {
 
     public void addDmg(double dmg) {
         this.dmg += dmg;
+    }
+    public void subDmg(double dmg) {
+        this.dmg -= dmg;
     }
 
     public void addRsp(double rsp) {

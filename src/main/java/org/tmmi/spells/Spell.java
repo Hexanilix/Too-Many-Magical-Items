@@ -94,16 +94,18 @@ public abstract class Spell {
     }
     public void addXP(int XP) {
         this.XP += XP;
+        this.attemptLvlUP();
     }
     public Weight getWeight() {
         return weight;
     }
     public void attemptLvlUP() {
-        if (XP - xpsum(this.level-1) >= lvlXPcalc(this.level-1)) {
+        int l = this.level;
+        while (XP - xpsum(this.level-1) >= lvlXPcalc(this.level-1)) {
             this.level++;
-            if (Bukkit.getPlayer(this.handler) != null) Bukkit.getPlayer(this.handler).sendMessage(this.name + " upgraded to level " + this.level);
-            onLevelUP();
+            this.onLevelUP();
         }
+        if (l < this.level && Bukkit.getPlayer(this.handler) != null) Bukkit.getPlayer(this.handler).sendMessage(this.name + " upgraded to level " + this.level);
     }
 
     public abstract CastSpell cast(PlayerInteractEvent event, Location castLocation, float multiplier);

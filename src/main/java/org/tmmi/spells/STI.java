@@ -1,14 +1,13 @@
 package org.tmmi.spells;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
+import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -19,6 +18,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
+
+import static org.tmmi.Main.log;
+import static org.tmmi.Main.plugin;
 
 public class STI extends Spell {
     public enum Stat {
@@ -49,21 +51,25 @@ public class STI extends Spell {
         this.stat = stat;
         this.effectTime = effectTime;
         this.multiplier = multiplier;
+        this.attemptLvlUP();
     }
     public STI(Stat stat, UUID handler) {
-        this(stat, null, handler, 1, 0, 10, 10000, 0.2);
+        this(stat, null, handler, 1, 0, 10, 10000, 1.1);
     }
 
     @Override
     public void onLevelUP() {
-        effectTime = (int) (Math.pow(effectTime, 2) / 10);
-        multiplier = (int) (Math.pow(this.getLevel(), 2) / 200)+0.2;
+        this.effectTime += 500;
+        this.multiplier += 0.05;
     }
 
     @Override
     public CastSpell cast(@NotNull PlayerInteractEvent event, @NotNull Location castLocation, float multiplier) {
         Player p = event.getPlayer();
         Location loc = castLocation.clone();
+        double multi = this.multiplier;
+        log(multi);
+        int eft = this.effectTime;
         switch (stat) {
             case DMG -> {
                 for (int i = 0; i < 20; i++) {
@@ -71,18 +77,26 @@ public class STI extends Spell {
                     Entity e = Main.nearestEntity(loc, 0.25, List.of(p));
                     if (e != null) {
                         EntityMultiplier em = EntityMultiplier.getOrNew(e);
-                        em.addDmg(multiplier);
-                        e.setGlowing(true);
-                        STI.this.addXP((int) ((STI.this.effectTime*STI.this.multiplier)/10000));
+                        em.addDmg(multi);
+                        BukkitTask task = new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                e.getWorld().spawnParticle(Particle.COMPOSTER,
+                                        e.getLocation().add(0, e.getLocation().getY() - e.getBoundingBox().getCenterY() + (e.getBoundingBox().getHeight()), 0), 
+                                        5, e.getBoundingBox().getWidthX()/4, e.getBoundingBox().getHeight()/4, e.getBoundingBox().getWidthZ()/4, 0.1);
+                            }
+                        }.runTaskTimer(plugin, 0, 0);
+
                         new Thread(() -> {
                             try {
-                                Thread.sleep(STI.this.effectTime);
+                                Thread.sleep(eft);
                             } catch (InterruptedException ex) {
                                 throw new RuntimeException(ex);
                             }
                             e.setGlowing(false);
-                            em.addDmg(-STI.this.multiplier);
-                            STI.this.attemptLvlUP();
+                            em.subDmg(multi);
+                            task.cancel();
+                            STI.this.addXP((int) Math.floor((eft*multi)/10000));
                         }).start();
                         break;
                     }
@@ -105,13 +119,12 @@ public class STI extends Spell {
         ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
         ItemMeta m = item.getItemMeta();
         assert m != null;
-        m.setDisplayName(c+this.getName() + " (" + WeavePlayer.getOrNew(Bukkit.getPlayer(getHandler())).getSpells().indexOf(this) + ")");
-        m.setCustomModelData(WeavePlayer.getOrNew(Bukkit.getPlayer(getHandler())).getSpells().indexOf(this));
+        m.setDisplayName(c+this.getName());
         int nxtlxp = this.getXP() - (xpsum(this.getLevel()-1));
         int nxtLvlXP = lvlXPcalc(this.getLevel()-1);
         int perc = (int) (((float) nxtlxp / nxtLvlXP) * 100);
-        m.setLore(List.of(c + "Multiplier: " + sc + this.multiplier,
-                c + "Effect time: " + sc + this.effectTime / 1000,
+        m.setLore(List.of(c + "Multiplier: " + sc + this.multiplier + 'x',
+                c + "Effect time: " + sc + ((double) this.effectTime / 1000) + 's',
                 sc+"Level "+c+this.getLevel(), c + "[" +
                 "-".repeat(Math.max(0, perc/10)) +
                 sc + "-".repeat(Math.max(0, 10 - perc/10)) +

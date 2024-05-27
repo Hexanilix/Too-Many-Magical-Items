@@ -64,7 +64,7 @@ public class CraftingCauldron extends Block {
                             Player player = Bukkit.getPlayer(trIt.getThrower());
                             assert player != null;
                             entity.remove();
-                            if (!spellPerms.get(player.getUniqueId())) {
+                            if (!spellPerms.getOrDefault(player.getUniqueId(), false)) {
                                 loc.getWorld().playSound(loc.clone().add(0.5, 0.5, 0.5), Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 1, -2);
                                 loc.getWorld().spawnParticle(Particle.EXPLOSION, loc, 5);
                                 loc.getWorld().dropItem(loc.clone().add(0.5, 1, 0.5), trIt.getItemStack());

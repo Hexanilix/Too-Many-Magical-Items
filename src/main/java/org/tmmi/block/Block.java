@@ -25,17 +25,20 @@ public abstract class Block {
     org.bukkit.block.Block block;
     Material material;
     public Block(Material material, org.bukkit.block.Block block, ItemStack item) {
+        if (block == null) throw new RuntimeException();
         try {
-            for (Block b : blocks)
+            for (Block b : blocks) {
+                log(b.getLoc());
                 if (isSimBlk(b.getBlock(), block)) throw new BlockLocationExists("Block already exists at " + block);
+            }
             this.material = material;
             this.item = item;
             this.block = block;
             blocks.add(this);
+            onPlace();
         } catch (BlockLocationExists e) {
             e.printStackTrace();
         }
-        onPlace();
     }
     public Block(Material material, @NotNull Location loc, ItemStack item) {
         this(material, loc.getBlock(), item);

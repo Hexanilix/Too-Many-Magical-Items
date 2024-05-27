@@ -25,7 +25,7 @@ public class Displacement implements Listener {
     public void onPotionConsume(@NotNull PlayerItemConsumeEvent event) {
         if (Objects.requireNonNull(event.getItem().getItemMeta()).getDisplayName().contains("Potion of Displacement")) {
             Player player = event.getPlayer();
-            if (spellPerms.get(player.getUniqueId())) {
+            if (spellPerms.getOrDefault(player.getUniqueId(), false)) {
                 player.sendMessage(ChatColor.GOLD + "Provide the x and z cords to teleport to:");
                 BukkitRunnable runnable = new BukkitRunnable() {
                     int i = 0;

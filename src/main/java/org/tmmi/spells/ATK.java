@@ -19,6 +19,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.*;
 
+import static org.tmmi.Main.log;
 import static org.tmmi.Main.plugin;
 
 public class ATK extends Spell {
@@ -85,6 +86,7 @@ public class ATK extends Spell {
         Vector direction = castLocation.getDirection();
         Location loc = castLocation.clone();
         double speed = this.speed;
+        log(this.speed);
         loc.add(direction.multiply(spellSpeed));
         Sound sound;
         switch (mainElement) {
@@ -93,7 +95,7 @@ public class ATK extends Spell {
             case WATER -> sound = Sound.MUSIC_UNDER_WATER;
             default -> sound = Sound.ENTITY_GENERIC_EXPLODE;
         }
-        int tick = (int) Math.round(5 - this.speed);
+        int tick = (int) Math.max(speed/4, 0);
         switch (this.areaEffect) {
             case DIRECT -> {
                 return new CastSpell(this, loc, getCastCost()) {
@@ -108,17 +110,21 @@ public class ATK extends Spell {
                                     casts.uncast();
                                     ATK.this.attemptLvlUP();
                                 }
-                                distance += spellSpeed;
-                                loc.add(direction.multiply(speed));
-                                Objects.requireNonNull(loc.getWorld()).playSound(loc, sound, 1, 1);
-                                Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, (int) Math.ceil(baseDamage/2), 0, 0, 0, 0);
+                                distance += speed;
+                                Location ll = loc.clone();
+                                loc.add(direction.clone().multiply(speed));
+                                loc.getWorld().spawnParticle(Particle.COMPOSTER, loc, (int) (baseDamage/2)+(getLevel() /2), 0, 0, 0, 0);
+//                                loc.getWorld().playSound(loc, sound, 1, 1);
+                                for (int i = 0; i < Math.max(Math.floor(ll.distance(loc)*4), 0)+1; i++) {
+                                   loc.getWorld().spawnParticle(finalP, ll.clone().add(loc.clone().subtract(ll).multiply(ll.distance(loc)/Math.ceil(ll.distance(loc)*2))), (int) (baseDamage/2)+(getLevel() /2), 0, 0, 0, 0);
+                                }
                                 Collection<Entity> nearbyEntities = loc.getWorld().getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
                                 if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
                                     for (Entity e : nearbyEntities) {
                                         if (e instanceof LivingEntity liv) {
                                             if (liv.getUniqueId() == event.getPlayer().getUniqueId()) continue;
                                             liv.damage(ATK.this.getBaseDamage());
-                                            Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, 10, 1, 1, 1, 0.3);
+                                            loc.getWorld().spawnParticle(finalP, loc, 10, 1, 1, 1, 0.05);
                                             cancel();
                                         }
                                     }

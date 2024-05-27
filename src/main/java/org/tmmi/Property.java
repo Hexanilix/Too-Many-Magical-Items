@@ -17,7 +17,8 @@ public class Property<T> {
     public static final Property<Double> SPELL_TRAVEL_CAP = new Property<>("SPELL_TRAVEL_CAP", 20d);
     public static final Property<Double> SPELL_DAMAGE_CAP = new Property<>("SPELL_DAMAGE_CAP", 20d);
     public static final Property<Boolean> LEGACY_STI_SPELL = new Property<>("LEGACY_STI_SPELL", false);
-    
+
+    public static final Property<Boolean> DEBUG = new Property<>("DEBUG_n_TEST", false);
     
     private final String prop;
     private final T defVal;
