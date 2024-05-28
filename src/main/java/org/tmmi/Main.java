@@ -435,7 +435,8 @@ public class Main extends JavaPlugin {
                                             AreaEffect.getAreaEffect(j.getString("area_effect")),
                                             j.getDouble("speed"),
                                             j.getDouble("travel"),
-                                            j.getDouble("base_damage"));
+                                            j.getDouble("base_damage"),
+                                            j.getBoolean("phase"));
                                     case DEF -> s = new DEF(
                                             UUID.fromString(j.getString("id")),
                                             id,

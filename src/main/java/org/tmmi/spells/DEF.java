@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
+import static org.tmmi.Main.genVec;
 import static org.tmmi.Main.plugin;
 
 public class DEF extends Spell {
@@ -94,59 +95,119 @@ public class DEF extends Spell {
         Objects.requireNonNull(loc.getWorld()).playSound(loc, sound, 1, 1);
         switch (effect) {
             case DIRECT -> {
-                return new CastSpell(this, loc, this.getCastCost()) {
-                    @Override
-                    public BukkitTask cast(CastSpell casts) {
-                        Location mid = loc.clone().add(loc.getDirection().multiply(1.8));
-                        Collection<Location> locs = new ArrayList<>();
-                        for (float y = loc.getYaw()-60; y <= loc.getYaw()+60; y+=30) {
-                            for (float p = loc.getPitch()-60; p <= loc.getPitch()+60; p+=30) {
-                                double xz = Math.cos(Math.toRadians(p));
-                                Vector v = new Vector(-xz * Math.sin(Math.toRadians(y)), -Math.sin(Math.toRadians(p)), xz * Math.cos(Math.toRadians(y)));
-                                Location sl = loc.clone().add(v.multiply(2));
-                                locs.add(sl.add(v.multiply(Math.pow(sl.distance(mid), 2)/6)));
-                            }
-                        }
-                        return new BukkitRunnable() {
-                            private int time = 0;
-                            private final World w = loc.getWorld();
-                            private boolean render = true;
-                            private int dur = DEF.this.durability;
+                switch (element) {
+                    case EARTH -> {
+                        return new CastSpell(this, loc, this.getCastCost()) {
                             @Override
-                            public void run() {
-                                if (time > DEF.this.getHoldtime()) {
-                                    casts.uncast();
-                                    DEF.this.attemptLvlUP();
-                                }
-                                Collection<CastSpell> cl = new ArrayList<>();
-                                locs.forEach(l -> cl.addAll(CastSpell.getNearbyCasts(l, 0.8, casts)));
-                                for (CastSpell c : cl) {
-                                    w.spawnParticle(Particle.CLOUD, c.getLoc(), 3, 0.1, 0.1, 0.1, 0.05);
-                                    DEF.this.addXP((int) ((Math.pow(c.getS().getLevel(), 2)/5) + c.getCastCost()));
-                                    if (c.getS() instanceof ATK a) dur -= (int) a.getBaseDamage();
-                                    c.uncast();
-                                    if (dur <= 0) {
-                                        casts.uncast();
-                                        DEF.this.attemptLvlUP();
-                                        break;
+                            public BukkitTask cast(CastSpell casts) {
+                                Location mid = loc.clone();
+                                Collection<Location> locs = new ArrayList<>();
+                                for (float i = loc.getYaw() - 45; i < loc.getYaw() + 45; i+=15) {
+                                    loc.setYaw(i);
+                                    Location l = loc.clone().add(loc.getDirection().normalize().multiply(2));
+                                    if (!locs.contains(l)) {
+                                        l.add(l);
                                     }
                                 }
-                                if (render) {
-                                    for (float p = loc.getPitch() - 60; p <= loc.getPitch() + 60; p += 3) {
-                                        for (float y = loc.getYaw() - 60; y <= loc.getYaw() + 60; y += 3) {
-                                            double xz = Math.cos(Math.toRadians(p));
-                                            Vector v = new Vector(-xz * Math.sin(Math.toRadians(y)), -Math.sin(Math.toRadians(p)), xz * Math.cos(Math.toRadians(y)));
-                                            Location sl = loc.clone().add(v.multiply(2));
-                                            w.spawnParticle(finalP, sl.add(v.multiply(Math.pow(sl.distance(mid), 2) / 6)), 1, 0, 0, 0, 0);
+
+                                return new BukkitRunnable() {
+                                    private int time = 0;
+                                    private final World w = loc.getWorld();
+                                    private boolean render = true;
+                                    private int dur = DEF.this.durability;
+                                    @Override
+                                    public void run() {
+                                        if (time > DEF.this.getHoldtime()) {
+                                            casts.uncast();
+                                            DEF.this.attemptLvlUP();
                                         }
+                                        Collection<CastSpell> cl = new ArrayList<>();
+                                        locs.forEach(l -> cl.addAll(CastSpell.getNearbyCasts(l, 0.8, casts)));
+                                        for (CastSpell c : cl) {
+                                            w.spawnParticle(Particle.CLOUD, c.getLoc(), 3, 0.1, 0.1, 0.1, 0.05);
+                                            DEF.this.addXP((int) ((Math.pow(c.getS().getLevel(), 2)/5) + c.getCastCost()));
+                                            if (c.getS() instanceof ATK a) dur -= (int) a.getBaseDamage();
+                                            c.uncast();
+                                            if (dur <= 0) {
+                                                casts.uncast();
+                                                DEF.this.attemptLvlUP();
+                                                break;
+                                            }
+                                        }
+                                        if (render) {
+                                            for (float p = loc.getPitch() - 60; p <= loc.getPitch() + 60; p += 3) {
+                                                for (float y = loc.getYaw() - 60; y <= loc.getYaw() + 60; y += 3) {
+                                                    double xz = Math.cos(Math.toRadians(p));
+                                                    Vector v = new Vector(-xz * Math.sin(Math.toRadians(y)), -Math.sin(Math.toRadians(p)), xz * Math.cos(Math.toRadians(y)));
+                                                    Location sl = loc.clone().add(v.multiply(2));
+                                                    w.spawnParticle(finalP, sl.add(v.multiply(Math.pow(sl.distance(mid), 2) / 6)), 1, 0, 0, 0, 0);
+                                                }
+                                            }
+                                        }
+                                        render = !render;
+                                        time++;
+                                    }
+                                }.runTaskTimer(plugin, 0, 0);
+                            }
+                        };
+                    }
+                    default -> {
+                        return new CastSpell(this, loc, this.getCastCost()) {
+                            @Override
+                            public BukkitTask cast(CastSpell casts) {
+                                Location mid = loc.clone().add(loc.getDirection().multiply(1.8));
+                                Collection<Location> locs = new ArrayList<>();
+                                for (float y = loc.getYaw()-60; y <= loc.getYaw()+60; y+=30) {
+                                    for (float p = loc.getPitch()-60; p <= loc.getPitch()+60; p+=30) {
+                                        double xz = Math.cos(Math.toRadians(p));
+                                        Vector v = new Vector(-xz * Math.sin(Math.toRadians(y)), -Math.sin(Math.toRadians(p)), xz * Math.cos(Math.toRadians(y)));
+                                        Location sl = loc.clone().add(v.multiply(2));
+                                        locs.add(sl.add(v.multiply(Math.pow(sl.distance(mid), 2)/6)));
                                     }
                                 }
-                                render = !render;
-                                time++;
+                                return new BukkitRunnable() {
+                                    private int time = 0;
+                                    private final World w = loc.getWorld();
+                                    private boolean render = true;
+                                    private int dur = DEF.this.durability;
+                                    @Override
+                                    public void run() {
+                                        if (time > DEF.this.getHoldtime()) {
+                                            casts.uncast();
+                                            DEF.this.attemptLvlUP();
+                                        }
+                                        Collection<CastSpell> cl = new ArrayList<>();
+                                        locs.forEach(l -> cl.addAll(CastSpell.getNearbyCasts(l, 0.8, casts)));
+                                        for (CastSpell c : cl) {
+                                            w.spawnParticle(Particle.CLOUD, c.getLoc(), 3, 0.1, 0.1, 0.1, 0.05);
+                                            DEF.this.addXP((int) ((Math.pow(c.getS().getLevel(), 2)/5) + c.getCastCost()));
+                                            if (c.getS() instanceof ATK a) dur -= (int) a.getBaseDamage();
+                                            c.uncast();
+                                            if (dur <= 0) {
+                                                casts.uncast();
+                                                DEF.this.attemptLvlUP();
+                                                break;
+                                            }
+                                        }
+                                        if (render) {
+                                            for (float p = loc.getPitch() - 60; p <= loc.getPitch() + 60; p += 3) {
+                                                for (float y = loc.getYaw() - 60; y <= loc.getYaw() + 60; y += 3) {
+                                                    double xz = Math.cos(Math.toRadians(p));
+                                                    Vector v = new Vector(-xz * Math.sin(Math.toRadians(y)), -Math.sin(Math.toRadians(p)), xz * Math.cos(Math.toRadians(y)));
+                                                    Location sl = loc.clone().add(v.multiply(2));
+                                                    w.spawnParticle(finalP, sl.add(v.multiply(Math.pow(sl.distance(mid), 2) / 6)), 1, 0, 0, 0, 0);
+                                                }
+                                            }
+                                        }
+                                        render = !render;
+                                        time++;
+                                    }
+                                }.runTaskTimer(plugin, 0, 0);
                             }
-                        }.runTaskTimer(plugin, 0, 0);
+                        };
                     }
-                };
+
+                }
             }
             default -> {
                 return null;

@@ -1,6 +1,7 @@
 package org.tmmi.spells;
 
 import org.bukkit.*;
+import org.bukkit.block.BlockType;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -11,6 +12,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.Element;
+import org.tmmi.block.Block;
 import org.tmmi.spells.atributes.AreaEffect;
 import org.tmmi.spells.atributes.Weight;
 
@@ -29,8 +31,10 @@ public class ATK extends Spell {
     double travel;
     double speed;
     double baseDamage;
+    boolean phase;
     public ATK(UUID id, UUID handler, String name, Weight w, int level, int XP, int castcost,
-               @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect, double speed, double travel, double baseDamage) {
+               @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect,
+               double speed, double travel, double baseDamage, boolean phase) {
         super(id, handler, name, w, level, XP, castcost, new Vector(0.1, 0.1, 0.1));
         this.mainElement = mainElement;
         this.secondaryElement = secondaryElement;
@@ -38,6 +42,12 @@ public class ATK extends Spell {
         this.speed = speed;
         this.travel = travel;
         this.baseDamage = baseDamage;
+        this.phase = phase;
+    }
+    public ATK(UUID id, UUID handler, String name, Weight w, int level, int XP, int castcost,
+               @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect,
+               double speed, double travel, double baseDamage) {
+        this(id, handler, name, w, level, XP, castcost, mainElement, secondaryElement, areaEffect, speed, travel, baseDamage, false);
     }
 
     public double getSpeed() {
@@ -105,31 +115,38 @@ public class ATK extends Spell {
                         return new BukkitRunnable() {
                             private double distance = 0;
                             @Override
+                            public void cancel() {
+                                casts.uncast();
+                                ATK.this.attemptLvlUP();
+                                Bukkit.getScheduler().cancelTask(this.getTaskId());
+                            }
+
+                            @Override
                             public void run() {
-                                if (distance > travDis) {
-                                    casts.uncast();
-                                    ATK.this.attemptLvlUP();
-                                }
+                                if (distance > travDis) cancel();
                                 distance += speed;
                                 Location ll = loc.clone();
                                 loc.add(direction.clone().multiply(speed));
-                                loc.getWorld().spawnParticle(Particle.COMPOSTER, loc, (int) (baseDamage/2)+(getLevel() /2), 0, 0, 0, 0);
+                                Material t = loc.getBlock().getType();
+                                if (t == Material.AIR) cancel();
+                                else {
+                                    loc.getWorld().spawnParticle(Particle.COMPOSTER, loc, (int) (baseDamage / 2) + (getLevel() / 2), 0, 0, 0, 0);
 //                                loc.getWorld().playSound(loc, sound, 1, 1);
-                                for (int i = 0; i < Math.max(Math.floor(ll.distance(loc)*4), 0)+1; i++) {
-                                   loc.getWorld().spawnParticle(finalP, ll.clone().add(loc.clone().subtract(ll).multiply(ll.distance(loc)/Math.ceil(ll.distance(loc)*2))), (int) (baseDamage/2)+(getLevel() /2), 0, 0, 0, 0);
-                                }
-                                Collection<Entity> nearbyEntities = loc.getWorld().getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
-                                if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
-                                    for (Entity e : nearbyEntities) {
-                                        if (e instanceof LivingEntity liv) {
-                                            if (liv.getUniqueId() == event.getPlayer().getUniqueId()) continue;
-                                            liv.damage(ATK.this.getBaseDamage());
-                                            loc.getWorld().spawnParticle(finalP, loc, 10, 1, 1, 1, 0.05);
-                                            cancel();
+                                    for (int i = 0; i < Math.max(Math.floor(ll.distance(loc) * 4), 0) + 1; i++) {
+                                        loc.getWorld().spawnParticle(finalP, ll.clone().add(loc.clone().subtract(ll).multiply(ll.distance(loc) / Math.ceil(ll.distance(loc) * 2))), (int) (baseDamage / 2) + (getLevel() / 2), 0, 0, 0, 0);
+                                    }
+                                    Collection<Entity> nearbyEntities = loc.getWorld().getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
+                                    if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
+                                        for (Entity e : nearbyEntities) {
+                                            if (e instanceof LivingEntity liv) {
+                                                if (liv.getUniqueId() == event.getPlayer().getUniqueId()) continue;
+                                                liv.damage(ATK.this.getBaseDamage());
+                                                loc.getWorld().spawnParticle(finalP, loc, 10, 1, 1, 1, 0.05);
+                                                cancel();
+                                            }
                                         }
                                     }
                                 }
-                                ATK.this.attemptLvlUP();
                             }
                         }.runTaskTimer(plugin, 0, tick);
                     }
@@ -199,7 +216,10 @@ public class ATK extends Spell {
         int nxtlxp = this.getXP() - (this.xpsum(this.getLevel()-1));
         int nxtLvlXP = lvlXPcalc(this.getLevel()-1);
         int perc = (int) (((float) nxtlxp / nxtLvlXP) * 100);
-        m.setLore(List.of(sc+"Level "+c+this.getLevel(), c + "[" +
+        m.setLore(List.of(sc + "Damage: " + c + this.baseDamage,
+                sc + "Range: " + c + this.travel + " Blocks",
+                sc + "Speed: " + c + this.speed + " B/s",
+                sc+"Level "+c+this.getLevel(), c + "[" +
                         "-".repeat(Math.max(0, perc/10)) +
                         sc + "-".repeat(Math.max(0, 10 - perc/10)) +
                         c + "]" + (nxtlxp >= 1000 ? BigDecimal.valueOf((float) nxtlxp / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtlxp) +
@@ -225,6 +245,7 @@ public class ATK extends Spell {
                 "\t\"base_damage\":" + this.baseDamage + ",\n" +
                 "\t\"speed\":" + this.speed + ",\n" +
                 "\t\"travel\":" + this.travel + "\n" +
+                "\t\"phase\":" + this.phase + "\n" +
                 "}";
     }
 }
