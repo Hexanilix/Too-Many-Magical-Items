@@ -64,8 +64,8 @@ public class STI extends Spell {
     }
 
     @Override
-    public CastSpell cast(@NotNull PlayerInteractEvent event, @NotNull Location castLocation, float multiplier) {
-        Player p = event.getPlayer();
+    public CastSpell cast(@NotNull Location castLocation, float multiplier) {
+        Player p = Bukkit.getPlayer(this.getHandler());
         Location loc = castLocation.clone();
         double multi = this.multiplier;
         log(multi);

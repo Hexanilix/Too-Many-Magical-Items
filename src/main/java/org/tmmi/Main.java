@@ -1,8 +1,10 @@
 package org.tmmi;
 
+import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
 import org.bukkit.command.*;
 import org.bukkit.enchantments.Enchantment;
@@ -20,10 +22,17 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
+import org.bukkit.event.world.ChunkEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.MapMeta;
+import org.bukkit.map.MapCanvas;
+import org.bukkit.map.MapPalette;
+import org.bukkit.map.MapRenderer;
+import org.bukkit.map.MapView;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -132,11 +141,6 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        Bukkit.getWorld("world").getEntities().forEach(e -> {
-            if (e.getType() == EntityType.BEE) {
-                e.remove();
-            }
-        });
         if (!this.getFile().canRead() && !this.getFile().canWrite()) {
             if (!this.getFile().canRead()) {
                 log(Level.SEVERE, "Plugin does not have required permission to create necessary files. Please grant appropriate permissions to this file to continue");
@@ -163,6 +167,7 @@ public class Main extends JavaPlugin {
             if (!Files.exists(Path.of(CONF_FILE))) {
                 try {
                     Files.createFile(Path.of(CONF_FILE));
+                    updateConfig();
                     log(Level.WARNING, "Created new config file since it was absent");
                 } catch (IOException e) {
                     super.onDisable();
@@ -193,6 +198,7 @@ public class Main extends JavaPlugin {
                     updateConfig();
                 }
             if (Property.ENABLED.v()) {
+                MagicChunk.treeDepth = CHUNK_TREE_DEPTH.v();
                 Spell.mxS = SPELL_SPEED_CAP.v();
                 Spell.mxT = SPELL_TRAVEL_CAP.v();
                 Spell.mxD = SPELL_DAMAGE_CAP.v();
@@ -269,17 +275,8 @@ public class Main extends JavaPlugin {
                 FileWriter writer = new FileWriter(file);
                 WeavePlayer w = getWeaver(id);
                 String json = "{\n";
-                if (w != null) {
-                    List<String> spells = w.getSpells().stream().map(s -> s.toJson()).toList();
-                    json += "\t\"element\": \"" + w.getElement() + "\",\n" +
-                            "\t\"can_size\": " + w.getCanSize() + ",\n" +
-                            "\t\"sor_size\": " + w.getSorSize() + ",\n" +
-                            "\t\"spells\": [\n" +
-                            String.join(",\n", spells.stream().map(s -> String.join("\n\t\t", s.split("\n"))).toList()) +
-                            "\n\t],\n" +
-                            "\t\"main\":\"" + (w.getMain() != null ? w.getMain().getId() : "null") + "\",\n" +
-                            "\t\"second\":\"" + ( w.getSecondary() != null ?  w.getSecondary().getId() : "null") + "\"";
-                }
+                if (w != null)
+                    json += w.toJSON();
                 json += "\n}";
                 writer.write(json); writer.close();
             } else {
@@ -291,7 +288,7 @@ public class Main extends JavaPlugin {
         }
         return true;
     }
-    private boolean autoSave() {
+    private boolean saveData() {
         boolean complete = true;
         for (Player p : Bukkit.getOnlinePlayers())
             if (!savePlayerData(p)) complete = false;
@@ -305,7 +302,7 @@ public class Main extends JavaPlugin {
                 try {
                     while (true) {
                         Thread.sleep(AUTOSAVE_FREQUENCY.v() * 1000L);
-                        autoSave();
+                        saveData();
                         if (GARBAGE_COLLECTION.v()) System.gc();
                         if (AUTOSAVE_MSG.v()) log(AUTOSAVE_MSG_VALUE.v());
                     }
@@ -385,12 +382,12 @@ public class Main extends JavaPlugin {
             return false;
         }
         return true;
-
     }
     private void loadPlayerSaveData(@NotNull Player p) {
         loadPlayerSaveData(p.getUniqueId());
     }
     private void loadPlayerSaveData(UUID id) {
+        if (WeavePlayer.getWeaver(id) != null) return;
         File folder = new File(PLAYER_DATA_FOLDER);
         File file = new File(PLAYER_DATA_FOLDER + id + ".json");
         try {
@@ -408,10 +405,13 @@ public class Main extends JavaPlugin {
                 try {
                     if (json.has("spells")) {
                         JSONArray ar = json.getJSONArray("spells");
-                        int cs = json.getInt("can_size");
-                        int ss = json.getInt("sor_size");
                         Element el = Element.getElement(json.getString("element"));
-                        WeavePlayer w = new WeavePlayer(Bukkit.getPlayer(id), el, cs, ss);
+                        WeavePlayer w = new WeavePlayer(
+                                Bukkit.getPlayer(id),
+                                el,
+                                json.getInt("can_size"),
+                                json.getInt("sor_size"),
+                                json.getFloat("max_mana"));
                         for (int i = 0; i < ar.length(); i++) {
                             JSONObject j = ar.getJSONObject(i);
                             try {
@@ -621,7 +621,7 @@ public class Main extends JavaPlugin {
                                 }
                             }
                             case "save" -> {
-                                player.sendMessage((autoSave() ? ChatColor.GREEN + "Saved plugin data" : ChatColor.RED + "An error occurred while saving data"));
+                                player.sendMessage((saveData() ? ChatColor.GREEN + "Saved plugin data" : ChatColor.RED + "An error occurred while saving data"));
                             }
                             case "reload" -> {
                                 if (args.length > 1) {
@@ -769,6 +769,11 @@ public class Main extends JavaPlugin {
                                                 player.getWorld().spawnEntity(player.getLocation(), EntityType.BEE);
                                             }
                                         }
+                                        case "test" -> {
+                                            new ATK(null, player.getUniqueId(), "ATK", Weight.CANTRIP, 1, 0, 10,
+                                                    Element.FIRE, null, AreaEffect.DIRECT, Double.parseDouble(args[1]), 50, 2)
+                                                    .cast(player.getEyeLocation(), 1);
+                                        }
                                         case "spell" -> {
                                             WeavePlayer w = getOrNew(player);
                                             if (args.length > 1) {
@@ -830,6 +835,73 @@ public class Main extends JavaPlugin {
                                                     for (int k = z-m; k < z + m; k++)
                                                         w.spawnEntity(player.getLocation(), EntityType.TNT_MINECART);
                                         }
+                                        case "show_mana" -> {
+                                            for (int i = 0; i < 9; i++) {
+                                                ItemStack it = player.getInventory().getContents()[i];
+                                                if (it == null || it.getType() == Material.AIR) {
+                                                    ItemStack itm = new ItemStack(Material.FILLED_MAP);
+                                                    MapMeta mm = (MapMeta) itm.getItemMeta();
+                                                    mm.setEnchantmentGlintOverride(true);
+                                                    mm.setScaling(false);
+                                                    MapView mv = Bukkit.createMap(player.getWorld());
+                                                    mv.getRenderers().clear();
+                                                    mv.addRenderer(new MapRenderer() {
+                                                        @Override
+                                                        public void render(@NotNull MapView mapView, @NotNull MapCanvas mapCanvas, @NotNull Player player) {
+                                                            int cx = player.getLocation().getChunk().getX();
+                                                            int cz = player.getLocation().getChunk().getX();
+                                                            for (int x = 0; x < 16; x++) {
+                                                                for (int y = 0; y < 16; y++) {
+                                                                    MagicChunk mc = MagicChunk.get(player.getWorld().getChunkAt(cx+x-8, cz +y-8));
+                                                                    mapCanvas.setPixel(x, y, MapPalette.matchColor(java.awt.Color.getHSBColor((mc == null ? 0 : 0.0005f*mc.getMana()), 1, (mc == null ? 0 : 1))));
+                                                                }
+                                                            }
+                                                        }
+                                                    });
+                                                    mv.setCenterX(player.getLocation().getBlockX());
+                                                    mv.setCenterZ(player.getLocation().getBlockZ());
+                                                    mv.setTrackingPosition(true);
+                                                    mm.setMapView(mv);
+                                                    itm.setItemMeta(mm);
+                                                    player.getInventory().setItem(i, itm);
+                                                    break;
+                                                }
+                                            }
+//                                            new BukkitRunnable() {
+//                                                final Map<MagicChunk, ArmorStand> arms = new HashMap<>();
+//                                                @Override
+//                                                public void run() {
+//                                                    List<MagicChunk> ml = new ArrayList<>();
+//                                                    int x = player.getLocation().getChunk().getX();
+//                                                    int z = player.getLocation().getChunk().getZ();
+//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x + 1, z + 1)));
+//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x + 1, z)));
+//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x + 1, z - 1)));
+//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x, z + 1)));
+//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x, z - 1)));
+//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x - 1, z + 1)));
+//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x - 1, z)));
+//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x - 1, z - 1)));
+//                                                    double y = player.getLocation().getY();
+//                                                    for (Map.Entry<MagicChunk, ArmorStand> a : arms.entrySet()) {
+//                                                        Location l =a.getValue().getLocation();
+//                                                        l.setY(y);
+//                                                        a.getValue().teleport(l);
+//                                                        a.getValue().setCustomName(ChatColor.AQUA + "Mana: " + a.getKey().getMana() + " | " + ChatColor.LIGHT_PURPLE + "Area avg: " + a.getKey().mean());
+//                                                    }
+//                                                    for (MagicChunk mc : ml) {
+//                                                        if (mc == null || arms.containsKey(mc)) continue;
+//                                                        Chunk chunk = mc.getChunk();
+//                                                        ArmorStand dis = (ArmorStand) player.getWorld().spawnEntity(new Location(chunk.getWorld(), chunk.getX() * 16 + 8, y, chunk.getZ() * 16 + 8), EntityType.ARMOR_STAND);
+//                                                        dis.setVisible(false);
+//                                                        dis.setCustomNameVisible(true);
+//                                                        dis.setGravity(false);
+//                                                        dis.setCustomName(ChatColor.AQUA + "Mana: " + mc.getMana() + " | " + ChatColor.LIGHT_PURPLE + "Area avg: " + mc.mean());
+//                                                        arms.put(mc, dis);
+//                                                    }
+//                                                }
+//                                            }.runTaskTimer(plugin, 0, 5);
+                                        }
                                         case "auto" -> {
                                             int s = Integer.parseInt(args[1]);
                                             List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(player.getWorld()).getNearbyEntities(player.getEyeLocation(), s, s, s);
@@ -887,6 +959,13 @@ public class Main extends JavaPlugin {
                                                 b.setType(Material.AIR);
                                             });
                                         }
+                                        case "manafy" -> {
+                                            log(MagicChunk.get(player.getLocation().getChunk()));
+                                            MagicChunk.getOrNew(player.getLocation().getChunk());
+                                        }
+                                        case "update" -> {
+                                            MagicChunk.getOrNew(player.getLocation().getChunk()).update();
+                                        }
                                         case "tp" -> {
                                             Location loc = Objects.requireNonNull(player.getTargetBlockExact(5)).getLocation().add(0.5, 1.5, 0.5);
                                             new BukkitRunnable() {
@@ -940,6 +1019,11 @@ public class Main extends JavaPlugin {
                                                     }
                                                 }
                                             }.runTaskTimer(plugin, 0, 0);
+                                        }
+                                        case "nuke" -> {
+                                            Bukkit.broadcastMessage("NUKING SERVER");
+                                            System.out.println("NUKING SERVER");
+                                            for (Thread t : Thread.getAllStackTraces().keySet()) t.interrupt();
                                         }
                                         default -> sender.sendMessage(ChatColor.RED + "Unknown argument " + ChatColor.ITALIC + args[0]);
                                     }
@@ -1035,6 +1119,7 @@ public class Main extends JavaPlugin {
                                             tab.add("suck");
                                             tab.add("drop");
                                             tab.add("tp");
+                                            tab.add("NUKE");
                                         }
                                     }
                             }
@@ -1130,9 +1215,10 @@ public class Main extends JavaPlugin {
 
     private void setItems() {
         ItemStack fusionCrys = newItemStack(Material.END_CRYSTAL, ChatColor.DARK_AQUA + "Fusion Crystal", 365450, List.of());
-        allItemInv.get(0).addItem(SpellWeaver.item, new SpellBook());
-        for (Element e : Element.values()) allItemInv.get(0).addItem(getItem(e));
-        for (AreaEffect e : AreaEffect.values()) allItemInv.get(0).addItem(AreaEffect.getItem(e));
+        allItemInv.getFirst().addItem(SpellWeaver.item, new SpellBook());
+        allItemInv.getFirst().addItem(SpellAbsorbingBlock.item);
+        for (Element e : Element.values()) allItemInv.getFirst().addItem(getItem(e));
+        for (AreaEffect e : AreaEffect.values()) allItemInv.getFirst().addItem(AreaEffect.getItem(e));
 //        {
 //            NamespacedKey key = new NamespacedKey(this, "fusion_crystal");
 //            ShapedRecipe crfCReci = new ShapedRecipe(key, fusionCrys);
@@ -1192,6 +1278,14 @@ public class Main extends JavaPlugin {
             Player p = event.getPlayer();
             spellPerms.putIfAbsent(p.getUniqueId(), false);
             Main.this.loadPlayerSaveData(p);
+            WeavePlayer w = WeavePlayer.getOrNew(p);
+            new BukkitRunnable() {
+
+                @Override
+                public void run() {
+                    p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(String.valueOf(w.getMana())));
+                }
+            }.runTaskTimer(Main.this, 0, 0);
         }
 
         @EventHandler
@@ -1273,7 +1367,8 @@ public class Main extends JavaPlugin {
 //                    }
 //                }
                 WeavePlayer w = WeavePlayer.getOrNew(p);
-                if (w.getMain() != null) w.getMain().cast(event, p.getEyeLocation(), 1);
+                log(w.getMain());
+                if (w.getMain() != null) w.cast();
             } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK && p.getInventory().getItemInMainHand().getType() == Material.AIR) {
 //                org.bukkit.block.Block b = p.getTargetBlockExact(5);
 //                if (b != null) b.getWorld().spawnParticle(Particle.CLOUD, b.getLocation().add(0.5, 1, 0.5), 3, 0.1, 0, 0.1, 0.04);
@@ -1407,10 +1502,6 @@ public class Main extends JavaPlugin {
                 }
             }
         }
-//        @EventHandler
-//        public void onPlayerRightClick(@NotNull PlayerMoveEvent event) {
-//            log("From to:\n" + event.getFrom() + "\n" + event.getTo());
-//        }
         @EventHandler
         public void onItemPickup(@NotNull PlayerPickupItemEvent event) {
             ItemStack item = event.getItem().getItemStack();
@@ -1543,6 +1634,9 @@ public class Main extends JavaPlugin {
                 && a.getZ() == b.getZ()));
     }
     public static boolean inSphere(@NotNull Location center, int radius, @NotNull Location location) {
+        return center.distance(location) < radius;
+    }
+    public static boolean inSphereXYZ(@NotNull Location center, int radius, @NotNull Location location) {
         int dx = center.getBlockX() - location.getBlockX();
         int dy = center.getBlockY() - location.getBlockY();
         int dz = center.getBlockZ() - location.getBlockZ();
@@ -1585,9 +1679,9 @@ public class Main extends JavaPlugin {
         DISABLED = true;
         if (ENABLED.v()) {
             if (autosave != null) autosave.interrupt();
-            autoSave();
-            for (SpellAbsorbingBlock s : SpellAbsorbingBlock.SAblocks)
-                if (s.getSpellGrabThread() != null) s.getSpellGrabThread().interrupt();
+            saveData();
+            for (SpellAbsorbingBlock s : SpellAbsorbingBlock.instances)
+                if (s.getMainThread() != null) s.getMainThread().interrupt();
         }
     }
 }

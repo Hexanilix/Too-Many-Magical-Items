@@ -87,7 +87,7 @@ public abstract class Wand extends Item {
             if (weaver.hasGrandBook()) {
                 if (this.select_cooldown == 0) {
                     if (selSpell != null) {
-                        weaver.cast(event);
+                        weaver.cast();
                         selSpell = null;
                     }
                     if (action == Action.LEFT_CLICK_AIR) {
@@ -101,7 +101,7 @@ public abstract class Wand extends Item {
                     }
                 }
             }
-            weaver.cast(event);
+            weaver.cast();
         }
     }
 

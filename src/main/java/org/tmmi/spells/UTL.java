@@ -1,9 +1,6 @@
 package org.tmmi.spells;
 
-import org.bukkit.ChatColor;
-import org.bukkit.Location;
-import org.bukkit.Material;
-import org.bukkit.Particle;
+import org.bukkit.*;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
@@ -53,6 +50,7 @@ public class UTL extends Spell {
                 this.setCastCost(10);
             }
         }
+        this.attemptLvlUP();
     }
 
     @Override
@@ -61,8 +59,8 @@ public class UTL extends Spell {
     }
 
     @Override
-    public CastSpell cast(@NotNull PlayerInteractEvent event, Location castLocation, float multiplier) {
-        Player player = event.getPlayer();
+    public CastSpell cast(Location castLocation, float multiplier) {
+        Player player = Bukkit.getPlayer(getHandler());
         switch (util) {
             case MINE ->
                     getSphere(player.getLocation(), 10).stream().filter(s -> s.getType().name().toLowerCase().contains("ore")).forEach(b -> {

@@ -1,6 +1,7 @@
 package org.tmmi.spells;
 
 import org.bukkit.*;
+import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -29,6 +30,7 @@ public class DEF extends Spell {
         this.effect = effect;
         this.holdtime = holdTime;
         this.durability = durability;
+        this.attemptLvlUP();
     }
     public DEF(UUID handler, String name, Weight weight, Element element, AreaEffect effect) {
         this(null, handler, name, weight, 1, 0, 10, element, effect, 5000, 10);
@@ -60,7 +62,7 @@ public class DEF extends Spell {
     }
 
     @Override
-    public CastSpell cast(PlayerInteractEvent event, Location castLocation, float multiplier) {
+    public CastSpell cast(Location castLocation, float multiplier) {
         boolean opE = true;
         Particle p = null;
         switch (element) {
@@ -102,11 +104,16 @@ public class DEF extends Spell {
                             public BukkitTask cast(CastSpell casts) {
                                 Location mid = loc.clone();
                                 Collection<Location> locs = new ArrayList<>();
+                                World world = loc.getWorld();
                                 for (float i = loc.getYaw() - 45; i < loc.getYaw() + 45; i+=15) {
                                     loc.setYaw(i);
                                     Location l = loc.clone().add(loc.getDirection().normalize().multiply(2));
                                     if (!locs.contains(l)) {
                                         l.add(l);
+                                        Location lo = l.clone().subtract(0, 5, 0);
+                                        for (int j = 0; j < 5; j++) {
+                                            world.getBlockAt(lo.add(0, 1, 0)).setBlockData(l.add(0, 1, 0).getBlock().getBlockData());
+                                        }
                                     }
                                 }
 
@@ -117,35 +124,8 @@ public class DEF extends Spell {
                                     private int dur = DEF.this.durability;
                                     @Override
                                     public void run() {
-                                        if (time > DEF.this.getHoldtime()) {
-                                            casts.uncast();
-                                            DEF.this.attemptLvlUP();
-                                        }
-                                        Collection<CastSpell> cl = new ArrayList<>();
-                                        locs.forEach(l -> cl.addAll(CastSpell.getNearbyCasts(l, 0.8, casts)));
-                                        for (CastSpell c : cl) {
-                                            w.spawnParticle(Particle.CLOUD, c.getLoc(), 3, 0.1, 0.1, 0.1, 0.05);
-                                            DEF.this.addXP((int) ((Math.pow(c.getS().getLevel(), 2)/5) + c.getCastCost()));
-                                            if (c.getS() instanceof ATK a) dur -= (int) a.getBaseDamage();
-                                            c.uncast();
-                                            if (dur <= 0) {
-                                                casts.uncast();
-                                                DEF.this.attemptLvlUP();
-                                                break;
-                                            }
-                                        }
-                                        if (render) {
-                                            for (float p = loc.getPitch() - 60; p <= loc.getPitch() + 60; p += 3) {
-                                                for (float y = loc.getYaw() - 60; y <= loc.getYaw() + 60; y += 3) {
-                                                    double xz = Math.cos(Math.toRadians(p));
-                                                    Vector v = new Vector(-xz * Math.sin(Math.toRadians(y)), -Math.sin(Math.toRadians(p)), xz * Math.cos(Math.toRadians(y)));
-                                                    Location sl = loc.clone().add(v.multiply(2));
-                                                    w.spawnParticle(finalP, sl.add(v.multiply(Math.pow(sl.distance(mid), 2) / 6)), 1, 0, 0, 0, 0);
-                                                }
-                                            }
-                                        }
-                                        render = !render;
-                                        time++;
+
+                                        cancel();
                                     }
                                 }.runTaskTimer(plugin, 0, 0);
                             }

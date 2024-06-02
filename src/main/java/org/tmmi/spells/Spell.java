@@ -1,6 +1,7 @@
 package org.tmmi.spells;
 
 import org.bukkit.*;
+import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
@@ -108,7 +109,7 @@ public abstract class Spell {
         if (l < this.level && Bukkit.getPlayer(this.handler) != null) Bukkit.getPlayer(this.handler).sendMessage(this.name + " upgraded to level " + this.level);
     }
 
-    public abstract CastSpell cast(PlayerInteractEvent event, Location castLocation, float multiplier);
+    public abstract CastSpell cast(@NotNull Location castLocation, float multiplier);
 
     public abstract void onLevelUP();
 

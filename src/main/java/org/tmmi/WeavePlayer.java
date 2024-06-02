@@ -1,7 +1,9 @@
 package org.tmmi;
 
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.HumanEntity;
@@ -10,6 +12,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.items.GrandBook;
@@ -36,6 +39,8 @@ public class WeavePlayer {
     }
 
     private final Player player;
+    private float mana;
+    private float maxMana;
     private boolean isWeaving;
     private final List<Spell> spells = new ArrayList<>();
     private GrandBook grandBook;
@@ -44,16 +49,46 @@ public class WeavePlayer {
     private Spell sec;
     private int canSize;
     private int sorSize;
-    public WeavePlayer(Player handler, Element element, int canSize, int sorSize) {
+    Thread manaThread;
+    private int manaCool = 0;
+    public WeavePlayer(Player handler, Element element, int canSize, int sorSize, float maxMana) {
         this.player = handler;
         this.isWeaving = false;
         this.element = element;
         this.canSize = canSize;
         this.sorSize = sorSize;
+        this.maxMana = maxMana;
+        this.mana = 0;
+//        this.manaThread = new Thread(() -> {
+//            try {
+//                while (true) {
+//                    if (handler != null) {
+//                        if (manaCool == 0 && mana < maxMana) {
+//                            mana += (int) Math.min((float) MagicChunk.getOrNew(handler).mean() / 250, maxMana - mana);
+//                        } else manaCool--;
+//                    }
+//                    Thread.sleep(1000);
+//                }
+//            } catch (InterruptedException ignore) {}
+//        });
+//        this.manaThread.start();
+        new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (handler != null) {
+                    if (manaCool == 0 && mana < maxMana) {
+                        MagicChunk mc = MagicChunk.getOrNew(handler);
+                        int m = (int) Math.min((float) mc.mean() / 250, maxMana - mana);
+                        mana += m;
+                        mc.subMana(m);
+                    } else manaCool--;
+                }
+            }
+        }.runTaskTimer(plugin, 0, 20);
         weavers.add(this);
     }
     public WeavePlayer(Player handler) {
-        this(handler, null, 5, 2);
+        this(handler, null, 5, 2, 25);
     }
 
     public static @NotNull WeavePlayer getOrNew(@NotNull Player p) {
@@ -73,7 +108,7 @@ public class WeavePlayer {
                 ItemStack item = s.toItem();
                 if (s == this.getMain()) {
                     ItemMeta m = item.getItemMeta();
-                    m.addEnchant(Enchantment.SHARPNESS, 0, true);
+                    m.addEnchant(Enchantment.UNBREAKING, 0, true);
                     item.setItemMeta(m);
                 }
                 inv.setItem(i, item);
@@ -110,16 +145,41 @@ public class WeavePlayer {
     private List<Spell> getSorSpells() {
         return spells.stream().filter(s -> s.getWeight() == SORCERY).toList();
     }
-
     public Player getPlayer() {
         return player;
     }
 
-    public void cast(@NotNull PlayerInteractEvent event) {
-        Spell s = (event.getAction().name().contains("LEFT") ? this.getMain() : this.getSecondary());
+
+
+    public void cast() {
+        Spell s = main;
         if (s != null) {
-            s.cast(event, this.player.getEyeLocation(), 1);
+            if (player.getGameMode() == GameMode.CREATIVE || s.getCastCost() <= mana) {
+                s.cast(this.player.getEyeLocation(), 1);
+                if (player.getGameMode() != GameMode.CREATIVE) mana -= s.getCastCost();
+                manaCool = 5;
+            }
         }
+    }
+    public void expandCan() {
+        if (this.canSize + 1 <= 18)
+            this.canSize ++;
+    }
+    public void expandCan(int amnt) {
+        if (this.canSize + amnt <= 18)
+            this.canSize += amnt;
+    }
+    public void expandSor() {
+        if (this.sorSize + 1 <= 18)
+            this.sorSize ++;
+    }
+    public void expandSor(int amnt) {
+        if (this.sorSize + amnt <= 18)
+            this.sorSize += amnt;
+    }
+
+    public void addMaxMana(float maxMana) {
+        this.maxMana += maxMana;
     }
 
     public int getCanSize() {
@@ -165,15 +225,16 @@ public class WeavePlayer {
     }
 
     public boolean hasGrandBook() {
-        return grandBook != null;
+        return Arrays.stream(player.getInventory().getContents()).anyMatch(i -> isSim(i, grandBook));
     }
 
     public void setMain(Spell s) {
         if (s == null || getCanSpells().contains(s) || getSorSpells().contains(s)) {
             main = s;
         } else {
-            if (s.getHandler() == player.getUniqueId()) {
+            if (s.getHandler().compareTo(player.getUniqueId()) == 0) {
                 addSpell(s);
+                setMain(s);
                 main = s;
             } else log("Soft warning: Foreign spell used in inventory");
         }
@@ -184,11 +245,29 @@ public class WeavePlayer {
         if (getCanSpells().contains(s) || getSorSpells().contains(s)) {
             sec = s;
         } else {
-            if (s.getHandler() == player.getUniqueId()) {
+            if (s.getHandler().compareTo(player.getUniqueId()) == 0) {
                 addSpell(s);
                 sec = s;
             } else log("Soft warning: Foreign spell used in inventory");
         }
     }
     public Spell getSecondary() {return sec;}
+
+    public String toJSON() {
+        List<String> spells = this.spells.stream().map(Spell::toJson).toList();
+        return "\t\"element\": \"" + this.element + "\",\n" +
+                "\t\"max_mana\": " + this.maxMana + ",\n" +
+                "\t\"can_size\": " + this.canSize + ",\n" +
+                "\t\"sor_size\": " + this.sorSize + ",\n" +
+                "\t\"spells\": [\n" +
+                String.join(",\n", spells.stream().map(s -> String.join("\n\t\t", s.split("\n"))).toList()) +
+                "\n\t],\n" +
+                "\t\"main\":\"" + (this.main != null ? this.main.getId() : "null") + "\",\n" +
+                "\t\"second\":\"" + (this.sec != null ?  this.sec.getId() : "null") + "\"";
+
+    }
+
+    public float getMana() {
+        return this.mana;
+    }
 }

@@ -2,8 +2,8 @@ package org.tmmi.spells;
 
 import org.bukkit.*;
 import org.bukkit.block.BlockType;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.LivingEntity;
+import org.bukkit.block.data.type.Bed;
+import org.bukkit.entity.*;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -12,6 +12,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.Element;
+import org.tmmi.MagicChunk;
 import org.tmmi.block.Block;
 import org.tmmi.spells.atributes.AreaEffect;
 import org.tmmi.spells.atributes.Weight;
@@ -21,8 +22,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.*;
 
-import static org.tmmi.Main.log;
-import static org.tmmi.Main.plugin;
+import static org.tmmi.Main.*;
 
 public class ATK extends Spell {
     final AreaEffect areaEffect;
@@ -43,6 +43,7 @@ public class ATK extends Spell {
         this.travel = travel;
         this.baseDamage = baseDamage;
         this.phase = phase;
+        this.attemptLvlUP();
     }
     public ATK(UUID id, UUID handler, String name, Weight w, int level, int XP, int castcost,
                @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect,
@@ -64,11 +65,14 @@ public class ATK extends Spell {
 
     @Override
     public void onLevelUP() {
-
+        this.baseDamage += 0.15;
+        this.speed += 0.05;
+        this.travel += 1;
     }
 
     @Override
-    public CastSpell cast(PlayerInteractEvent event, Location castLocation, float multiplier) {
+    public CastSpell cast(@NotNull Location castLocation, float multiplier) {
+        log("cast " + this.getName());
         boolean opE = true;
         Particle p = null;
         switch (this.mainElement) {
@@ -108,14 +112,20 @@ public class ATK extends Spell {
         int tick = (int) Math.max(speed/4, 0);
         switch (this.areaEffect) {
             case DIRECT -> {
+                ArmorStand amor = (ArmorStand) loc.getWorld().spawnEntity(loc, EntityType.ARMOR_STAND);
+                amor.setVisible(false);
+                amor.setCustomNameVisible(true);
+                amor.setGravity(false);
                 return new CastSpell(this, loc, getCastCost()) {
 
                     @Override
                     public BukkitTask cast(CastSpell casts) {
                         return new BukkitRunnable() {
-                            private double distance = 0;
+                            private final ArmorStand arm = amor;
+                            private final Location stl = castLocation;
                             @Override
                             public void cancel() {
+                                arm.remove();
                                 casts.uncast();
                                 ATK.this.attemptLvlUP();
                                 Bukkit.getScheduler().cancelTask(this.getTaskId());
@@ -123,23 +133,23 @@ public class ATK extends Spell {
 
                             @Override
                             public void run() {
-                                if (distance > travDis) cancel();
-                                distance += speed;
-                                Location ll = loc.clone();
                                 loc.add(direction.clone().multiply(speed));
+                                double distance = loc.distance(stl);
                                 Material t = loc.getBlock().getType();
-                                if (t == Material.AIR) cancel();
+                                if (distance >= travDis || t.isSolid()) cancel();
                                 else {
-                                    loc.getWorld().spawnParticle(Particle.COMPOSTER, loc, (int) (baseDamage / 2) + (getLevel() / 2), 0, 0, 0, 0);
-//                                loc.getWorld().playSound(loc, sound, 1, 1);
-                                    for (int i = 0; i < Math.max(Math.floor(ll.distance(loc) * 4), 0) + 1; i++) {
-                                        loc.getWorld().spawnParticle(finalP, ll.clone().add(loc.clone().subtract(ll).multiply(ll.distance(loc) / Math.ceil(ll.distance(loc) * 2))), (int) (baseDamage / 2) + (getLevel() / 2), 0, 0, 0, 0);
-                                    }
+                                    arm.setCustomName("S: " + speed + " | Dis: " + distance);
+                                    arm.teleport(loc.clone().subtract(0, 1, 0));
+//                                       loc.getWorld().playSound(loc, sound, 1, 1);
+                                    Location l = loc.clone();
+                                    l.getWorld().spawnParticle(Particle.FLAME, l, 1, 0, 0, 0, 0);
+//                                    l.getWorld().spawnParticle(Particle.FLAME, l.add(l.clone().toVector().subtract(l.clone().toVector().multiply(-1).normalize())), 1, 0, 0, 0, 0);
+                                    loc.getWorld().spawnParticle(finalP, l, (int) (baseDamage / 2) + (getLevel() / 2), 0, 0, 0, 0);
                                     Collection<Entity> nearbyEntities = loc.getWorld().getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
                                     if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
                                         for (Entity e : nearbyEntities) {
                                             if (e instanceof LivingEntity liv) {
-                                                if (liv.getUniqueId() == event.getPlayer().getUniqueId()) continue;
+                                                if (liv == Bukkit.getPlayer(getHandler()) || liv == arm) continue;
                                                 liv.damage(ATK.this.getBaseDamage());
                                                 loc.getWorld().spawnParticle(finalP, loc, 10, 1, 1, 1, 0.05);
                                                 cancel();
@@ -152,44 +162,90 @@ public class ATK extends Spell {
                     }
                 };
             }
-//            case WIDE -> {
-//                return new CastSpell(this, loc, getCastCost()) {
-//
-//                    @Override
-//                    public BukkitTask cast(CastSpell casts) {
-//                        return new BukkitRunnable() {
-//                            private double distance = 0;
-//                            @Override
-//                            public void run() {
-//                                if (distance > travDis) {
-//                                    casts.uncast();
-//                                    ATK.this.attemptLvlUP();
-//                                }
-//                                distance += spellSpeed;
-//                                loc.add(direction.multiply(speed));
-//                                Objects.requireNonNull(loc.getWorld()).playSound(loc, sound, 1, 1);
-//                                Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, (int) Math.ceil(baseDamage/2), 0, 0, 0, 0);
-//                                Collection<Entity> nearbyEntities = loc.getWorld().getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), 0.5, 0.3, 0.5);
-//                                if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
-//                                    for (Entity e : nearbyEntities) {
-//                                        if (e instanceof LivingEntity liv) {
-//                                            if (liv.getUniqueId() == event.getPlayer().getUniqueId()) continue;
-//                                            liv.damage(ATK.this.getBaseDamage());
-//                                            Objects.requireNonNull(loc.getWorld()).spawnParticle(finalP, loc, 10, 1, 1, 1, 0.3);
-//                                            cancel();
-//                                        }
-//                                    }
-//                                }
-//                                ATK.this.attemptLvlUP();
-//                            }
-//                        }.runTaskTimer(plugin, 0, tick);
-//                    }
-//                };
-//
-//            }
-            default -> {
+            case WIDE -> {
+                ArmorStand amor = (ArmorStand) loc.getWorld().spawnEntity(loc, EntityType.ARMOR_STAND);
+                amor.setVisible(false);
+                amor.setCustomNameVisible(true);
+                amor.setGravity(false);
+                return new CastSpell(this, loc, getCastCost()) {
+                    private final ArmorStand arm = amor;
+
+                    @Override
+                    public BukkitTask cast(CastSpell casts) {
+                        return new BukkitRunnable() {
+                            private final Location stl = castLocation;
+                            @Override
+                            public void cancel() {
+                                arm.remove();
+                                casts.uncast();
+                                ATK.this.attemptLvlUP();
+                                Bukkit.getScheduler().cancelTask(this.getTaskId());
+                            }
+
+                            @Override
+                            public void run() {
+                                loc.add(direction.clone().multiply(speed));
+                                double distance = loc.distance(stl);
+                                Material t = loc.getBlock().getType();
+                                if (distance >= travDis || t.isSolid()) cancel();
+                                else {
+                                    arm.setCustomName("S: " + speed + " | Dis: " + distance);
+                                    arm.teleport(loc.clone().subtract(0, 1, 0));
+//                                       loc.getWorld().playSound(loc, sound, 1, 1);
+                                    Location l = loc.clone();
+                                    l.getWorld().spawnParticle(Particle.FLAME, l, 1, 0, 0, 0, 0);
+//                                    l.getWorld().spawnParticle(Particle.FLAME, l.add(l.clone().toVector().subtract(l.clone().toVector().multiply(-1).normalize())), 1, 0, 0, 0, 0);
+//                                    loc.getWorld().spawnParticle(finalP, l, (int) (baseDamage / 2) + (getLevel() / 2), 0, 0, 0, 0);
+                                    double rad = ((double) getLevel() /20) + 1;
+                                    spawnParticleSphere(loc, Particle.FLAME, rad, getLevel());
+                                    Collection<Entity> nearbyEntities = loc.getWorld().getNearbyEntities(loc.clone().add(0.5, 0.3, 0.5), rad, rad, rad);
+                                    if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
+                                        for (Entity e : nearbyEntities) {
+                                            if (e instanceof LivingEntity liv) {
+                                                if (liv == Bukkit.getPlayer(getHandler()) || liv == arm) continue;
+                                                liv.damage(ATK.this.getBaseDamage());
+                                                loc.getWorld().spawnParticle(finalP, loc, 10, 1, 1, 1, 0.05);
+                                                cancel();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }.runTaskTimer(plugin, 0, tick);
+                    }
+
+                    @Override
+                    public void onUncast(boolean natural) {
+                        new BukkitRunnable() {
+                            @Override
+                            public void run() {
+                                arm.remove();
+                                cancel();
+                            }
+                        }.runTaskTimer(plugin, 0, 0);
+                        if (natural) {
+                            MagicChunk.getOrNew(getLoc().getChunk()).addMana(getCastCost());
+                        }
+                    }
+                };
+            }
+            case null, default -> {
                 return null;
             }
+        }
+    }
+    public void spawnParticleSphere(Location center, Particle particle, double radius, int points) {
+        for (int i = 0; i < points; i++) {
+            // Use spherical coordinates to calculate points on the sphere
+            double theta = Math.random() * 2 * Math.PI; // Angle in the XY-plane
+            double phi = Math.acos(2 * Math.random() - 1); // Angle from the Z-axis
+
+            double x = radius * Math.sin(phi) * Math.cos(theta);
+            double y = radius * Math.sin(phi) * Math.sin(theta);
+            double z = radius * Math.cos(phi);
+
+            Location particleLocation = center.clone().add(x, y, z);
+            center.getWorld().spawnParticle(particle, particleLocation, 1, 0, 0, 0, 0);
         }
     }
 
@@ -244,7 +300,7 @@ public class ATK extends Spell {
                 "\t\"area_effect\":\"" + this.areaEffect + "\",\n" +
                 "\t\"base_damage\":" + this.baseDamage + ",\n" +
                 "\t\"speed\":" + this.speed + ",\n" +
-                "\t\"travel\":" + this.travel + "\n" +
+                "\t\"travel\":" + this.travel + ",\n" +
                 "\t\"phase\":" + this.phase + "\n" +
                 "}";
     }
