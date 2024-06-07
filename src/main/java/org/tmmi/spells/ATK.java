@@ -224,7 +224,7 @@ public class ATK extends Spell {
                             }
                         }.runTaskTimer(plugin, 0, 0);
                         if (natural) {
-                            MagicChunk.getOrNew(getLoc().getChunk()).addMana(getCastCost());
+                            MagicChunk.getOrNew(getLoc()).addMana(getCastCost());
                         }
                     }
                 };

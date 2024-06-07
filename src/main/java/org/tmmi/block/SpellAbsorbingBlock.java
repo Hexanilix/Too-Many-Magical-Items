@@ -3,77 +3,68 @@ package org.tmmi.block;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.inventory.ItemStack;
 import org.tmmi.Main;
 import org.tmmi.spells.CastSpell;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
+import java.util.*;
 
 import static org.tmmi.Main.log;
 import static org.tmmi.Main.newItemStack;
 
 public class SpellAbsorbingBlock extends Block {
-    public static List<SpellAbsorbingBlock> SAblocks = new ArrayList<>();
+    public static Collection<SpellAbsorbingBlock> instances = new HashSet<>();
     public static ItemStack item = newItemStack(Material.LODESTONE, ChatColor.GOLD + "Spell Condenser", 200001);
-    public Thread getSpellGrabThread() {
-        return spellGrabThread;
+    public Thread getMainThread() {
+        return mainThread;
     }
 
-    private Thread spellGrabThread;
-    private Thread dripTHread;
-    private float magicules;
-    public SpellAbsorbingBlock(Location loc, float magicules) {
+    private final Thread mainThread;
+    private int magicules;
+    private int cap;
+    public SpellAbsorbingBlock(Location loc, int magicules, int cap) {
         super(Material.LODESTONE, loc);
+        this.magicules = magicules;
+        this.cap = cap;
+        this.mainThread = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    if (magicules > 100) {
+                        //Spell distribution
+                        if (Objects.requireNonNull(getLoc().getWorld()).getBlockAt(getLoc().clone().subtract(0, 1, 0)).getType() == Material.STONE) {
+
+                        } else {
+                            SpellAbsorbingBlock.this.magicules -= new Random().nextInt(0, 5);
+                        }
+                    }
+                    while (true) {
+                        Thread.sleep(200);
+                        for (CastSpell s : CastSpell.instances) {
+                            // fix the check
+                            if (Main.inSphere(getLoc(), 5, s.getLoc())) {
+                                getWorld().spawnParticle(Particle.CLOUD, s.getLoc(), s.getS().getLevel(), 1, 1, 1, 0.02);
+                                SpellAbsorbingBlock.this.magicules += s.getCastCost();
+                                s.uncast(false);
+                            }
+                        }
+
+                    }
+                } catch (InterruptedException ignore) {}
+            }
+        };
+        this.mainThread.start();
+
+        instances.add(this);
     }
     public SpellAbsorbingBlock(Location loc) {
-        this(loc, 0);
-    }
-
-    @Override
-    public void onPlace() {
-        Location loc = this.getLoc();
-        this.spellGrabThread = new Thread(() -> {
-            while (true) {
-                for (CastSpell s : CastSpell.instances) {
-                    // fix the check
-                    if (Main.inSphere(loc, 5, s.getLoc())) {
-                        log("so it is");
-                        this.magicules += (float) s.getCastCost() / 5;
-                        s.uncast();
-                    }
-                }
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        });
-        this.spellGrabThread.start();
-        this.dripTHread = new Thread(() -> {
-            try {
-                if (this.magicules > 100) {
-                    //Spell distribution
-                    if (Objects.requireNonNull(this.getLoc().getWorld()).getBlockAt(this.getLoc().clone().subtract(0, 1, 0)).getType() == Material.STONE) {
-
-                    } else {
-                        this.magicules -= new Random().nextInt(0, 5);
-                    }
-                }
-                Thread.sleep(5000);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        });
-        this.dripTHread.start();
+        this(loc, 0, 100);
     }
 
     @Override
     public void onBreak() {
-        if (this.spellGrabThread != null) this.spellGrabThread.interrupt();
+        if (this.mainThread != null) this.mainThread.interrupt();
     }
 
     public float getMagicules() {
@@ -83,7 +74,7 @@ public class SpellAbsorbingBlock extends Block {
     @Override
     public String toJSON() {
         return  "\t\t{\n" +
-                "\t\"type\":\"SPELL_WEAVER\",\n" +
+                "\t\"type\":\"SPELL_SUCKER\",\n" +
                 "\t\"world\":\"" + this.getWorld().getName() + "\",\n" +
                 "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
                 "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +

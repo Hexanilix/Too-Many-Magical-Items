@@ -22,8 +22,8 @@ public enum AreaEffect {
         AreaEffect c = null;
         switch (type) {
             case "DIRECT" -> c = DIRECT;
-            case "WIDE_RANGE" -> c = WIDE;
-            case "AREA_EFFECT" -> c = AREA;
+            case "WIDE" -> c = WIDE;
+            case "AREA" -> c = AREA;
         }
         return c;
     }

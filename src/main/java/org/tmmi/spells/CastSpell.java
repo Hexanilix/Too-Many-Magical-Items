@@ -50,10 +50,16 @@ public abstract class CastSpell {
         this.loc = loc;
     }
 
-    public void uncast() {
+    public void uncast(boolean natural) {
         run.cancel();
         instances.remove(this);
+        onUncast(natural);
     }
+
+    public void uncast() {
+        uncast(true);
+    }
+    public void onUncast(boolean natural) {}
 
     public int getCastCost() {
         return cost;

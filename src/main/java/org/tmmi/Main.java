@@ -850,9 +850,10 @@ public class Main extends JavaPlugin {
                                                         public void render(@NotNull MapView mapView, @NotNull MapCanvas mapCanvas, @NotNull Player player) {
                                                             int cx = player.getLocation().getChunk().getX();
                                                             int cz = player.getLocation().getChunk().getX();
+                                                            World w = player.getWorld();
                                                             for (int x = 0; x < 16; x++) {
                                                                 for (int y = 0; y < 16; y++) {
-                                                                    MagicChunk mc = MagicChunk.get(player.getWorld().getChunkAt(cx+x-8, cz +y-8));
+                                                                    MagicChunk mc = MagicChunk.get(w,cx+x-8, cz +y-8);
                                                                     mapCanvas.setPixel(x, y, MapPalette.matchColor(java.awt.Color.getHSBColor((mc == null ? 0 : 0.0005f*mc.getMana()), 1, (mc == null ? 0 : 1))));
                                                                 }
                                                             }
@@ -960,11 +961,11 @@ public class Main extends JavaPlugin {
                                             });
                                         }
                                         case "manafy" -> {
-                                            log(MagicChunk.get(player.getLocation().getChunk()));
-                                            MagicChunk.getOrNew(player.getLocation().getChunk());
+                                            log(MagicChunk.get(player.getLocation()));
+                                            MagicChunk.getOrNew(player.getLocation());
                                         }
                                         case "update" -> {
-                                            MagicChunk.getOrNew(player.getLocation().getChunk()).update();
+                                            MagicChunk.getOrNew(player.getLocation()).update();
                                         }
                                         case "tp" -> {
                                             Location loc = Objects.requireNonNull(player.getTargetBlockExact(5)).getLocation().add(0.5, 1.5, 0.5);

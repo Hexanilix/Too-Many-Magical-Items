@@ -94,7 +94,7 @@
                         <configuration>
                             <tasks>
                                 <copy file="${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar"
-                                      todir="C:\Users\sebas\OneDrive\Dokumenty\1.20.4\plugins"/>
+                                      todir="C:\Users\sebas\Documents\mc_servers\1.20.6\plugins"/>
                             </tasks>
                         </configuration>
                     </execution>
