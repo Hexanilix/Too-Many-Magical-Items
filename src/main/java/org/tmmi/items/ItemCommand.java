@@ -11,16 +11,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.tmmi.Main.genVec;
+import static org.hetils.Util.genVec;
 import static org.tmmi.Main.plugin;
 
 public class ItemCommand {
-    public static List<ItemCommand> itc = new ArrayList<>();
+    public static List<ItemCommand> instances = new ArrayList<>();
 
     private final org.bukkit.entity.Item item;
     private BukkitRunnable operation;
     private final List<BukkitRunnable> waitlist = new ArrayList<>();
-    ItemCommand(org.bukkit.entity.Item item) {
+    public ItemCommand(org.bukkit.entity.Item item) {
         this.item = item;
         new BukkitRunnable() {
             @Override
@@ -35,11 +35,11 @@ public class ItemCommand {
                     waitlist.removeFirst();
                 }
             }
-        }.runTaskTimer(plugin, 0, 0);
+        }.runTask(plugin);
     }
 
     public static @NotNull ItemCommand getOrNew(org.bukkit.entity.Item i) {
-        for (ItemCommand c : itc)
+        for (ItemCommand c : instances)
             if (c.getItem() == i)
                 return c;
         return new ItemCommand(i);
@@ -49,19 +49,32 @@ public class ItemCommand {
         return item;
     }
 
-    public void newOperation(BukkitRunnable runnable) {
+    public ItemCommand newOperation(BukkitRunnable runnable) {
         waitlist.add(runnable);
+        return this;
     }
-    public void moveTo(Location des) {
+    public ItemCommand newOperation(Runnable run) {
+        waitlist.add(new BukkitRunnable() {
+            @Override
+            public void run() {
+                run.run();
+            }
+        });
+        return this;
+    }
+    public ItemCommand moveTo(Location des) {
         moveTo(des, 1, 1, null);
+        return this;
     }
-    public void moveTo(Location des, double speed) {
+    public ItemCommand moveTo(Location des, double speed) {
         moveTo(des, speed,1, null);
+        return this;
     }
-    public void moveTo(Location des, double speed, double dis) {
+    public ItemCommand moveTo(Location des, double speed, double dis) {
         moveTo(des, speed, dis, null);
+        return this;
     }
-    public void moveTo(Location des, double speed, double dis, Runnable end) {
+    public ItemCommand moveTo(Location des, double speed, double dis, Runnable end) {
         waitlist.add(new BukkitRunnable() {
             final org.bukkit.entity.Item item = ItemCommand.this.item;
             final Location l = item.getLocation();
@@ -82,6 +95,7 @@ public class ItemCommand {
                 item.setVelocity(direction.multiply(distance));
             }
         });
+        return this;
     }
     public ItemCommand moveTo(Entity des) {
         return moveTo(des, 1, 1, null);
@@ -147,5 +161,10 @@ public class ItemCommand {
             }
         });
         return this;
+    }
+
+    public void remove() {
+        instances.remove(this);
+        item.remove();
     }
 }

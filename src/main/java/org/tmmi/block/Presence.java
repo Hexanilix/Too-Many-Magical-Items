@@ -20,7 +20,6 @@ import static org.tmmi.Main.plugin;
 public class Presence extends InteractiveBlock {
     public static List<Presence> instances = new ArrayList<>();
 
-    public static Inventory inv;
     private ItemStack item;
     private Location location;
     private Inventory gui;
@@ -31,7 +30,7 @@ public class Presence extends InteractiveBlock {
     private int timeout;
 
     public Presence(ItemStack item, Material material, Location loc) {
-        super(material, loc, inv);
+        super(material, loc);
         this.item = item;
     }
 

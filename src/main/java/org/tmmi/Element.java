@@ -11,17 +11,18 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.tmmi.Main.isSim;
+import static org.hetils.Util.isSim;
+import static org.hetils.Util.newItemStack;
 
 public enum Element {
     FIRE,
     EARTH,
     WATER,
     AIR;
-    public static final ItemStack FIRE_ITEM = Main.newItemStack(Material.FIRE_CHARGE, ChatColor.DARK_AQUA + "Fire", 245723);
-    public static final ItemStack EARTH_ITEM = Main.newItemStack(Material.GRASS_BLOCK, ChatColor.DARK_GREEN + "Earth", 245724);
-    public static final ItemStack WATER_ITEM = Main.newItemStack(Material.WATER_BUCKET, ChatColor.DARK_GREEN + "Water", 245725);
-    public static final ItemStack AIR_ITEM = Main.newItemStack(Material.FEATHER, ChatColor.WHITE + "Air", 245726);
+    public static final ItemStack FIRE_ITEM = newItemStack(Material.FIRE_CHARGE, ChatColor.DARK_AQUA + "Fire", 245723);
+    public static final ItemStack EARTH_ITEM = newItemStack(Material.GRASS_BLOCK, ChatColor.DARK_GREEN + "Earth", 245724);
+    public static final ItemStack WATER_ITEM = newItemStack(Material.WATER_BUCKET, ChatColor.DARK_GREEN + "Water", 245725);
+    public static final ItemStack AIR_ITEM = newItemStack(Material.FEATHER, ChatColor.WHITE + "Air", 245726);
     public static final List<Biome> FIRE_BIOMES = new ArrayList<>();
     public static final List<Biome> EARTH_BIOMES = new ArrayList<>();
     public static final List<Biome> WATER_BIOMES = new ArrayList<>();

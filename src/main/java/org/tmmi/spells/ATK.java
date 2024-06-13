@@ -14,6 +14,8 @@ import org.jetbrains.annotations.NotNull;
 import org.tmmi.Element;
 import org.tmmi.MagicChunk;
 import org.tmmi.block.Block;
+import org.tmmi.events.Listener;
+import org.tmmi.events.SpellCollideEvent;
 import org.tmmi.spells.atributes.AreaEffect;
 import org.tmmi.spells.atributes.Weight;
 
@@ -49,6 +51,9 @@ public class ATK extends Spell {
                @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect,
                double speed, double travel, double baseDamage) {
         this(id, handler, name, w, level, XP, castcost, mainElement, secondaryElement, areaEffect, speed, travel, baseDamage, false);
+    }
+    public ATK(UUID handler, String name, Weight w, @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect) {
+        this(null, handler, name, w, 1, 0, 3, mainElement, secondaryElement, areaEffect, 1, 10, 2, false);
     }
 
     public double getSpeed() {
@@ -123,6 +128,7 @@ public class ATK extends Spell {
                         return new BukkitRunnable() {
                             private final ArmorStand arm = amor;
                             private final Location stl = castLocation;
+                            double dmg = ATK.this.getBaseDamage();
                             @Override
                             public void cancel() {
                                 arm.remove();
@@ -150,7 +156,7 @@ public class ATK extends Spell {
                                         for (Entity e : nearbyEntities) {
                                             if (e instanceof LivingEntity liv) {
                                                 if (liv == Bukkit.getPlayer(getHandler()) || liv == arm) continue;
-                                                liv.damage(ATK.this.getBaseDamage());
+                                                liv.damage(dmg);
                                                 loc.getWorld().spawnParticle(finalP, loc, 10, 1, 1, 1, 0.05);
                                                 cancel();
                                             }
@@ -169,6 +175,7 @@ public class ATK extends Spell {
                 amor.setGravity(false);
                 return new CastSpell(this, loc, getCastCost()) {
                     private final ArmorStand arm = amor;
+                    private double dmg = ATK.this.getBaseDamage();
 
                     @Override
                     public BukkitTask cast(CastSpell casts) {
@@ -203,7 +210,7 @@ public class ATK extends Spell {
                                         for (Entity e : nearbyEntities) {
                                             if (e instanceof LivingEntity liv) {
                                                 if (liv == Bukkit.getPlayer(getHandler()) || liv == arm) continue;
-                                                liv.damage(ATK.this.getBaseDamage());
+                                                liv.damage(dmg);
                                                 loc.getWorld().spawnParticle(finalP, loc, 10, 1, 1, 1, 0.05);
                                                 cancel();
                                             }
@@ -227,6 +234,15 @@ public class ATK extends Spell {
                             MagicChunk.getOrNew(getLoc()).addMana(getCastCost());
                         }
                     }
+
+//                    public class lis extends Listener {
+//                        public void spellCollide(SpellCollideEvent event) {
+//                            if (event.getHitSpell().getS() instanceof ATK a) {
+//                                if (dmg < event.getHitSpell().dmg)
+//                                dmg -= a.getBaseDamage();
+//                            }
+//                        }
+//                    }
                 };
             }
             case null, default -> {

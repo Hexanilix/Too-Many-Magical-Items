@@ -9,7 +9,8 @@ public enum Type {
     FORCE_FIELD,
     SPELL_SUCKER,
     PRESENCE_DETECTOR,
-    SPELL_WEAVER;
+    SPELL_WEAVER,
+    WEAVING_TABLE;
 
     @Contract(pure = true)
     public static @Nullable Type getType(@NotNull String s) {

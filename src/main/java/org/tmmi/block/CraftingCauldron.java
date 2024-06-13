@@ -13,10 +13,11 @@ import org.tmmi.Recipe;
 
 import java.util.*;
 
+import static org.hetils.Util.newItemStack;
 import static org.tmmi.Main.*;
 
 public class CraftingCauldron extends Block {
-    public static ItemStack item = Main.newItemStack(Material.CAULDRON, ChatColor.LIGHT_PURPLE + "Crafting Cauldron", 200000);
+    public static ItemStack item = newItemStack(Material.CAULDRON, ChatColor.LIGHT_PURPLE + "Crafting Cauldron", 200000);
     public static List<CraftingCauldron> cauldron = new ArrayList<>();
     private Boolean isCrafting;
     private Boolean isGathering;
@@ -140,7 +141,7 @@ public class CraftingCauldron extends Block {
     }
 
 //    private @NotNull Thread gatherThread() {
-//        return new Thread(() -> {
+//        return newThread(() -> {
 //            int iter = 0;
 //            List<ItemStack> ingredients = new ArrayList<>();
 //            while (this.placed) {
@@ -250,7 +251,7 @@ public class CraftingCauldron extends Block {
     @Override
     public String toJSON() {
         return  "\t\t{\n" +
-                "\t\"type\":\"SPELL_WEAVER\",\n" +
+                "\t\"type\":\"" + Type.CRAFTING_CAULDRON + "\",\n" +
                 "\t\"world\":\"" + this.getWorld().getName() + "\",\n" +
                 "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
                 "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +

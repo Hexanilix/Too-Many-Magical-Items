@@ -22,12 +22,9 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
-import org.bukkit.event.world.ChunkEvent;
-import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapPalette;
@@ -38,34 +35,29 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.*;
 import org.bukkit.util.Vector;
+import org.hetils.FileVersion;
+import org.hetils.Property;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.tmmi.spells.*;
 import org.tmmi.spells.atributes.AreaEffect;
-import org.tmmi.spells.atributes.Type;
 import org.tmmi.block.*;
 import org.tmmi.items.FocusWand;
 import org.tmmi.items.ItemCommand;
 import org.tmmi.items.SpellBook;
 import org.tmmi.spells.atributes.Weight;
-import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.logging.Level;
 
-import static org.tmmi.Element.getElement;
+import static org.hetils.Util.*;
 import static org.tmmi.Element.getItem;
 import static org.tmmi.WeavePlayer.getOrNew;
 import static org.tmmi.WeavePlayer.getWeaver;
 import static org.tmmi.block.Presence.*;
-import static org.tmmi.Property.*;
 
 public class Main extends JavaPlugin {
     public Map<UUID, Boolean> permission = new HashMap<>();
@@ -77,6 +69,23 @@ public class Main extends JavaPlugin {
     public static Plugin plugin;
     public Collection<Class<?>> classes = new HashSet<>();
     public static boolean DISABLED;
+
+    public static final Property<FileVersion> FILE_VERSION = new Property<>("FILE_VERSION", Main.PLUGIN_VERSION);
+    public static final Property<Boolean> ENABLED = new Property<>("ENABLED", true);
+    public static final Property<Boolean> GARBAGE_COLLECTION = new Property<>("GARBAGE_COLLECTION", true);
+    public static final Property<Boolean> AUTOSAVE = new Property<>("AUTOSAVE", true);
+    public static final Property<Boolean> AUTOSAVE_MSG = new Property<>("AUTOSAVE_MSG", true);
+    public static final Property<String> AUTOSAVE_MSG_VALUE = new Property<>("AUTOSAVE_MSG_VALUE", "Autosaving...");
+    public static final Property<Integer> AUTOSAVE_FREQUENCY = new Property<>("AUTOSAVE_FREQUENCY", 1800);
+    public static final Property<Boolean> CUSTOM_SPELLS = new Property<>("CUSTOM_SPELLS", false);
+    public static final Property<List<UUID>> DISABLED_SPELLS = new Property<>("DISABLED_SPELLS", new ArrayList<>());
+    public static final Property<Double> SPELL_SPEED_CAP = new Property<>("SPELL_SPEED_CAP", 20d);
+    public static final Property<Double> SPELL_TRAVEL_CAP = new Property<>("SPELL_TRAVEL_CAP", 20d);
+    public static final Property<Double> SPELL_DAMAGE_CAP = new Property<>("SPELL_DAMAGE_CAP", 20d);
+    public static final Property<Integer> CHUNK_TREE_DEPTH = new Property<>("CHUNK_TREE_DEPTH", 3);
+    public static final Property<Boolean> LEGACY_STI_SPELL = new Property<>("LEGACY_STI_SPELL", false);
+
+    public static final Property<Boolean> DEBUG = new Property<>("DEBUG_n_TEST", false);
 
     public static String DTFL;
     public static String CONF_FILE;
@@ -138,6 +147,13 @@ public class Main extends JavaPlugin {
     public static void log(Level lv, Object message) {
         Bukkit.getLogger().log(lv, "[TMMI] " + message);
     }
+    public static Collection<Thread> threads = new ArrayList<>();
+    public static @NotNull Thread newThread(Runnable run) {
+        Thread t = new Thread(run);
+        threads.add(t);
+        return t;
+    }
+    public final FileManager fm = new FileManager(this);
 
     @Override
     public void onEnable() {
@@ -167,7 +183,7 @@ public class Main extends JavaPlugin {
             if (!Files.exists(Path.of(CONF_FILE))) {
                 try {
                     Files.createFile(Path.of(CONF_FILE));
-                    updateConfig();
+                    fm.updateConfig();
                     log(Level.WARNING, "Created new config file since it was absent");
                 } catch (IOException e) {
                     super.onDisable();
@@ -184,325 +200,40 @@ public class Main extends JavaPlugin {
                 }
             }
             //Reading yml
-                int conf = loadConfig();
-                int v = FileVersion.versionDiff(Property.FILE_VERSION.v(), FILES_VERSION);
+                int conf = fm.loadConfig();
+                int v = FileVersion.versionDiff(FILE_VERSION.v(), FILES_VERSION);
                 if (v != 0) {
                     if (v < 0) {
                         log(Level.WARNING, "config.yml is obsolete, updating contents of config.yml");
-                        updateConfig();
+                        fm.updateConfig();
                     } else log(Level.SEVERE, "Plugin cannot read properly files higher than " + FILES_VERSION + ": config.yml file version is " + FILE_VERSION.v().toString() +". Plugin will use default values in case of a different naming scheme. Use [link] to convert to older file versions");
                 }
-                if (conf < Property.properties.size()) {
+                if (conf < properties.size()) {
                     log(Level.WARNING, "Some config properties not found," +
                             "not found properties remain at default values. Updating config.yml");
-                    updateConfig();
+                    fm.updateConfig();
                 }
-            if (Property.ENABLED.v()) {
+            if (ENABLED.v()) {
                 MagicChunk.treeDepth = CHUNK_TREE_DEPTH.v();
                 Spell.mxS = SPELL_SPEED_CAP.v();
                 Spell.mxT = SPELL_TRAVEL_CAP.v();
                 Spell.mxD = SPELL_DAMAGE_CAP.v();
-                if (checkFilesAndCreate()) {
+                if (fm.checkFilesAndCreate()) {
                     if (loadClasses()) {
                         if (AUTOSAVE_FREQUENCY.v() < 10) {
                             AUTOSAVE_FREQUENCY.setV(10);
-                            updateConfig();
+                            fm.updateConfig();
                         }
-                        startAutosave();
-                        loadBlockData();
+                        fm.startAutosave();
+                        fm.loadBlockData();
                         background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ", unclickable);
                         setItems();
                         Bukkit.getPluginManager().registerEvents(new MainListener(), this);
-                        for (Player p : Bukkit.getOnlinePlayers()) loadPlayerSaveData(p);
+                        for (Player p : Bukkit.getOnlinePlayers()) fm.loadPlayerSaveData(p);
                         log("Plugin loaded successfully");
                     }
                 }
             } else log(Level.WARNING, "Plugin is soft disabled in config, make sure this is a change you wanted");
-        }
-    }
-
-    private int loadConfig() {
-        try (InputStream input = new FileInputStream(CONF_FILE)) {
-            HashMap<String, Object> l = new Yaml().load(input);
-            if (l == null) return -1;
-            if (l.isEmpty()) return 0;
-            for (Map.Entry<String, Object> s : l.entrySet())
-                for (Property pr : Property.properties)
-                    if (Objects.equals(pr.p(), s.getKey()))
-                        switch (s.getKey()) {
-                            case "FILE_VERSION" -> pr.setV(new FileVersion(String.valueOf(s.getValue())));
-                            default -> pr.setV(s.getValue());
-                        }
-            return l.size();
-        }  catch (IOException e) {
-            e.printStackTrace();
-            return -1;
-        }
-    }
-
-    private void updateConfig() {
-        FileVersion old = Property.FILE_VERSION.v();
-        try (InputStream input = new FileInputStream(CONF_FILE)) {
-            Property.FILE_VERSION.setV(FILES_VERSION);
-            FileWriter writer = new FileWriter(CONF_FILE);
-            writer.append("# Last automatic modification: ").append(new SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new Date())).append("\n");
-            HashMap<String, Object> l = new Yaml().load(input);
-            if (l == null) l = new HashMap<>();
-            for (Property pr : Property.properties)
-                if (!l.containsKey(pr.p())) writer.append(pr.p()).append(": ").append(pr.toString()).append("\n");
-            writer.close();
-            loadConfig();
-        } catch (IOException e) {
-            e.printStackTrace();
-            Property.FILE_VERSION.setV(old);
-            super.onDisable();
-        }
-        if (!ENABLED.v()) {
-            log(Level.WARNING, "Plugin is soft disabled in config, make sure this is a change you wanted");
-            onDisable();
-        }
-    }
-
-    private boolean savePlayerData(@NotNull Player p) {
-        return savePlayerData(p.getUniqueId());
-    }
-
-    private boolean savePlayerData(@NotNull UUID id) {
-        File file = new File(DTFL + "playerdata/" + id + ".json");
-        try {
-            if (!file.exists()) file.createNewFile();
-            if (file.exists()) {
-                FileWriter writer = new FileWriter(file);
-                WeavePlayer w = getWeaver(id);
-                String json = "{\n";
-                if (w != null)
-                    json += w.toJSON();
-                json += "\n}";
-                writer.write(json); writer.close();
-            } else {
-                return false;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-    private boolean saveData() {
-        boolean complete = true;
-        for (Player p : Bukkit.getOnlinePlayers())
-            if (!savePlayerData(p)) complete = false;
-        complete = saveBlockData() && complete;
-        return complete;
-    }
-
-    private void startAutosave() {
-        if (AUTOSAVE.v()) {
-            autosave = new Thread(() -> {
-                try {
-                    while (true) {
-                        Thread.sleep(AUTOSAVE_FREQUENCY.v() * 1000L);
-                        saveData();
-                        if (GARBAGE_COLLECTION.v()) System.gc();
-                        if (AUTOSAVE_MSG.v()) log(AUTOSAVE_MSG_VALUE.v());
-                    }
-                } catch (InterruptedException e) {
-                    if (!DISABLED) log(Level.WARNING, "Autosave interrupted. Plugin data will not be saved until plugin disable and any new data acquired this point will be lost in case of a unprecedented stop");
-                }
-            });
-            autosave.start();
-        }
-    }
-    private void loadBlockData() {
-        File file = new File(BLOCK_DATAFILE);
-        if (file.exists()) {
-            try {
-                JSONObject json = new JSONObject(new String(Files.readAllBytes(file.toPath())));
-                try {
-                    if (!json.has("blocks")) return;
-                    JSONArray ar = json.getJSONArray("blocks");
-                    for (int i = 0; i < ar.length(); i++) {
-                        JSONObject j = ar.getJSONObject(i);
-                        try {
-                            Block b;
-                            org.tmmi.block.Type st = org.tmmi.block.Type.getType(j.getString("type"));
-                            World w = Bukkit.getWorld(j.getString("world"));
-                            if (w == null) {
-                                log("Unknown world \"" + j.getString("world") + "\". Omitting");
-                                continue;
-                            }
-                            Location loc = new Location(w,
-                                    j.getDouble("x"),
-                                    j.getDouble("y"),
-                                    j.getDouble("z"));
-                            if (st == null) {
-                                log("Unknown block type \"" + Type.getType(j.getString("type")) + "\". Omitting");
-                                continue;
-                            }
-                            switch (st) {
-                                case CRAFTING_CAULDRON -> b = new CraftingCauldron(loc);
-                                case FORCE_FIELD -> b = new ForceField(loc);
-                                case SPELL_SUCKER -> new SpellAbsorbingBlock(loc);
-                                case SPELL_WEAVER -> new SpellWeaver(loc);
-//                                case PRESENCE_DETECTOR -> new Presence(loc);
-                            }
-                        } catch (JSONException ignore) {}
-                    }
-                } catch (JSONException ignore) {}
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            try {
-                file.createNewFile();
-            } catch (IOException e) {
-                log(Level.SEVERE, "Block data file doesn't exist and couldn't be created at " + file.getAbsolutePath() + '\n' + e);
-            }
-        }
-    }
-    private boolean saveBlockData() {
-        File file = new File(BLOCK_DATAFILE);
-        try {
-            if (!file.exists()) file.createNewFile();
-            if (file.exists()) {
-                FileWriter writer = new FileWriter(file);
-                String json = "{\n";
-                List<String> blocks = new ArrayList<>();
-                for (Block b : Block.blocks)
-                    blocks.add(String.join("\n\t\t", b.toJSON().split("\n")));
-                json += "\t\"blocks\": [\n" + String.join(",\n", blocks) + "\n\t]";
-                json += "\n}";
-                writer.write(json);
-                writer.close();
-            } else {
-                return false;
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
-        return true;
-    }
-    private void loadPlayerSaveData(@NotNull Player p) {
-        loadPlayerSaveData(p.getUniqueId());
-    }
-    private void loadPlayerSaveData(UUID id) {
-        if (WeavePlayer.getWeaver(id) != null) return;
-        File folder = new File(PLAYER_DATA_FOLDER);
-        File file = new File(PLAYER_DATA_FOLDER + id + ".json");
-        try {
-            if (!folder.exists() || !file.exists()) {
-                if (!folder.exists())
-                    if (!folder.mkdir()) {
-                        log(Level.SEVERE, "Player data folder doesn't exist and couldn't be created at " + file.getAbsolutePath() + "\n" +
-                                "Player data won't be saved, it is advised to restart the plugin and check logs for any reading errors or" +
-                                "insufficient permission levels for this plugin");
-                    } else {
-                        file.createNewFile();
-                    }
-            } else {
-                JSONObject json = new JSONObject(new String(Files.readAllBytes(file.toPath())));
-                try {
-                    if (json.has("spells")) {
-                        JSONArray ar = json.getJSONArray("spells");
-                        Element el = Element.getElement(json.getString("element"));
-                        WeavePlayer w = new WeavePlayer(
-                                Bukkit.getPlayer(id),
-                                el,
-                                json.getInt("can_size"),
-                                json.getInt("sor_size"),
-                                json.getFloat("max_mana"));
-                        for (int i = 0; i < ar.length(); i++) {
-                            JSONObject j = ar.getJSONObject(i);
-                            try {
-                                Spell s;
-                                Type st = Type.getType(j.getString("type"));
-                                if (st == null) {
-                                    log("Unknown spell type \"" + Type.getType(j.getString("type") + "\". Omitting"));
-                                    continue;
-                                }
-                                switch (st) {
-                                    case ATK -> s = new ATK(
-                                            UUID.fromString(j.getString("id")),
-                                            id,
-                                            j.getString("name"),
-                                            Weight.getSpellType(j.getString("weight")),
-                                            j.getInt("level"),
-                                            j.getInt("experience"),
-                                            j.getInt("cast_cost"),
-                                            getElement(j.getString("main_element")),
-                                            getElement(j.getString("secondary_element")),
-                                            AreaEffect.getAreaEffect(j.getString("area_effect")),
-                                            j.getDouble("speed"),
-                                            j.getDouble("travel"),
-                                            j.getDouble("base_damage"),
-                                            j.getBoolean("phase"));
-                                    case DEF -> s = new DEF(
-                                            UUID.fromString(j.getString("id")),
-                                            id,
-                                            j.getString("name"),
-                                            Weight.getSpellType(j.getString("weight")),
-                                            j.getInt("level"),
-                                            j.getInt("experience"),
-                                            j.getInt("cast_cost"),
-                                            getElement(j.getString("element")),
-                                            AreaEffect.getAreaEffect(j.getString("area_effect")),
-                                            j.getInt("hold_time"),
-                                            j.getInt("durability"));
-                                    case STI -> s = new STI(
-                                            STI.Stat.get(j.getString("stat")),
-                                            UUID.fromString(j.getString("id")),
-                                            id,
-                                            j.getInt("level"),
-                                            j.getInt("experience"),
-                                            j.getInt("cast_cost"),
-                                            j.getInt("effect_time"),
-                                            j.getInt("multiplier"));
-                                    default -> s = new UTL(
-                                            UTL.Util.get(j.getString("util")),
-                                            id,
-                                            j.getInt("level"),
-                                            j.getInt("experience"),
-                                            j.getInt("cast_cost"));
-                                }
-                                w.addSpell(s);
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                            }
-                        }
-                        Spell main = json.getString("main").equals("null") ? null : Spell.getSpell(UUID.fromString(json.getString("main")));
-                        log(main);
-                        Spell sec = json.getString("second").equals("null") ? null : Spell.getSpell(UUID.fromString(json.getString("second")));
-                        if (main != null) w.setMain(main);
-                        if (sec != null) w.setSecondary(sec);
-                        Particle particle;
-                        switch (el) {
-                            case FIRE -> particle = Particle.FLAME;
-                            case AIR -> particle = Particle.CLOUD;
-                            case WATER -> particle = Particle.DRIPPING_WATER;
-                            case EARTH -> particle = Particle.ANGRY_VILLAGER;
-                            case null, default -> particle = null;
-                        }
-                        if (particle != null) {
-                            Particle finalParticle = particle;
-                            new BukkitRunnable() {
-                                private final Particle part = finalParticle;
-
-                                @Override
-                                public void run() {
-                                    Player p = Bukkit.getPlayer(id);
-                                    if (p != null)
-                                        p.getWorld().spawnParticle(part, p.getLocation().clone().add(0, 1, 0), 1, 0.2, 0.4, 0.2, 0.01);
-                                }
-                            }.runTaskTimer(plugin, 80, 80);
-                        }
-                    }
-                } catch (JSONException ignore) {
-                    log(Level.WARNING, "An error occurred while loading " + Bukkit.getPlayer(id).getName() + "'s player file located at " + file.toPath() + ". Omitting.");
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -621,7 +352,7 @@ public class Main extends JavaPlugin {
                                 }
                             }
                             case "save" -> {
-                                player.sendMessage((saveData() ? ChatColor.GREEN + "Saved plugin data" : ChatColor.RED + "An error occurred while saving data"));
+                                player.sendMessage((fm.saveData() ? ChatColor.GREEN + "Saved plugin data" : ChatColor.RED + "An error occurred while saving data"));
                             }
                             case "reload" -> {
                                 if (args.length > 1) {
@@ -630,29 +361,29 @@ public class Main extends JavaPlugin {
                                             Bukkit.broadcastMessage(ChatColor.YELLOW + "[TMMI] Reloading files...");
                                             WeavePlayer.weavers.clear();
                                             Spell.spells.clear();
-                                            loadConfig();
+                                            fm.loadConfig();
                                             if (ENABLED.v()) {
-                                                for (Player p : Bukkit.getOnlinePlayers()) loadPlayerSaveData(p);
+                                                for (Player p : Bukkit.getOnlinePlayers()) fm.loadPlayerSaveData(p);
                                                 Block.blocks.clear();
-                                                loadBlockData();
+                                                fm.loadBlockData();
                                             }
                                             Bukkit.broadcastMessage(ChatColor.GREEN + "[TMMI] Reloaded!");
                                         }
                                         case "playerdata" -> {
                                             Bukkit.broadcastMessage(ChatColor.YELLOW + "[TMMI] Reloading player data...");
                                             WeavePlayer.weavers.clear();
-                                            for (Player p : Bukkit.getOnlinePlayers()) loadPlayerSaveData(p);
+                                            for (Player p : Bukkit.getOnlinePlayers()) fm.loadPlayerSaveData(p);
                                             Bukkit.broadcastMessage(ChatColor.GREEN + "[TMMI] Reloaded!");
                                         }
                                         case "blockdata" -> {
                                             Bukkit.broadcastMessage(ChatColor.YELLOW + "[TMMI] Reloading block data...");
                                             Block.blocks.clear();
-                                            loadBlockData();
+                                            fm.loadBlockData();
                                             Bukkit.broadcastMessage(ChatColor.GREEN + "[TMMI] Reloaded!");
                                         }
                                         case "config" -> {
                                             Bukkit.broadcastMessage(ChatColor.YELLOW + "[TMMI] Reloading config file...");
-                                            loadConfig();
+                                            fm.loadConfig();
                                             Bukkit.broadcastMessage(ChatColor.GREEN + "[TMMI] Reloaded!");
 
                                         }
@@ -805,7 +536,7 @@ public class Main extends JavaPlugin {
                                             player.getBoundingBox().expand(1, 1, 1);
                                         }
                                         case "getwand" -> {
-                                            WeavePlayer w = WeavePlayer.getWeaver(player);
+                                            WeavePlayer w = getWeaver(player);
                                             if (w == null) {
                                                 w = new WeavePlayer(player);
                                                 //                                        Spell s = new Spell(player.getUniqueId(),"Yoink", Element.AIR, AreaEffect.DIRECT, 10);
@@ -835,39 +566,78 @@ public class Main extends JavaPlugin {
                                                     for (int k = z-m; k < z + m; k++)
                                                         w.spawnEntity(player.getLocation(), EntityType.TNT_MINECART);
                                         }
-                                        case "show_mana" -> {
-                                            for (int i = 0; i < 9; i++) {
-                                                ItemStack it = player.getInventory().getContents()[i];
-                                                if (it == null || it.getType() == Material.AIR) {
-                                                    ItemStack itm = new ItemStack(Material.FILLED_MAP);
-                                                    MapMeta mm = (MapMeta) itm.getItemMeta();
-                                                    mm.setEnchantmentGlintOverride(true);
-                                                    mm.setScaling(false);
-                                                    MapView mv = Bukkit.createMap(player.getWorld());
-                                                    mv.getRenderers().clear();
-                                                    mv.addRenderer(new MapRenderer() {
-                                                        @Override
-                                                        public void render(@NotNull MapView mapView, @NotNull MapCanvas mapCanvas, @NotNull Player player) {
-                                                            int cx = player.getLocation().getChunk().getX();
-                                                            int cz = player.getLocation().getChunk().getX();
-                                                            World w = player.getWorld();
-                                                            for (int x = 0; x < 16; x++) {
-                                                                for (int y = 0; y < 16; y++) {
-                                                                    MagicChunk mc = MagicChunk.get(w,cx+x-8, cz +y-8);
-                                                                    mapCanvas.setPixel(x, y, MapPalette.matchColor(java.awt.Color.getHSBColor((mc == null ? 0 : 0.0005f*mc.getMana()), 1, (mc == null ? 0 : 1))));
-                                                                }
-                                                            }
-                                                        }
-                                                    });
-                                                    mv.setCenterX(player.getLocation().getBlockX());
-                                                    mv.setCenterZ(player.getLocation().getBlockZ());
-                                                    mv.setTrackingPosition(true);
-                                                    mm.setMapView(mv);
-                                                    itm.setItemMeta(mm);
-                                                    player.getInventory().setItem(i, itm);
-                                                    break;
+                                        case "set_mana" -> {
+                                            MagicChunk mc = MagicChunk.getOrNew(player.getLocation()).setMana(Integer.parseInt(args[1]));
+                                            log(mc.getX() + ", " + mc.getZ());
+                                        }
+                                        case "amor" -> {
+                                            double x = player.getLocation().getX();
+                                            double y = player.getLocation().getY();
+                                            double z = player.getLocation().getZ();
+                                            for (int i = 0; i < 360; i+=5) {
+                                                ArmorStand ar = (ArmorStand) player.getWorld().spawnEntity(new Location(player.getWorld(), x + i*0.5, y, z), EntityType.ARMOR_STAND);
+                                                ar.setInvulnerable(true);
+                                                ar.setGravity(false);
+                                                ar.setSmall(true);
+                                                ar.setCustomName(String.valueOf(i));
+                                                ar.setCustomNameVisible(true);
+                                                ar.setItemInHand(new ItemStack(Material.ENCHANTED_BOOK));
+                                                ar.setRightArmPose(new EulerAngle(i*10, 0, 0));
+                                            }
+                                        }
+                                        case "prerender" -> {
+                                            int cx = player.getLocation().getChunk().getX();
+                                            int cz = player.getLocation().getChunk().getZ();
+                                            World w = player.getWorld();
+                                            int amnt = Integer.parseInt(args[1])/2;
+                                            for (int i = cx-amnt; i < cx+Integer.parseInt(args[1]); i++) {
+                                                for (int j = cz-amnt; j < cz+Integer.parseInt(args[1]); j++) {
+                                                    MagicChunk.getOrNew(w, i, j);
                                                 }
                                             }
+                                        }
+                                        case "show_mana" -> {
+                                            newThread(() -> {
+                                                for (int i = 0; i < 9; i++) {
+                                                    ItemStack it = player.getInventory().getContents()[i];
+                                                    if (it == null || it.getType() == Material.AIR) {
+                                                        ItemStack itm = new ItemStack(Material.FILLED_MAP);
+                                                        MapMeta mm = (MapMeta) itm.getItemMeta();
+                                                        mm.setEnchantmentGlintOverride(true);
+                                                        mm.setScaling(false);
+                                                        MapView mv = Bukkit.createMap(player.getWorld());
+                                                        mv.getRenderers().clear();
+                                                        mv.addRenderer(new MapRenderer() {
+                                                            private boolean r = true;
+                                                            @Override
+                                                            public void render(@NotNull MapView mapView, @NotNull MapCanvas mapCanvas, @NotNull Player player) {
+                                                                int cx = (int) player.getLocation().getX();
+                                                                int cz = (int) player.getLocation().getZ();
+                                                                World w = player.getWorld();
+                                                                for (int x = 0; x < 128; x++) {
+                                                                    for (int z = 0; z < 128; z++) {
+                                                                        MagicChunk mc = MagicChunk.get(w, (x+cx)/16+1, (z+cz)/16+1);
+                                                                        mapCanvas.setPixel(x, z, MapPalette.matchColor(java.awt.Color.getHSBColor((mc == null ? 0 : 0.05f * ((float) mc.getMana() /100)), 1, (mc == null ? 0 : 1))));
+                                                                    }
+                                                                }
+                                                                for (int x = 62; x < 66; x++) {
+                                                                    for (int z = 62; z < 66; z++) {
+                                                                        mapCanvas.setPixelColor(x, z, java.awt.Color.GREEN);
+                                                                    }
+                                                                }
+                                                            }
+                                                        });
+                                                        mv.setCenterX(player.getLocation().getBlockX());
+                                                        mv.setCenterZ(player.getLocation().getBlockZ());
+                                                        mv.setUnlimitedTracking(false);
+                                                        mv.setLocked(true);
+                                                        mm.setMapView(mv);
+                                                        itm.setItemMeta(mm);
+                                                        player.getInventory().setItem(i, itm);
+                                                        break;
+                                                    }
+                                                }
+                                            }).start();
 //                                            new BukkitRunnable() {
 //                                                final Map<MagicChunk, ArmorStand> arms = new HashMap<>();
 //                                                @Override
@@ -940,7 +710,7 @@ public class Main extends JavaPlugin {
                                         case "mt" -> {
                                             List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(player.getWorld()).getNearbyEntities(player.getEyeLocation(), 5, 5, 5);
                                             for (Entity e : nearbyEntities) {
-                                                if (e instanceof org.bukkit.entity.Item i) {
+                                                if (e instanceof Item i) {
                                                     ItemCommand.getOrNew(i).moveTo(new Location(player.getWorld(), Double.parseDouble(args[1]), Double.parseDouble(args[2]), Double.parseDouble(args[3])), 0.5);
                                                 }
                                             }
@@ -949,7 +719,7 @@ public class Main extends JavaPlugin {
                                             int s = Integer.parseInt(args[1]);
                                             Collection<Entity> nearbyEntities = player.getWorld().getNearbyEntities(player.getEyeLocation(), s, s, s);
                                             for (Entity e : nearbyEntities) {
-                                                if (e instanceof org.bukkit.entity.Item i) {
+                                                if (e instanceof Item i) {
                                                     ItemCommand.getOrNew(i).moveTo(player, 0.5);
                                                 }
                                             }
@@ -977,7 +747,7 @@ public class Main extends JavaPlugin {
                                                     pl.getWorld().spawnParticle(Particle.COMPOSTER, pl, 10, 0.1, 1, 0.1, 0);
                                                     Collection<Entity> ne = pl.getWorld().getNearbyEntities(pl, 0.2, 0.7, 0.2);
                                                     for (Entity e : ne) {
-                                                        if (dest == null && e instanceof org.bukkit.entity.Item i && i.getItemStack().getType() == Material.PAPER) {
+                                                        if (dest == null && e instanceof Item i && i.getItemStack().getType() == Material.PAPER) {
                                                             String[] s = Objects.requireNonNull(i.getItemStack().getItemMeta()).getDisplayName().split(" ");
                                                             try {
                                                                 dest = new Location(pl.getWorld(), Double.parseDouble(s[1]), Double.parseDouble(s[2]), Double.parseDouble(s[3]));
@@ -1100,17 +870,7 @@ public class Main extends JavaPlugin {
                                         tab.add("about");
                                         tab.add("save");
                                         tab.add("reload");
-                                    }
-                                }
-                                if (DEBUG.v())
-                                    switch (args[0]) {
-                                        case "suck", "drop", "query" -> {
-                                            for (int i = 5; i < 30; i+=5) {
-                                                tab.add(String.valueOf(i));
-                                            }
-                                        }
-                                        case "mt" -> {}
-                                        default -> {
+                                        if (DEBUG.v()) {
                                             tab.add("about");
                                             tab.add("cast");
                                             tab.add("spell");
@@ -1123,6 +883,16 @@ public class Main extends JavaPlugin {
                                             tab.add("NUKE");
                                         }
                                     }
+                                }
+                                if (DEBUG.v())
+                                    switch (args[0]) {
+                                        case "suck", "drop", "query" -> {
+                                            for (int i = 5; i < 30; i+=5) {
+                                                tab.add(String.valueOf(i));
+                                            }
+                                        }
+                                        case "mt" -> {}
+                                    }
                             }
                         } else {
                             tab.add("about");
@@ -1132,45 +902,6 @@ public class Main extends JavaPlugin {
                 return tab;
             }
         }
-    }
-
-    public static org.bukkit.util.@NotNull Vector genVec(@NotNull Location a, @NotNull Location b) {
-        return genVec(a.toVector(), b.toVector());
-    }
-    public static org.bukkit.util.@NotNull Vector genVec(@NotNull Vector a, @NotNull Vector b) {
-        double dX = a.getX() - b.getX();
-        double dZ = a.getZ() - b.getZ();
-        double yaw = Math.atan2(dZ, dX);
-        double pitch = Math.atan2(Math.sqrt(dZ * dZ + dX * dX), a.getY() - b.getY()) + Math.PI;
-        double x = Math.sin(pitch) * Math.cos(yaw);
-        double y = Math.sin(pitch) * Math.sin(yaw);
-        double z = Math.cos(pitch);
-        return new org.bukkit.util.Vector(x, z, y).normalize();
-    }
-
-    public static @NotNull List<org.bukkit.block.Block> getSphere(@NotNull Location center, int radius) {
-        List<org.bukkit.block.Block> l = new ArrayList<>();
-        for (double x = center.getX() - radius; x <= center.getX() + radius; x++)
-            for (double y = center.getY() - radius; y <= center.getY() + radius; y++)
-                for (double z = center.getZ() - radius; z <= center.getZ() + radius; z++) {
-                    Location currentLocation = new Location(center.getWorld(), x, y, z);
-                    if (center.distance(currentLocation) <= radius)
-                        l.add(Objects.requireNonNull(center.getWorld()).getBlockAt(currentLocation));
-                }
-        return l;
-    }
-    public static Entity nearestEntity(@NotNull Location loc, double rad) {
-        return nearestEntity(loc, rad, new ArrayList<>());
-    }
-    public static Entity nearestEntity(@NotNull Location loc, double rad, List<Entity> exlusions) {
-        Collection<Entity> nearbyEntities = Objects.requireNonNull(loc.getWorld()).getNearbyEntities(loc, rad, rad, rad);
-        Entity n = null;
-        if (!nearbyEntities.isEmpty()) {
-            for (Entity e : nearbyEntities)
-                if ((n == null || e.getLocation().distance(loc) < n.getLocation().distance(loc)) && !exlusions.contains(e))
-                    n = e;
-        }
-        return n;
     }
 
     public boolean loadClasses() {
@@ -1183,41 +914,9 @@ public class Main extends JavaPlugin {
         }
     }
 
-    private boolean checkFilesAndCreate() {
-        PLAYER_DATA_FOLDER = DTFL + "playerdata/";
-        File pdf = new File(PLAYER_DATA_FOLDER);
-        if (!pdf.exists())
-            if (!pdf.mkdir()) {
-            log(Level.SEVERE, "Couldn't create player data folder at: "  + PLAYER_DATA_FOLDER);
-            return false;
-        }
-        BLOCK_DATAFILE = DTFL + "blocks.json";
-        List<String> files = new ArrayList<>(Arrays.asList(BLOCK_DATAFILE));
-        for (String file : files) {
-            Path path = Path.of(file);
-            if (!Files.exists(path)) {
-                try {
-                    Files.createFile(path);
-                    log(Level.WARNING, "Created new file at '" + path +"' since it was absent");
-                } catch (IOException e) {
-                    log(Level.SEVERE, "Could not create file at '" + path + "'\nLog:\n" + String.join(Arrays.asList(e.getStackTrace()).toString()) + "\n");
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-    public static void setCusData(@NotNull ItemStack i, int data) {
-        ItemMeta m = i.getItemMeta();
-        assert m != null;
-        m.setCustomModelData(data);
-        i.setItemMeta(m);
-    }
-
     private void setItems() {
         ItemStack fusionCrys = newItemStack(Material.END_CRYSTAL, ChatColor.DARK_AQUA + "Fusion Crystal", 365450, List.of());
-        allItemInv.getFirst().addItem(SpellWeaver.item, new SpellBook());
-        allItemInv.getFirst().addItem(SpellAbsorbingBlock.item);
+        allItemInv.getFirst().addItem(SpellWeaver.item, new SpellBook(), SpellAbsorbingBlock.item, WeavingTable.item);
         for (Element e : Element.values()) allItemInv.getFirst().addItem(getItem(e));
         for (AreaEffect e : AreaEffect.values()) allItemInv.getFirst().addItem(AreaEffect.getItem(e));
 //        {
@@ -1252,34 +951,15 @@ public class Main extends JavaPlugin {
 //            Bukkit.getServer().getPluginManager().addPermission(permission);
 //        }
     }
-    public static @NotNull ItemStack newItemStack(Material mat, String name) {
-        return newItemStack(mat, name, 0, null);
-    }
-    public static @NotNull ItemStack newItemStack(Material mat, String name, int data) {
-        return newItemStack(mat, name, data, null);
-    }
-    public static @NotNull ItemStack newItemStack(Material mat, String name, int data, List<String> lore) {
-        ItemStack i = new ItemStack(mat);
-        ItemMeta m = i.getItemMeta();
-        assert m != null;
-        m.setDisplayName(name);
-        if (data != 0) m.setCustomModelData(data);
-        if (lore != null) m.setLore(lore);
-        i.setItemMeta(m);
-        return i;
-    }
-    private static final List<org.bukkit.entity.Item> selItms = new ArrayList<>();
+    private static final List<Item> selItms = new ArrayList<>();
 
-    private static double vecToNum(@NotNull Vector v) {
-        return (((v.getX()+v.getY()+v.getZ())/3));
-    }
     public class MainListener implements Listener {
         @EventHandler
         public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
             Player p = event.getPlayer();
             spellPerms.putIfAbsent(p.getUniqueId(), false);
-            Main.this.loadPlayerSaveData(p);
-            WeavePlayer w = WeavePlayer.getOrNew(p);
+            fm.loadPlayerSaveData(p);
+            WeavePlayer w = getOrNew(p);
             new BukkitRunnable() {
 
                 @Override
@@ -1291,7 +971,7 @@ public class Main extends JavaPlugin {
 
         @EventHandler
         public void onPlayerLeave(@NotNull PlayerQuitEvent event) {
-            Main.this.savePlayerData(event.getPlayer());
+            fm.savePlayerData(event.getPlayer());
         }
         @EventHandler
         public void onBow(@NotNull EntityShootBowEvent event) {
@@ -1305,7 +985,7 @@ public class Main extends JavaPlugin {
                         Location cl = ar.getLocation().clone();
                         cl.setYaw(-cl.getYaw());
                         cl.setPitch(-cl.getPitch());
-                        double m = Math.pow(vecToNum(ar.getVelocity())*4, 2) / 4;
+                        double m = Math.pow(vecAvg(ar.getVelocity())*4, 2) / 4;
                         cl.add(cl.getDirection().multiply(m));
                         ar.getLocation().getWorld().spawnParticle(Particle.COMPOSTER, cl, 1, 0, 0, 0,0);
                         liver = (nearestEntity(cl, 10, List.of(ar, event.getEntity())) instanceof LivingEntity e ? e : null);
@@ -1327,8 +1007,8 @@ public class Main extends JavaPlugin {
             Location loc = event.getPlayer().getEyeLocation().clone();
             for (int it = 0; it < 6; it++) {
                 loc.add(loc.getDirection().multiply(0.5));
-                Entity e = Main.nearestEntity(loc, 0.15);
-                if (e instanceof org.bukkit.entity.Item i) {
+                Entity e = nearestEntity(loc, 0.15);
+                if (e instanceof Item i) {
                     if (selItms.contains(i)) {
                         e.setGlowing(false);
                         selItms.remove(i);
@@ -1367,7 +1047,7 @@ public class Main extends JavaPlugin {
 //                        break;
 //                    }
 //                }
-                WeavePlayer w = WeavePlayer.getOrNew(p);
+                WeavePlayer w = getOrNew(p);
                 log(w.getMain());
                 if (w.getMain() != null) w.cast();
             } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK && p.getInventory().getItemInMainHand().getType() == Material.AIR) {
@@ -1378,7 +1058,7 @@ public class Main extends JavaPlugin {
         }
 
         @EventHandler
-        public void onEntityDmg(@NotNull org.bukkit.event.entity.EntityDamageEvent event) {
+        public void onEntityDmg(@NotNull EntityDamageEvent event) {
             Entity de = event.getEntity();
             if (de instanceof Player p) {
                 if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
@@ -1406,49 +1086,6 @@ public class Main extends JavaPlugin {
                 }
             }
         }
-        public int getProtection(@NotNull Player player) {
-            int prot = 0;
-            ItemStack[] armorContents = player.getInventory().getArmorContents();
-            for (ItemStack item : armorContents) {
-                if (item != null && item.getEnchantments().containsKey(Enchantment.PROTECTION)) {
-                    prot += item.getEnchantmentLevel(Enchantment.PROTECTION);
-                }
-            }
-            return prot;
-        }
-        public int getToughness(@NotNull Player player) {
-            int toughness = 0;
-            ItemStack[] armorContents = player.getInventory().getArmorContents();
-            for (ItemStack item : armorContents) {
-                if (item != null) {
-                    switch (item.getType()) {
-                        case DIAMOND_HELMET, DIAMOND_CHESTPLATE, DIAMOND_LEGGINGS, DIAMOND_BOOTS -> toughness += 2;
-                        case NETHERITE_HELMET, NETHERITE_CHESTPLATE, NETHERITE_LEGGINGS, NETHERITE_BOOTS -> toughness += 3;
-                    }
-                }
-            }
-            return toughness;
-        }
-        public int getArmorPoints(@NotNull Player player) {
-            int armorPoints = 0;
-            ItemStack[] armorContents = player.getInventory().getArmorContents();
-            for (ItemStack item : armorContents) {
-                if (item != null) {
-                    switch (item.getType()) {
-                        case LEATHER_HELMET, LEATHER_BOOTS, GOLDEN_BOOTS, CHAINMAIL_BOOTS -> armorPoints += 1;
-                        case GOLDEN_HELMET -> {}
-                        case CHAINMAIL_HELMET, IRON_HELMET, IRON_BOOTS, TURTLE_HELMET, LEATHER_LEGGINGS -> armorPoints += 2;
-                        case DIAMOND_HELMET, NETHERITE_HELMET, DIAMOND_BOOTS, NETHERITE_BOOTS, LEATHER_CHESTPLATE, GOLDEN_LEGGINGS -> armorPoints += 3;
-                        case GOLDEN_CHESTPLATE, CHAINMAIL_CHESTPLATE, IRON_LEGGINGS  -> armorPoints += 5;
-                        case IRON_CHESTPLATE, DIAMOND_LEGGINGS, NETHERITE_LEGGINGS  -> armorPoints += 6;
-                        case DIAMOND_CHESTPLATE, NETHERITE_CHESTPLATE  -> armorPoints += 8;
-                        case CHAINMAIL_LEGGINGS -> armorPoints += 4;
-                    }
-                }
-            }
-
-            return armorPoints;
-        }
         @EventHandler
         public void onEntityDeath(@NotNull EntityDeathEvent event) {
             EntityMultiplier.instances.remove(EntityMultiplier.get(event.getEntity()));
@@ -1459,6 +1096,7 @@ public class Main extends JavaPlugin {
             if (Objects.requireNonNull(event.getItemInHand().getItemMeta()).hasCustomModelData()) {
                 ItemStack i = event.getItemInHand();
                 Location loc = event.getBlock().getLocation();
+                log("place");
                 if (isSim(CraftingCauldron.item, i)) {
                     new CraftingCauldron(loc);
                 } else if (isSim(ForceField.item, i)) {
@@ -1467,6 +1105,9 @@ public class Main extends JavaPlugin {
                     new SpellWeaver(loc);
                 } else if (isSim(SpellAbsorbingBlock.item, i)) {
                     new SpellAbsorbingBlock(loc);
+                } else if (isSim(WeavingTable.item, i)) {
+                    log("anuttihn");
+                    new WeavingTable(loc);
                 }
             }
         }
@@ -1546,11 +1187,6 @@ public class Main extends JavaPlugin {
                     if (ci != null) event.getWhoClicked().getInventory().addItem(ci);
                     event.setCancelled(true);
                 } else {
-                    for (InteractiveBlock inter : InteractiveBlock.instances)
-                        if (isSim(inter.getGui().getItem(0), i)) {
-                            inter.onGUIClick(event.getAction(), ci, (Player) event.getWhoClicked(), event);
-                            return;
-                        }
                     WeavePlayer weaver = getWeaver(event.getWhoClicked());
                     if (weaver != null && isSim(event.getClickedInventory(), weaver.inventory())) {
                         event.setCancelled(true);
@@ -1579,90 +1215,7 @@ public class Main extends JavaPlugin {
             }
         }
     }
-    public static @NotNull List<org.bukkit.block.Block> getBlocksInSphere(@NotNull Location center, int radius) {
-        List<org.bukkit.block.Block> blocks = new ArrayList<>();
-        int bX = center.getBlockX();
-        int bY = center.getBlockY();
-        int bZ = center.getBlockZ();
-        for (int x = bX - radius; x <= bX + radius; x++) {
-            for (int y = bY - radius; y <= bY + radius; y++) {
-                for (int z = bZ - radius; z <= bZ + radius; z++) {
-                    double distance = center.distance(new Location(center.getWorld(), x, y, z));
-                    if (distance < radius * radius) {
-                        blocks.add(Objects.requireNonNull(center.getWorld()).getBlockAt(x, y, z));
-                    }
-                }
-            }
-        }
-        return blocks;
-    }
-    public static boolean isSim(Inventory i1, Inventory i2) {
-        if (i1 == null || i2 == null) return false;
-        if (i1 == i2) return true;
-        if (i1.getSize() != i2.getSize()) return false;
-        for (int i = 0; i < i1.getSize(); i++)
-            if (!isSim(i1.getItem(i), i2.getItem(i))) return false;
-        return true;
-    }
-    public static boolean isSim(ItemStack i1, ItemStack i2) {
-        if (i1 == null || i2 == null) return false;
-        if (i1 == i2) return true;
-        return i1.hasItemMeta() &&
-                i2.hasItemMeta() &&
-                ((i1.getItemMeta().hasCustomModelData() && i2.getItemMeta().hasCustomModelData()) ?
-                    i1.getItemMeta().getCustomModelData() == i2.getItemMeta().getCustomModelData() :
-                        (i1.getItemMeta().hasCustomModelData() == i2.getItemMeta().hasCustomModelData())) &&
-                i1.getType() == i2.getType();
-    }
-    static int getItemSlot(ItemStack item, @NotNull Inventory inv) {
-        for (int i = 0; i < inv.getContents().length; i++) {
-            if (inv.getItem(i) == item) {
-                return i;
-            }
-        }
-        return -1;
-    }
-    public static boolean isSimBlk(Location a, Location b) {
-        return a == b || ((a != null && b != null) && (a.getWorld() == b.getWorld()
-                && (int) a.getX() == (int) b.getX()
-                && (int) a.getY() == (int) b.getY()
-                && (int) a.getZ() == (int) b.getZ()));
-    }
-    public static boolean isSimBlk(org.bukkit.block.Block a, org.bukkit.block.Block b) {
-        return a == b || ((a != null && b != null) && (a.getWorld() == b.getWorld()
-                && a.getX() == b.getX()
-                && a.getY() == b.getY()
-                && a.getZ() == b.getZ()));
-    }
-    public static boolean inSphere(@NotNull Location center, int radius, @NotNull Location location) {
-        return center.distance(location) < radius;
-    }
-    public static boolean inSphereXYZ(@NotNull Location center, int radius, @NotNull Location location) {
-        int dx = center.getBlockX() - location.getBlockX();
-        int dy = center.getBlockY() - location.getBlockY();
-        int dz = center.getBlockZ() - location.getBlockZ();
-        return dx * dx + dy * dy + dz * dz <= radius * radius;
-    }
-    public static final String digits = "0123456789abcdef";
-    public static @NotNull String toHex(Object o, int size) {
-        o = o != null ? o.toString() : null;
-        if (o instanceof String s) {
-            int m = 0;
-            for (int i = 0; i < s.length(); i++) m += s.charAt(i);
-            return IntToHex(m, size);
-        } else {
-            return "0".repeat(size);
-        }
-    }
-    public static @NotNull String IntToHex(int i, int size) {
-        StringBuilder hex = new StringBuilder();
-        while (i > 0) {
-            int digit = i % 16;
-            hex.insert(0, digits.charAt(digit));
-            i = i / 16;
-        }
-        return "0".repeat(Math.max(0, size - hex.length())) + hex;
-    }
+
     private void reload() {
         onDisable();
         Block.blocks.clear();
@@ -1679,8 +1232,9 @@ public class Main extends JavaPlugin {
         HandlerList.unregisterAll(this);
         DISABLED = true;
         if (ENABLED.v()) {
+            for (Thread t : threads) t.interrupt();
             if (autosave != null) autosave.interrupt();
-            saveData();
+            fm.saveData();
             for (SpellAbsorbingBlock s : SpellAbsorbingBlock.instances)
                 if (s.getMainThread() != null) s.getMainThread().interrupt();
         }

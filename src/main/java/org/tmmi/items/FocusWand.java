@@ -4,9 +4,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.*;
 
-import static org.tmmi.Main.newItemStack;
-
-
 public class FocusWand extends Wand {
 
     public FocusWand() {

@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.HashSet;
 
-import static org.tmmi.Main.isSimBlk;
+import static org.hetils.Util.isSimBlk;
 import static org.tmmi.Main.log;
 
 public abstract class Block {

@@ -6,17 +6,17 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.tmmi.Main;
 
-import static org.tmmi.Main.isSim;
+import static org.hetils.Util.isSim;
+import static org.hetils.Util.newItemStack;
 
 public enum AreaEffect {
     DIRECT,
     WIDE,
     AREA;
-    public static final ItemStack DIRECT_ITEM = Main.newItemStack(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Direct", 824574);
-    public static final ItemStack WIDE_ITEM = Main.newItemStack(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Wide", 824575);
-    public static final ItemStack AREA_ITEM = Main.newItemStack(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Area", 824576);
+    public static final ItemStack DIRECT_ITEM = newItemStack(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Direct", 824574);
+    public static final ItemStack WIDE_ITEM = newItemStack(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Wide", 824575);
+    public static final ItemStack AREA_ITEM = newItemStack(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Area", 824576);
     @Contract(pure = true)
     public static AreaEffect getAreaEffect(@NotNull String type) {
         AreaEffect c = null;

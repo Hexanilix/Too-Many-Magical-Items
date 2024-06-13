@@ -13,7 +13,7 @@ public enum Weight {
         switch (type) {
             case "CANTRIP" -> s = CANTRIP;
             case "SORCERY" -> s = SORCERY;
-            case "AREA_EFFECT" -> s = INCANTATION;
+            case "INCANTATION" -> s = INCANTATION;
         }
         return s;
     }

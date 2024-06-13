@@ -14,6 +14,8 @@ import org.tmmi.spells.atributes.AreaEffect;
 
 import java.util.*;
 
+import static org.hetils.Util.isSim;
+import static org.hetils.Util.newItemStack;
 import static org.tmmi.Main.*;
 import static org.tmmi.spells.atributes.AreaEffect.getAreaEffect;
 import static org.tmmi.Element.getElement;
@@ -32,11 +34,11 @@ public class SpellWeaver extends InteractiveBlock {
         return inv;
     };
     public static List<CraftingCauldron> cauldron = new ArrayList<>();
-    public static ItemStack item = Main.newItemStack(Material.GOLD_BLOCK, ChatColor.DARK_AQUA + "MAGIC CARFTIN", 23461, List.of("A Crystal with the power", "of 1m brewing stands"));
+    public static ItemStack item = newItemStack(Material.GOLD_BLOCK, ChatColor.DARK_AQUA + "MAGIC CARFTIN", 23461, List.of("A Crystal with the power", "of 1m brewing stands"));
 
     private int magicules;
     public SpellWeaver(Location loc) {
-        super(Material.GOLD_BLOCK, loc, gui());
+        super(Material.GOLD_BLOCK, loc);
     }
     private final Map<UUID, Inventory> invs = new HashMap<>();
 
@@ -62,7 +64,7 @@ public class SpellWeaver extends InteractiveBlock {
     @Override
     public void onGUIClick(InventoryAction action, @NotNull ItemStack item, Player player, @NotNull InventoryClickEvent event) {
         Inventory inv = event.getInventory();
-        new Thread(() -> {
+        newThread(() -> {
             try {
                 Thread.sleep(200);
             } catch (InterruptedException e) {

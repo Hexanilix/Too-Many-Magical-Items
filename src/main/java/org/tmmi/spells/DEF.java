@@ -16,7 +16,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
-import static org.tmmi.Main.genVec;
 import static org.tmmi.Main.plugin;
 
 public class DEF extends Spell {

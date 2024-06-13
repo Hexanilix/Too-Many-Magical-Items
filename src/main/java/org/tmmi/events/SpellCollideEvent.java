@@ -2,32 +2,33 @@ package org.tmmi.events;
 
 import org.bukkit.entity.Player;
 import org.tmmi.PlayerEvent;
+import org.tmmi.spells.CastSpell;
 import org.tmmi.spells.Spell;
 
 import java.util.UUID;
 
 public class SpellCollideEvent extends PlayerEvent {
-    private final Spell hitSpell;
-    private final Spell hittingSpell;
-    public SpellCollideEvent(Player player, Spell hitSpell, Spell hittingSpell) {
+    private final CastSpell hitSpell;
+    private final CastSpell hittingSpell;
+    public SpellCollideEvent(Player player, CastSpell hitSpell, CastSpell hittingSpell) {
         super(player);
         this.hitSpell = hitSpell;
         this.hittingSpell = hittingSpell;
     }
 
-    public Spell getHittingSpell() {
+    public CastSpell getHittingSpell() {
         return this.hittingSpell;
     }
 
-    public Spell getHitSpell() {
+    public CastSpell getHitSpell() {
         return this.hitSpell;
     }
 
     public UUID getHitter() {
-        return this.hittingSpell.getHandler();
+        return this.hittingSpell.getS().getHandler();
     }
 
     public UUID getHited() {
-        return this.hitSpell.getHandler();
+        return this.hitSpell.getS().getHandler();
     }
 }

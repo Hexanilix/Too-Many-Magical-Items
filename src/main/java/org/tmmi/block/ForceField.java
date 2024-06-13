@@ -14,14 +14,13 @@ import org.jetbrains.annotations.NotNull;
 import java.util.*;
 
 public class ForceField extends InteractiveBlock {
-    public static Inventory inv;
     public static ItemStack item;
     public static List<ForceField> forceFields = new ArrayList<>();
 
     private BukkitTask task;
 
     public ForceField(Location loc) {
-        super(Material.CAULDRON, loc, inv);
+        super(Material.CAULDRON, loc);
         forceFields.add(this);
     }
 

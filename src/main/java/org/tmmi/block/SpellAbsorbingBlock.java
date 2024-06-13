@@ -10,8 +10,9 @@ import org.tmmi.spells.CastSpell;
 
 import java.util.*;
 
-import static org.tmmi.Main.log;
-import static org.tmmi.Main.newItemStack;
+import static org.hetils.Util.inSphere;
+import static org.hetils.Util.newItemStack;
+import static org.tmmi.Main.*;
 
 public class SpellAbsorbingBlock extends Block {
     public static Collection<SpellAbsorbingBlock> instances = new HashSet<>();
@@ -27,9 +28,7 @@ public class SpellAbsorbingBlock extends Block {
         super(Material.LODESTONE, loc);
         this.magicules = magicules;
         this.cap = cap;
-        this.mainThread = new Thread() {
-            @Override
-            public void run() {
+        this.mainThread = newThread(() -> {
                 try {
                     if (magicules > 100) {
                         //Spell distribution
@@ -43,7 +42,7 @@ public class SpellAbsorbingBlock extends Block {
                         Thread.sleep(200);
                         for (CastSpell s : CastSpell.instances) {
                             // fix the check
-                            if (Main.inSphere(getLoc(), 5, s.getLoc())) {
+                            if (inSphere(getLoc(), 5, s.getLoc())) {
                                 getWorld().spawnParticle(Particle.CLOUD, s.getLoc(), s.getS().getLevel(), 1, 1, 1, 0.02);
                                 SpellAbsorbingBlock.this.magicules += s.getCastCost();
                                 s.uncast(false);
@@ -52,8 +51,7 @@ public class SpellAbsorbingBlock extends Block {
 
                     }
                 } catch (InterruptedException ignore) {}
-            }
-        };
+        });
         this.mainThread.start();
 
         instances.add(this);

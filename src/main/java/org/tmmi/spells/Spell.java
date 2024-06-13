@@ -1,19 +1,16 @@
 package org.tmmi.spells;
 
 import org.bukkit.*;
-import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.tmmi.Main;
-import org.tmmi.Property;
 import org.tmmi.spells.atributes.Weight;
 import org.tmmi.events.SpellCollideEvent;
 
 import java.util.*;
 
+import static org.hetils.Util.*;
 import static org.tmmi.Main.*;
 
 public abstract class Spell {
@@ -51,7 +48,7 @@ public abstract class Spell {
                 toHex(weight.name(), 4) +
                 '-' +
                 toHex(name, 4) +
-                String.valueOf(Main.digits.charAt(new Random().nextInt(16))).repeat(8);
+                String.valueOf(digits.charAt(new Random().nextInt(16))).repeat(8);
         return UUID.fromString(u);
     }
     public Spell(UUID id, UUID handler, String name, Weight weight, int level, int XP, int castCost, Vector box) {
@@ -64,7 +61,7 @@ public abstract class Spell {
         this.weight = weight;
         this.box = box;
         this.id = (id == null ? uuid() : id);
-        if (!Property.DISABLED_SPELLS.v().contains(this.id)) spells.add(this);
+        if (!DISABLED_SPELLS.v().contains(this.id)) spells.add(this);
     }
 
     public UUID getHandler() {

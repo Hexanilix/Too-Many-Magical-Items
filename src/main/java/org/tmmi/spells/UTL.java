@@ -2,7 +2,6 @@ package org.tmmi.spells;
 
 import org.bukkit.*;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -11,14 +10,15 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.items.ItemCommand;
-import org.tmmi.Main;
 import org.tmmi.spells.atributes.Weight;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
-import static org.tmmi.Main.getSphere;
+import static org.hetils.Util.genVec;
+import static org.hetils.Util.getSphere;
+
 import static org.tmmi.Main.plugin;
 
 public class UTL extends Spell {
@@ -79,7 +79,7 @@ public class UTL extends Spell {
                                             c.moveTo(player, 0.1, 1);
                                             b.setType(Material.AIR);
                                         }
-                                        loc.add(Main.genVec(loc, b.getLocation().clone().add(0.5, 0.5, 0.5)).multiply(0.4));
+                                        loc.add(genVec(loc, b.getLocation().clone().add(0.5, 0.5, 0.5)).multiply(0.4));
                                         Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.BLOCK, loc, 1, 0, 0, 0, 0, b.getBlockData());
                                     }
                                 }.runTaskTimer(plugin, 0, 0);
@@ -130,7 +130,7 @@ public class UTL extends Spell {
 //                                        Location loc = player.getLocation().clone();
 //                                        c.moveTo(player, 0.5, 3, () -> c.revolve(loc));
 //                                        b.setType(Material.AIR);
-//                                        new Thread(() -> {
+//                                        newThread(() -> {
 //                                            try {
 //                                                Thread.sleep(4000);
 //                                            } catch (InterruptedException e) {

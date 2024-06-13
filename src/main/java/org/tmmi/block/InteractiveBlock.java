@@ -17,31 +17,22 @@ import java.util.List;
 
 public abstract class InteractiveBlock extends Block {
     public static Collection<InteractiveBlock> instances = new HashSet<>();
-    private final Inventory gui;
 
-    public InteractiveBlock(Material material, org.bukkit.block.Block loc, ItemStack item, Inventory gui) {
+    public InteractiveBlock(Material material, org.bukkit.block.Block loc, ItemStack item) {
         super(material, loc, item);
-        this.gui = gui;
         instances.add(this);
     }
-    public InteractiveBlock(Material material, Location loc, ItemStack item, Inventory gui) {
+    public InteractiveBlock(Material material, Location loc, ItemStack item) {
         super(material, loc, item);
-        this.gui = gui;
         instances.add(this);
     }
-    public InteractiveBlock(Material material, org.bukkit.block.Block loc, Inventory gui) {
+    public InteractiveBlock(Material material, org.bukkit.block.Block loc) {
         super(material, loc);
-        this.gui = gui;
         instances.add(this);
     }
-    public InteractiveBlock(Material material, Location loc, Inventory gui) {
+    public InteractiveBlock(Material material, Location loc) {
         super(material, loc);
-        this.gui = gui;
         instances.add(this);
-    }
-
-    public Inventory getGui() {
-        return gui;
     }
 
     public abstract void onClick(Action action, Player player, PlayerInteractEvent event);

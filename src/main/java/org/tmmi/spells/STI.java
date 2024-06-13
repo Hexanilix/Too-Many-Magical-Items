@@ -19,8 +19,8 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
-import static org.tmmi.Main.log;
-import static org.tmmi.Main.plugin;
+import static org.hetils.Util.nearestEntity;
+import static org.tmmi.Main.*;
 
 public class STI extends Spell {
     public enum Stat {
@@ -74,7 +74,7 @@ public class STI extends Spell {
             case DMG -> {
                 for (int i = 0; i < 20; i++) {
                     loc.add(loc.getDirection());
-                    Entity e = Main.nearestEntity(loc, 0.25, List.of(p));
+                    Entity e = nearestEntity(loc, 0.25, List.of(p));
                     if (e != null) {
                         EntityMultiplier em = EntityMultiplier.getOrNew(e);
                         em.addDmg(multi);
@@ -86,8 +86,7 @@ public class STI extends Spell {
                                         5, e.getBoundingBox().getWidthX()/4, e.getBoundingBox().getHeight()/4, e.getBoundingBox().getWidthZ()/4, 0.1);
                             }
                         }.runTaskTimer(plugin, 0, 0);
-
-                        new Thread(() -> {
+                        newThread(() -> {
                             try {
                                 Thread.sleep(eft);
                             } catch (InterruptedException ex) {

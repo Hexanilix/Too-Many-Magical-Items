@@ -20,6 +20,7 @@ import org.tmmi.spells.Spell;
 
 import java.util.*;
 
+import static org.hetils.Util.*;
 import static org.tmmi.Main.*;
 import static org.tmmi.spells.atributes.Weight.CANTRIP;
 import static org.tmmi.spells.atributes.Weight.SORCERY;
@@ -59,7 +60,7 @@ public class WeavePlayer {
         this.sorSize = sorSize;
         this.maxMana = maxMana;
         this.mana = 0;
-//        this.manaThread = new Thread(() -> {
+//        this.manaThread = newThread(() -> {
 //            try {
 //                while (true) {
 //                    if (handler != null) {
@@ -228,13 +229,20 @@ public class WeavePlayer {
         return Arrays.stream(player.getInventory().getContents()).anyMatch(i -> isSim(i, grandBook));
     }
 
+    private void bkgSetMain(Spell s) {
+        if (s == null || getCanSpells().contains(s) || getSorSpells().contains(s)) {
+            main = s;
+        } else {
+            if (s.getHandler().compareTo(player.getUniqueId()) != 0) log("Soft warning: Foreign spell used in inventory");
+        }
+    }
     public void setMain(Spell s) {
         if (s == null || getCanSpells().contains(s) || getSorSpells().contains(s)) {
             main = s;
         } else {
             if (s.getHandler().compareTo(player.getUniqueId()) == 0) {
                 addSpell(s);
-                setMain(s);
+                bkgSetMain(s);
                 main = s;
             } else log("Soft warning: Foreign spell used in inventory");
         }

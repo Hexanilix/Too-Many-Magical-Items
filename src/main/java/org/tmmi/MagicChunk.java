@@ -40,7 +40,7 @@ public class MagicChunk {
     }
     public static @Nullable MagicChunk get(World world, int x, int z) {
         for (MagicChunk m : insances)
-            if (m.world == world && m.x == x && m.z == z) return m;
+            if (m.getWorld() == world && m.getX() == x && m.getZ() == z) return m;
         return null;
     }
     public static @Nullable MagicChunk get(@NotNull Location loc) {
@@ -87,12 +87,20 @@ public class MagicChunk {
             neighbours.add(MagicChunk.get(world, x - 1, z - 1));
         }
         this.mana = mana;
+        this.world = world;
         insances.add(this);
-        this.world =    world;
     }
 
     public World getWorld() {
         return world;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getZ() {
+        return z;
     }
 
     public int mean() {
@@ -128,12 +136,19 @@ public class MagicChunk {
         return mana;
     }
 
-    public void addMana(int amount) {
+    public MagicChunk addMana(int amount) {
         mana += amount;
+        return this;
     }
 
-    public void subMana(int m) {
+    public MagicChunk subMana(int m) {
         mana -= m;
+        return this;
+    }
+
+    public MagicChunk setMana(int amnt) {
+        this.mana = amnt;
+        return this;
     }
 
     public void update() {
