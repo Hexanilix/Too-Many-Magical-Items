@@ -1,4 +1,4 @@
-package org.tmmi;
+package org.tmmi.events;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

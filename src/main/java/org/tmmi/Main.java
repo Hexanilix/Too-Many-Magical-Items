@@ -6,6 +6,10 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.data.Directional;
+import org.bukkit.block.data.Levelled;
 import org.bukkit.command.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
@@ -55,6 +59,7 @@ import java.util.logging.Level;
 
 import static org.hetils.Util.*;
 import static org.tmmi.Element.getItem;
+import static org.tmmi.Structure.setData;
 import static org.tmmi.WeavePlayer.getOrNew;
 import static org.tmmi.WeavePlayer.getWeaver;
 import static org.tmmi.block.Presence.*;
@@ -596,6 +601,149 @@ public class Main extends JavaPlugin {
                                                 }
                                             }
                                         }
+                                        case "struct" -> {
+                                            Map<Character, Material> map = new HashMap<>();
+                                            map.put('A', Material.AMETHYST_BLOCK);
+                                            map.put('O', Material.CRYING_OBSIDIAN);
+                                            map.put('G', Material.GILDED_BLACKSTONE);
+                                            map.put('T', Material.BIRCH_TRAPDOOR);
+                                            map.put('S', Material.OAK_STAIRS);
+                                            map.put('K', Material.OAK_TRAPDOOR);
+                                            map.put('D', Material.DARK_OAK_WOOD);
+                                            map.put('C', Material.CHISELED_BOOKSHELF);
+                                            map.put('L', Material.LECTERN);
+                                            map.put('U', Material.CAULDRON);
+                                            map.put('R', Material.REINFORCED_DEEPSLATE);
+                                            new Structure(new String[][]{
+                                                    new String[]{
+                                                            "  STS  ",
+                                                            " AGDGA ",
+                                                            "SGGGGGS",
+                                                            "TDGGGDT",
+                                                            "SGGGGGS",
+                                                            " AGDGA ",
+                                                            "  STS   "
+                                                    },
+                                                    new String[]{
+                                                            "",
+                                                            " OSLSO ",
+                                                            " SULUS ",
+                                                            " LLRLL ",
+                                                            " SULUS ",
+                                                            " OSLSO ",
+                                                            ""
+                                                    },
+                                                    new String[]{
+                                                            ""
+                                                    },
+                                                    new String[]{
+                                                            "",
+                                                            " C   C ",
+                                                            "",
+                                                            "",
+                                                            "",
+                                                            " C   C ",
+                                                            ""
+                                                    },
+                                                    new String[]{
+                                                            "",
+                                                            " K   K ",
+                                                            "",
+                                                            "",
+                                                            "",
+                                                            " K   K ",
+                                                            ""
+                                                    },
+                                            }, map, null, null).build(player.getLocation());
+                                            String[][] mask = new String[][]{
+                                                    new String[]{
+                                                            " | |S|NO|S| | ",
+                                                            " | | | | | | ",
+                                                            "E| | | | | |W",
+                                                            "WO| | | | | |EO",
+                                                            "E| | | | | |W",
+                                                            " | | | | | | ",
+                                                            " | |N|SO|N| | "
+                                                    },
+                                                    new String[]{
+                                                            " | | | | | | ",
+                                                            " | | |N| | | ",
+                                                            " | | |N| | | ",
+                                                            " |W|W| |E|E| ",
+                                                            " | | |S| | | ",
+                                                            " | | |S| | | ",
+                                                            " | | | | | | "
+                                                    },
+                                                    new String[]{
+                                                            " | | | | | | ",
+                                                            " | | | | | | ",
+                                                            " | | | | | | ",
+                                                            " | | | | | | ",
+                                                            " | | | | | | ",
+                                                            " | | | | | | ",
+                                                            " | | | | | | "
+                                                    },
+                                                    new String[]{
+                                                            " | | | | | | ",
+                                                            " |E| | | |W| ",
+                                                            " | | | | | | ",
+                                                            " | | | | | | ",
+                                                            " | | | | | | ",
+                                                            " |E| | | |W| ",
+                                                            " | | | | | | "
+                                                    },
+                                                    new String[]{},
+                                                    new String[]{}
+                                            };
+                                            StringBuilder sb = new StringBuilder();
+                                            for (String[] str : mask) {
+                                                for (String sti : str)
+                                                    sb.append(sti).append("|");
+                                                sb.append("|");
+                                            }
+                                            new BukkitRunnable() {
+                                                final int zt = mask[0].length;
+                                                final int xt = mask[0][0].split("\\|").length;
+                                                final int cx = (int) Math.floor(player.getLocation().getX());
+                                                final int cy = (int) Math.floor(player.getLocation().getY());
+                                                final int cz = (int) Math.floor(player.getLocation().getZ());
+                                                final int ar = zt*xt+1;
+                                                final World w = player.getWorld();
+                                                final Map<Character, Object> mp = Map.of(
+                                                        'N', BlockFace.NORTH,
+                                                        'S', BlockFace.SOUTH,
+                                                        'E', BlockFace.EAST,
+                                                        'W', BlockFace.WEST,
+                                                        'O', Structure.SBD.Open.TRUE
+                                                );
+                                                final String[] s = sb.toString().split("\\|");
+                                                int x = 0;
+                                                @Override
+                                                public void run() {
+                                                    while (true) {
+                                                        x++;
+                                                        if (x >= s.length) {
+                                                            cancel();
+                                                            break;
+                                                        }
+                                                        if (!s[x].replace(" ", "").isEmpty()) {
+                                                            org.bukkit.block.Block b = w.getBlockAt( cx+((x%ar)%xt), cy+(x /ar), cz+((x % ar)/zt));
+                                                            for (int i = 0; i < s[x].length(); i++)
+                                                                setData(b, mp.get(s[x].charAt(i)), true, true);
+                                                            break;
+                                                        }
+                                                    }
+                                                }
+                                            }.runTaskTimer(plugin, 10, 2);
+                                        }
+                                        case "fill" -> {
+                                            ManaCauldron m = new ManaCauldron(player.getTargetBlockExact(5));
+                                            m.addMana(Integer.parseInt(args[1]));
+                                        }
+                                        case "checkmc" -> {
+                                            org.bukkit.block.Block b = player.getTargetBlockExact(5);
+                                            log(org.tmmi.block.Block.get(b.getLocation().clone().subtract(0.5, 0.5, 0.5)));
+                                        }
                                         case "show_mana" -> {
                                             newThread(() -> {
                                                 for (int i = 0; i < 9; i++) {
@@ -813,7 +961,6 @@ public class Main extends JavaPlugin {
             }
             return true;
         }
-
         public static class cmdTabCom implements TabCompleter {
             @Nullable
             @Override
@@ -902,6 +1049,19 @@ public class Main extends JavaPlugin {
                 return tab;
             }
         }
+    }
+
+    public static void setCauldronFillLevel(org.bukkit.block.@NotNull Block b, int i) {
+        if (b.getType() == Material.CAULDRON || b.getType() == Material.WATER_CAULDRON)
+            if (i > -1 && i < 4) {
+                if (i == 0) b.setType(Material.CAULDRON);
+                else {
+                    if (b.getType() != Material.WATER_CAULDRON) b.setType(Material.WATER_CAULDRON);
+                    Levelled l = (Levelled) b.getBlockData();
+                    l.setLevel(i);
+                    b.setBlockData(l);
+                }
+            }
     }
 
     public boolean loadClasses() {
@@ -1113,12 +1273,11 @@ public class Main extends JavaPlugin {
         }
         @EventHandler
         public void breakBlock(@NotNull BlockBreakEvent event) {
-            for (Block l : Block.blocks) {
+            for (Block l : Block.blocks)
                 if (isSimBlk(l.getBlock().getLocation(), event.getBlock().getLocation())) {
                     l.remove(event.getPlayer().getGameMode() != GameMode.CREATIVE);
-                    break;
+                    return;
                 }
-            }
         }
 //        @EventHandler
 //        public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
@@ -1237,6 +1396,8 @@ public class Main extends JavaPlugin {
             fm.saveData();
             for (SpellAbsorbingBlock s : SpellAbsorbingBlock.instances)
                 if (s.getMainThread() != null) s.getMainThread().interrupt();
+            for (WeavingTable w : WeavingTable.instances)
+                w.onBreak();
         }
     }
 }

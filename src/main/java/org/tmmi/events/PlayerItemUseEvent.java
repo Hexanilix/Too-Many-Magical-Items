@@ -3,7 +3,6 @@ package org.tmmi.events;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
-import org.tmmi.PlayerEvent;
 
 public class PlayerItemUseEvent extends PlayerEvent {
     private final ItemStack itemStack;

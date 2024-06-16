@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -12,8 +13,15 @@ import java.util.HashSet;
 import static org.hetils.Util.isSimBlk;
 import static org.tmmi.Main.log;
 
-public abstract class Block {
+public class Block {
     public static Collection<Block> blocks = new HashSet<>();
+
+    public static @Nullable Block get(Location loc) {
+        for (Block b : blocks)
+            if (isSimBlk(b.getBlock(), loc.getBlock()))
+                return b;
+        return null;
+    }
 
     public static class BlockLocationExists extends Exception {
         public BlockLocationExists(String e) {
@@ -61,7 +69,6 @@ public abstract class Block {
 
     public final void remove(boolean drop) {
         blocks.remove(this);
-        log("jhbrefg");
         if (this instanceof InteractiveBlock)
             InteractiveBlock.instances.remove(this);
         if (drop) block.getWorld().dropItem(block.getLocation().add(0.5,0.5,0.5), item);
@@ -74,7 +81,18 @@ public abstract class Block {
         return block.getLocation();
     }
 
-    public abstract String toJSON();
+    public String json() {return null;}
+
+    public final @NotNull String toJSON() {
+        return  "\t\t{\n" +
+                "\t\"type\":\"" + Type.getType(this.getClass().getSimpleName().toUpperCase()) + "\",\n" +
+                "\t\"world\":\"" + this.getWorld().getName() + "\",\n" +
+                "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
+                "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
+                "\t\"z\":\"" + this.getLoc().getZ() + "\"" +
+                (json() == null ? "" : ",\n" + json() + "\n") +
+                "}";
+    }
 
     protected World getWorld() {
         return block.getWorld();

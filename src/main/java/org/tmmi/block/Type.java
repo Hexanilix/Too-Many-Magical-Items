@@ -5,30 +5,33 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 public enum Type {
-    CRAFTING_CAULDRON,
-    FORCE_FIELD,
-    SPELL_SUCKER,
-    PRESENCE_DETECTOR,
-    SPELL_WEAVER,
-    WEAVING_TABLE;
+    CRAFTINGCAULDRON,
+    FORCEFIELD,
+    SPELLSUCKER,
+    PRESENCEDETECTOR,
+    SPELLWEAVER,
+    WEAVINGTABLE;
 
     @Contract(pure = true)
     public static @Nullable Type getType(@NotNull String s) {
         switch (s.toUpperCase()) {
-            case "CRAFTING_CAULDRON" -> {
-                return CRAFTING_CAULDRON;
+            case "CRAFTINGCAULDRON" -> {
+                return CRAFTINGCAULDRON;
             }
-            case "FORCE_FIELD" -> {
-                return FORCE_FIELD;
+            case "FORCEFIELD" -> {
+                return FORCEFIELD;
             }
-            case "SPELL_SUCKER" -> {
-                return SPELL_SUCKER;
+            case "SPELLSUCKER" -> {
+                return SPELLSUCKER;
             }
-            case "PRESENCE_DETECTOR" -> {
-                return PRESENCE_DETECTOR;
+            case "PRESENCEDETECTOR" -> {
+                return PRESENCEDETECTOR;
             }
-            case "SPELL_WEAVER" -> {
-                return SPELL_WEAVER;
+            case "SPELLWEAVER" -> {
+                return SPELLWEAVER;
+            }
+            case "WEAVINGTABLE" -> {
+                return WEAVINGTABLE;
             }
         }
         return null;

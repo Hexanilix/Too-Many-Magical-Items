@@ -103,7 +103,7 @@ public class ForceField extends InteractiveBlock {
     }
 
     @Override
-    public String toJSON() {
+    public String json() {
         return  "\t\t{\n" +
                 "\t\"type\":\"SPELL_WEAVER\",\n" +
                 "\t\"world\":\"" + this.getWorld().getName() + "\",\n" +

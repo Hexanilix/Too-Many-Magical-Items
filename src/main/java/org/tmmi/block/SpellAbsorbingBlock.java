@@ -70,15 +70,7 @@ public class SpellAbsorbingBlock extends Block {
     }
 
     @Override
-    public String toJSON() {
-        return  "\t\t{\n" +
-                "\t\"type\":\"SPELL_SUCKER\",\n" +
-                "\t\"world\":\"" + this.getWorld().getName() + "\",\n" +
-                "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
-                "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
-                "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +
-                "\t\"magicules\":\"" + this.getMagicules() + "\"\n" +
-                "}";
-
+    public String json() {
+        return "\t\"magicules\":\"" + this.getMagicules() + "\"\n";
     }
 }

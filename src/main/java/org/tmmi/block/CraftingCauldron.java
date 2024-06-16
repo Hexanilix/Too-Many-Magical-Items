@@ -247,16 +247,4 @@ public class CraftingCauldron extends Block {
     public Boolean isGathering() {
         return isGathering;
     }
-
-    @Override
-    public String toJSON() {
-        return  "\t\t{\n" +
-                "\t\"type\":\"" + Type.CRAFTING_CAULDRON + "\",\n" +
-                "\t\"world\":\"" + this.getWorld().getName() + "\",\n" +
-                "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
-                "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
-                "\t\"z\":\"" + this.getLoc().getZ() + "\",\n" +
-                "}";
-
-    }
 }

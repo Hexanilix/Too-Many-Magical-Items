@@ -1,8 +1,6 @@
 package org.tmmi.events;
 
 
-import org.tmmi.PlayerEvent;
-
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;

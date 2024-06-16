@@ -154,11 +154,11 @@ public class FileManager {
                                 continue;
                             }
                             switch (st) {
-                                case CRAFTING_CAULDRON -> b = new CraftingCauldron(loc);
-                                case FORCE_FIELD -> b = new ForceField(loc);
-                                case SPELL_SUCKER -> new SpellAbsorbingBlock(loc);
-                                case SPELL_WEAVER -> new SpellWeaver(loc);
-                                case WEAVING_TABLE -> new WeavingTable(loc);
+                                case CRAFTINGCAULDRON -> b = new CraftingCauldron(loc);
+                                case FORCEFIELD -> b = new ForceField(loc);
+                                case SPELLSUCKER -> new SpellAbsorbingBlock(loc);
+                                case SPELLWEAVER -> new SpellWeaver(loc);
+                                case WEAVINGTABLE -> new WeavingTable(loc);
 //                                case PRESENCE_DETECTOR -> new Presence(loc);
                             }
                         } catch (JSONException ignore) {}

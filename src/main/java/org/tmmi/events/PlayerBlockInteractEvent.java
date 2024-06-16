@@ -4,7 +4,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.block.Block;
-import org.tmmi.PlayerEvent;
 
 public class PlayerBlockInteractEvent extends PlayerEvent {
     private final Block block;

@@ -1,7 +1,6 @@
-package org.tmmi;
+package org.tmmi.events;
 
 import org.bukkit.entity.Player;
-import org.tmmi.events.Event;
 
 public abstract class PlayerEvent extends Event {
     private final Player player;

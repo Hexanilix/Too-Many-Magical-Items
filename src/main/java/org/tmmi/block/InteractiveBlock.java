@@ -15,7 +15,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-public abstract class InteractiveBlock extends Block {
+public class InteractiveBlock extends Block {
     public static Collection<InteractiveBlock> instances = new HashSet<>();
 
     public InteractiveBlock(Material material, org.bukkit.block.Block loc, ItemStack item) {
@@ -35,7 +35,9 @@ public abstract class InteractiveBlock extends Block {
         instances.add(this);
     }
 
-    public abstract void onClick(Action action, Player player, PlayerInteractEvent event);
+    public void onClick(Action action, Player player, PlayerInteractEvent event) {
+
+    }
 
     public void onGUIClick(InventoryAction action, ItemStack item, Player player, InventoryClickEvent event) {
 
