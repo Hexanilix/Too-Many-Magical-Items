@@ -46,6 +46,7 @@ public class Block {
             onPlace();
         } catch (BlockLocationExists e) {
             e.printStackTrace();
+            blocks.remove(this);
         }
     }
     public Block(Material material, @NotNull Location loc, ItemStack item) {
@@ -90,8 +91,7 @@ public class Block {
                 "\t\"x\":\"" + this.getLoc().getX() + "\",\n" +
                 "\t\"y\":\"" + this.getLoc().getY() + "\",\n" +
                 "\t\"z\":\"" + this.getLoc().getZ() + "\"" +
-                (json() == null ? "" : ",\n" + json() + "\n") +
-                "}";
+                (json() == null ? "" : ",\n" + json()) + "\n}";
     }
 
     protected World getWorld() {

@@ -18,14 +18,13 @@ public enum AreaEffect {
     public static final ItemStack WIDE_ITEM = newItemStack(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Wide", 824575);
     public static final ItemStack AREA_ITEM = newItemStack(Material.WRITABLE_BOOK, ChatColor.DARK_AQUA + "Area", 824576);
     @Contract(pure = true)
-    public static AreaEffect getAreaEffect(@NotNull String type) {
-        AreaEffect c = null;
-        switch (type) {
-            case "DIRECT" -> c = DIRECT;
-            case "WIDE" -> c = WIDE;
-            case "AREA" -> c = AREA;
-        }
-        return c;
+    public static @Nullable AreaEffect getAreaEffect(@NotNull String type) {
+        return switch (type) {
+            case "DIRECT" -> DIRECT;
+            case "WIDE" -> WIDE;
+            case "AREA" -> AREA;
+            default -> null;
+        };
     }
     @Contract(pure = true)
     public static @Nullable AreaEffect getAreaEffect(ItemStack item) {
@@ -35,17 +34,11 @@ public enum AreaEffect {
         return null;
     }
     public static @Nullable ItemStack getItem(AreaEffect effect) {
-        if (effect == null) return null;
-        switch (effect) {
-            case DIRECT -> {
-                return DIRECT_ITEM;
-            }
-            case AREA -> {
-                return AREA_ITEM;
-            }
-            default -> {
-                return WIDE_ITEM;
-            }
-        }
+        return switch (effect) {
+            case DIRECT -> DIRECT_ITEM;
+            case AREA -> AREA_ITEM;
+            case WIDE -> WIDE_ITEM;
+            case null -> null;
+        };
     }
 }

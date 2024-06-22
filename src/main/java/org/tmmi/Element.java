@@ -28,15 +28,14 @@ public enum Element {
     public static final List<Biome> WATER_BIOMES = new ArrayList<>();
     public static final List<Biome> AIR_BIOMES = new ArrayList<>();
     @Contract(pure = true)
-    public static Element getElement(@NotNull String element) {
-        Element e = null;
-        switch (element) {
-            case "FIRE" -> e = FIRE;
-            case "EARTH" -> e = EARTH;
-            case "WATER" -> e = WATER;
-            case "AIR" -> e = AIR;
-        }
-        return e;
+    public static @Nullable Element getElement(@NotNull String element) {
+        return switch (element) {
+            case "FIRE" -> FIRE;
+            case "EARTH" -> EARTH;
+            case "WATER" -> WATER;
+            case "AIR" -> AIR;
+            default -> null;
+        };
     }
     @Contract(pure = true)
     public static @Nullable Element getElement(ItemStack item) {
@@ -47,29 +46,25 @@ public enum Element {
         return null;
     }
     @Contract(pure = true)
-    public static ItemStack getItem(Element element) {
-        ItemStack i = null;
-        if (element != null)
-            switch (element) {
-                case AIR -> i = AIR_ITEM;
-                case EARTH -> i = EARTH_ITEM;
-                case WATER -> i = WATER_ITEM;
-                default -> i = FIRE_ITEM;
-            }
-        return i;
+    public static @Nullable ItemStack getItem(Element element) {
+        return switch (element) {
+            case AIR -> AIR_ITEM;
+            case EARTH -> EARTH_ITEM;
+            case WATER -> WATER_ITEM;
+            case FIRE -> FIRE_ITEM;
+            case null -> null;
+        };
     }
 
     @Contract(pure = true)
-    public static List<Biome> getOptimalBiomes(Element element) {
-        List<Biome> b = new ArrayList<>();
-        if (element != null)
-            switch (element) {
-                case AIR -> b = AIR_BIOMES;
-                case EARTH -> b = EARTH_BIOMES;
-                case WATER -> b = WATER_BIOMES;
-                default -> b = FIRE_BIOMES;
-            }
-        return b;
+    public static @Nullable List<Biome> getOptimalBiomes(Element element) {
+        return switch (element) {
+            case AIR -> AIR_BIOMES;
+            case EARTH -> EARTH_BIOMES;
+            case WATER -> WATER_BIOMES;
+            case FIRE -> FIRE_BIOMES;
+            case null -> null;
+        };
     }
 }
 

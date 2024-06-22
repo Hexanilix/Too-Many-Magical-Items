@@ -2,19 +2,19 @@ package org.tmmi.spells.atributes;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public enum Weight {
     CANTRIP,
     SORCERY,
     INCANTATION;
     @Contract(pure = true)
-    public static Weight getSpellType(@NotNull String type) {
-        Weight s = null;
-        switch (type) {
-            case "CANTRIP" -> s = CANTRIP;
-            case "SORCERY" -> s = SORCERY;
-            case "INCANTATION" -> s = INCANTATION;
-        }
-        return s;
+    public static @Nullable Weight getSpellType(@NotNull String type) {
+        return switch (type) {
+            case "CANTRIP" -> CANTRIP;
+            case "SORCERY" -> SORCERY;
+            case "INCANTATION" -> INCANTATION;
+            default -> null;
+        };
     }
 }

@@ -1,31 +1,51 @@
 package org.tmmi.block;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
-import org.tmmi.Main;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 
+import static org.hetils.Util.isSimBlk;
 import static org.hetils.Util.newItemStack;
-import static org.tmmi.Main.log;
 import static org.tmmi.Main.setCauldronFillLevel;
 
 public class ManaCauldron extends Block {
     public static Collection<ManaCauldron> instances = new HashSet<>();
     public static final ItemStack item = newItemStack(Material.CAULDRON, "ManaCaul", 3435879);
 
-
     final int max = 1000;
     int mana = 0;
-    public ManaCauldron(org.bukkit.block.Block block) {
-        super(Material.CAULDRON, block, item);
+    public ManaCauldron(@NotNull Location loc) {
+        this(loc.getBlock(), 0);
     }
-
+    public ManaCauldron(@NotNull Location loc, int mana) {
+        this(loc.getBlock(), mana);
+    }
+    public ManaCauldron(org.bukkit.block.Block block) {
+        this(block, 0);
+    }
+    public ManaCauldron(org.bukkit.block.Block block, int mana) {
+        super(Material.CAULDRON, block, item);
+        this.mana = mana;
+        update();
+        instances.add(this);
+    }
+    public static @NotNull ManaCauldron getOrNew(org.bukkit.block.Block block) {
+        for (ManaCauldron m : instances)
+            if (isSimBlk(m.getBlock(), block))
+                return m;
+        return new ManaCauldron(block);
+    }
     public int getMana() {
         return mana;
+    }
+    public void setMana(int a) {
+        this.mana = a;
+        update();
     }
     public void addMana(int a) {
         this.mana+=a;

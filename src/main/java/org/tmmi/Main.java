@@ -6,10 +6,8 @@ import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.*;
-import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Levelled;
+import org.bukkit.block.data.type.ChiseledBookshelf;
 import org.bukkit.command.*;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
@@ -28,12 +26,15 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.BookMeta;
+import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.inventory.meta.MapMeta;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
+import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -51,11 +52,9 @@ import org.tmmi.items.ItemCommand;
 import org.tmmi.items.SpellBook;
 import org.tmmi.spells.atributes.Weight;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Stream;
 
 import static org.hetils.Util.*;
 import static org.tmmi.Element.getItem;
@@ -91,11 +90,6 @@ public class Main extends JavaPlugin {
     public static final Property<Boolean> LEGACY_STI_SPELL = new Property<>("LEGACY_STI_SPELL", false);
 
     public static final Property<Boolean> DEBUG = new Property<>("DEBUG_n_TEST", false);
-
-    public static String DTFL;
-    public static String CONF_FILE;
-    public static String BLOCK_DATAFILE;
-    public static String PLAYER_DATA_FOLDER;
     public static Map<String, Object> properties = new HashMap<>();
 
     public static Thread autosave;
@@ -173,51 +167,10 @@ public class Main extends JavaPlugin {
         } else {
             loadClasses();
             plugin = this;
-            DTFL = this.getDataFolder().getAbsolutePath() + "\\";
-            Path path = Path.of(DTFL);
-            if (!Files.exists(path)) {
-                if (new File(DTFL).mkdir()) {
-                    log(Level.INFO, "Created data folder");
-                } else {
-                    super.onDisable();
-                }
-            }
+            fm.createFiles();
+            fm.loadConfig();
             Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setExecutor(new cmd());
             Objects.requireNonNull(Bukkit.getPluginCommand("tmmi")).setTabCompleter(new cmd.cmdTabCom());
-            CONF_FILE = DTFL + "config.yml";
-            if (!Files.exists(Path.of(CONF_FILE))) {
-                try {
-                    Files.createFile(Path.of(CONF_FILE));
-                    fm.updateConfig();
-                    log(Level.WARNING, "Created new config file since it was absent");
-                } catch (IOException e) {
-                    super.onDisable();
-                    log(Level.SEVERE, "Could not create config file at '" + CONF_FILE + "'\nLog:\n" + String.join(Arrays.asList(e.getStackTrace()).toString()) + "\n");
-                    return;
-                }
-                try {
-                    FileWriter writer = new FileWriter(CONF_FILE);
-                    for (Property p : Property.properties) writer.append(p.p()).append(": ").append(p.toString()).append("\n");
-                    writer.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    super.onDisable();
-                }
-            }
-            //Reading yml
-                int conf = fm.loadConfig();
-                int v = FileVersion.versionDiff(FILE_VERSION.v(), FILES_VERSION);
-                if (v != 0) {
-                    if (v < 0) {
-                        log(Level.WARNING, "config.yml is obsolete, updating contents of config.yml");
-                        fm.updateConfig();
-                    } else log(Level.SEVERE, "Plugin cannot read properly files higher than " + FILES_VERSION + ": config.yml file version is " + FILE_VERSION.v().toString() +". Plugin will use default values in case of a different naming scheme. Use [link] to convert to older file versions");
-                }
-                if (conf < properties.size()) {
-                    log(Level.WARNING, "Some config properties not found," +
-                            "not found properties remain at default values. Updating config.yml");
-                    fm.updateConfig();
-                }
             if (ENABLED.v()) {
                 MagicChunk.treeDepth = CHUNK_TREE_DEPTH.v();
                 Spell.mxS = SPELL_SPEED_CAP.v();
@@ -229,7 +182,21 @@ public class Main extends JavaPlugin {
                             AUTOSAVE_FREQUENCY.setV(10);
                             fm.updateConfig();
                         }
-                        fm.startAutosave();
+                        if (AUTOSAVE.v()) {
+                            autosave = newThread(() -> {
+                                try {
+                                    while (true) {
+                                        Thread.sleep(AUTOSAVE_FREQUENCY.v() * 1000L);
+                                        fm.saveData();
+                                        if (GARBAGE_COLLECTION.v()) System.gc();
+                                        if (AUTOSAVE_MSG.v()) log(AUTOSAVE_MSG_VALUE.v());
+                                    }
+                                } catch (InterruptedException e) {
+                                    if (!DISABLED) log(Level.WARNING, "Autosave interrupted. Plugin data will not be saved until plugin disable and any new data acquired this point will be lost in case of a unprecedented stop");
+                                }
+                            });
+                            autosave.start();
+                        }
                         fm.loadBlockData();
                         background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ", unclickable);
                         setItems();
@@ -262,6 +229,30 @@ public class Main extends JavaPlugin {
 //        }
 //        return s;
 //    }
+
+    public static void addBookToChiseledBookshelf(org.bukkit.block.@NotNull Block block, int slot, ItemStack book) {
+        if (block.getType() == Material.CHISELED_BOOKSHELF) {
+            if (block.getState() instanceof org.bukkit.block.ChiseledBookshelf bookshelf)
+                bookshelf.getInventory().setItem(slot, book);
+            block.getState().update();
+        }
+    }
+    public static @NotNull ItemStack newBook(String name, List<String> lore, int data, String author, String title, BookMeta.Generation gen, String... pages) {
+        ItemStack i = new ItemStack(Material.WRITTEN_BOOK);
+        BookMeta m = (BookMeta) i.getItemMeta();
+        assert m != null;
+        m.setDisplayName(name);
+        if (data > 0)
+            m.setCustomModelData(data);
+        if (lore != null)
+            m.setLore(lore);
+        m.setAuthor(author);
+        m.setTitle(title);
+        m.setGeneration(gen);
+        m.setPages(pages);
+        i.setItemMeta(m);
+        return i;
+    }
 
     private class cmd implements CommandExecutor {
         @Override
@@ -405,6 +396,37 @@ public class Main extends JavaPlugin {
                             default -> {
                                 if (DEBUG.v()) {
                                     switch (args[0].toLowerCase()) {
+                                        case "apa" -> {
+                                            newThread(new Thread() {
+                                                int d = 20;
+                                                int v = 15;
+                                                int i = 0;
+                                                World world = player.getWorld();
+                                                Location c = new Location(world, 3.5, 123.5, 3.5);
+                                                final Location loc = player.getTargetBlockExact(5).getLocation();
+                                                static double d(double x, float v) {return (-Math.pow(x*v-3, 2)+9)/v;}
+                                                @Override
+                                                public void run() {
+                                                    double bx = loc.getX()+0.5;
+                                                    double bz = loc.getZ()+0.5;
+                                                    double by = loc.getY()+0.7;
+                                                    double x = (c.getX() - bx) / v;
+                                                    double z = (c.getZ() - bz) / v;
+                                                    try {
+                                                        while (i <= d) {
+                                                            Thread.sleep(5);
+                                                            log(z);
+                                                            log(x);
+                                                            for (int j = Math.max(i - (d - v), 0); j < Math.min(v, i); j++) {
+                                                                Location loc = new Location(world, bx + x * j, by + d(Math.abs(x * j), 6f), bz + z * j);
+                                                                world.spawnParticle(Particle.COMPOSTER, loc, 1, 0, 0, 0, 0);
+                                                            }
+                                                            i++;
+                                                        }
+                                                    } catch (InterruptedException ignore) {}
+                                                }
+                                            }).start();
+                                        }
                                         case "jes" -> {
                                             new BukkitRunnable() {
                                                 boolean w = false;
@@ -500,16 +522,6 @@ public class Main extends JavaPlugin {
                                                 }
                                             }.runTaskTimer(plugin, 0, 0);
                                         }
-                                        case "bee" -> {
-                                            for (int i = 0; i < Integer.parseInt(args[1]); i++) {
-                                                player.getWorld().spawnEntity(player.getLocation(), EntityType.BEE);
-                                            }
-                                        }
-                                        case "test" -> {
-                                            new ATK(null, player.getUniqueId(), "ATK", Weight.CANTRIP, 1, 0, 10,
-                                                    Element.FIRE, null, AreaEffect.DIRECT, Double.parseDouble(args[1]), 50, 2)
-                                                    .cast(player.getEyeLocation(), 1);
-                                        }
                                         case "spell" -> {
                                             WeavePlayer w = getOrNew(player);
                                             if (args.length > 1) {
@@ -537,9 +549,6 @@ public class Main extends JavaPlugin {
                                         case "fm" -> {
                                             Objects.requireNonNull(player.getWorld()).spawnParticle(Particle.FLAME, player.getLocation().clone().add(0, 1, 0), 10, 0.21, 0.4, 0.21, 0);
                                         }
-                                        case "box" -> {
-                                            player.getBoundingBox().expand(1, 1, 1);
-                                        }
                                         case "getwand" -> {
                                             WeavePlayer w = getWeaver(player);
                                             if (w == null) {
@@ -550,26 +559,132 @@ public class Main extends JavaPlugin {
                                             player.getInventory().addItem(new FocusWand(player.getUniqueId()));
                                         }
                                         case "xp" -> {
-                                            World w = player.getWorld();
-                                            int x = player.getLocation().getBlockX();
-                                            int y = player.getLocation().getBlockY();
-                                            int z = player.getLocation().getBlockZ();
-                                            int m = Integer.parseInt(args[1]);
-                                            for (int i = x-m; i < x+ m; i++)
-                                                for (int j = y-m; j < y + m; j++)
-                                                    for (int k = z-m; k < z + m; k++)
-                                                        w.spawnEntity(new Location(w, i, j, k), EntityType.EXPERIENCE_BOTTLE);
-                                        }
-                                        case "tnt" -> {
-                                            World w = player.getWorld();
-                                            int x = player.getLocation().getBlockX();
-                                            int y = player.getLocation().getBlockY();
-                                            int z = player.getLocation().getBlockZ();
-                                            int m = Integer.parseInt(args[1]);
-                                            for (int i = x-m; i < x+ m; i++)
-                                                for (int j = y-m; j < y + m; j++)
-                                                    for (int k = z-m; k < z + m; k++)
-                                                        w.spawnEntity(player.getLocation(), EntityType.TNT_MINECART);
+                                            new BukkitRunnable() {
+                                                final Random r = new Random();
+                                                World world = player.getWorld();
+                                                org.bukkit.block.Block block = player.getTargetBlockExact(5);
+                                                final Location l = block.getLocation().add(.5, .5, .5);
+                                                int i = 0;
+                                                @Override
+                                                public void run() {
+                                                    i++;
+                                                    if (i > 100) {
+                                                        Spell s = new ATK(Bukkit.getPlayer("Hexanilix").getUniqueId(), "atk", Weight.CANTRIP, Element.FIRE, null, AreaEffect.DIRECT);
+                                                        new BukkitRunnable() {
+                                                            int i = 0;
+                                                            Item it = null;
+                                                            @Override
+                                                            public void run() {
+                                                                if (it == null) {
+                                                                    it = world.dropItem(block.getLocation().add(0.5, 1.5, 0.5), s.toItem());
+                                                                    it.setPickupDelay(101);
+                                                                    it.setGravity(false);
+                                                                    it.setVelocity(new Vector(0, 0.05, 0));
+                                                                }
+                                                                i++;
+                                                                world.spawnParticle(Particle.END_ROD, it.getLocation(), 1, 0, 0, 0, 0);
+                                                                if (i >= 100) {
+                                                                    world.spawnParticle(Particle.END_ROD, it.getLocation(), 10, 0.1, 0.1, 0.1, 0.1);
+                                                                    it.remove();
+                                                                    cancel();
+                                                                    List<org.bukkit.block.Block> sb = Stream.of(
+                                                                                    block.getLocation().add(4, 1, 0).getBlock(),
+                                                                                    block.getLocation().add(-4, 1, 0).getBlock(),
+                                                                                    block.getLocation().add(0, 1, 4).getBlock(),
+                                                                                    block.getLocation().add(0, 1, -4).getBlock())
+                                                                            .filter(blo -> ((ChiseledBookshelf) blo.getBlockData()).getOccupiedSlots().size() < 6)
+                                                                            .toList();
+                                                                    int a = r.nextInt(sb.size());
+                                                                    org.bukkit.block.ChiseledBookshelf cb = (org.bukkit.block.ChiseledBookshelf) sb.get(a).getState();
+                                                                    ChiseledBookshelf cd = (ChiseledBookshelf) cb.getBlockData();
+                                                                    Set<Integer> s = cd.getOccupiedSlots();
+                                                                    int[] fr = new int[6-s.size()];
+                                                                    int p = 0;
+                                                                    for (int j = 0; j < 6; j++)
+                                                                        if (!s.contains(j)) {
+                                                                            fr[p] = j;
+                                                                            p++;
+                                                                        }
+                                                                    int c = fr[r.nextInt(fr.length)];
+                                                                    cb.getInventory().setItem(c, newItemStack(Material.PAPER, String.valueOf(c)));
+                                                                    cd.setSlotOccupied(c, true);
+                                                                    cb.setLastInteractedSlot(c);
+                                                                    sb.get(a).setBlockData(cd);
+                                                                    Location loc = cb.getLocation().add(0, c > 2 ? 0.25 : 0.75, c%3==0 ? 0.1875 : (c%3==1 ? 0.5 : 0.8125));
+                                                                    world.spawnParticle(Particle.END_ROD, loc, 6, 0.02, 0.03, 0.02, 0.01);
+                                                                    world.playSound(loc, Sound.ENTITY_PLAYER_LEVELUP, 2, 1);
+                                                                }
+                                                            }
+                                                        }.runTaskTimer(plugin, 0, 0);
+                                                        cancel();
+                                                    }
+                                                    if (r.nextInt(10) > 8) {
+                                                        Sound s;
+                                                        switch (r.nextInt(4)) {
+                                                            case 0 -> s = Sound.ITEM_BOOK_PAGE_TURN;
+                                                            case 1 -> s = Sound.BLOCK_CHISELED_BOOKSHELF_INSERT_ENCHANTED;
+                                                            case 2 -> s = Sound.ENTITY_EXPERIENCE_ORB_PICKUP;
+                                                            default -> s = Sound.BLOCK_ENCHANTMENT_TABLE_USE;
+                                                        }
+                                                        world.spawnParticle(Particle.END_ROD, l.add(0, 0.05, 0), 5, 0.3, 0.3, 0.3, 0.1);
+                                                        world.playSound(l, s, 1F, (float) (r.nextInt(5)*0.1+0.8));
+                                                        List<ManaCauldron> list = Stream.of(
+                                                                        (ManaCauldron) org.tmmi.block.Block.get(block.getLocation().clone().add(1.5, -3, 1.5)),
+                                                                        (ManaCauldron) org.tmmi.block.Block.get(block.getLocation().clone().add(1.5, -3, -0.5)),
+                                                                        (ManaCauldron) org.tmmi.block.Block.get(block.getLocation().clone().add(-0.5, -3, 1.5)),
+                                                                        (ManaCauldron) org.tmmi.block.Block.get(block.getLocation().clone().add(-0.5, -3, -0.5)))
+                                                                .filter(Objects::nonNull).filter(m -> m.getMana() > 0).toList();
+                                                        ManaCauldron mc = (list.isEmpty() ? null : list.getFirst());
+                                                        for (ManaCauldron mac : list)
+                                                            if (mac.getMana() > mc.getMana()) mc = mac;
+                                                        Location loca = null;
+                                                        if (mc != null) {
+                                                            loca = mc.getLoc();
+                                                            mc.subMana(75);
+                                                        }
+                                                        if (loca == null) {
+                                                            Collection<Entity> av = world.getNearbyEntities(l, 2, 2, 2);
+                                                            for (Entity e : av)
+                                                                if (e instanceof Player as) {
+                                                                    WeavePlayer wa = WeavePlayer.getWeaver(as);
+                                                                    if (wa != null) {
+                                                                        loca = as.getLocation();
+                                                                        wa.subMana(10);
+                                                                        break;
+                                                                    }
+                                                                }
+                                                        }
+                                                        if (loca != null) {
+                                                            Location fl = loca;
+                                                            newThread(new Thread() {
+                                                                int d = 20;
+                                                                int v = 15;
+                                                                int i = 0;
+                                                                final Location loc = fl;
+                                                                static double d(double x, float v) {return (-Math.pow(x*v-3, 2)+9)/v;}
+                                                                @Override
+                                                                public void run() {
+                                                                    double bx = loc.getX()+0.5;
+                                                                    double bz = loc.getZ()+0.5;
+                                                                    double by = loc.getY()+0.7;
+                                                                    double x = (block.getX() +0.5 - bx) / v;
+                                                                    double z = (block.getZ()+ 0.5 - bz) / v;
+                                                                    try {
+                                                                        while (i <= d) {
+                                                                            Thread.sleep(5);
+                                                                            for (int j = Math.max(i - (d - v), 0); j < Math.min(v, i); j++) {
+                                                                                Location loc = new Location(world, bx + x * j, by + d(Math.abs(x * j), 6f), bz + z * j);
+                                                                                world.spawnParticle(Particle.COMPOSTER, loc, 1, 0, 0, 0, 0);
+                                                                            }
+                                                                            i++;
+                                                                        }
+                                                                    } catch (InterruptedException ignore) {}
+                                                                }
+                                                            }).start();
+                                                        }
+                                                    }
+                                                }
+                                            }.runTaskTimer(plugin, 0, 0);
                                         }
                                         case "set_mana" -> {
                                             MagicChunk mc = MagicChunk.getOrNew(player.getLocation()).setMana(Integer.parseInt(args[1]));
@@ -602,144 +717,15 @@ public class Main extends JavaPlugin {
                                             }
                                         }
                                         case "struct" -> {
-                                            Map<Character, Material> map = new HashMap<>();
-                                            map.put('A', Material.AMETHYST_BLOCK);
-                                            map.put('O', Material.CRYING_OBSIDIAN);
-                                            map.put('G', Material.GILDED_BLACKSTONE);
-                                            map.put('T', Material.BIRCH_TRAPDOOR);
-                                            map.put('S', Material.OAK_STAIRS);
-                                            map.put('K', Material.OAK_TRAPDOOR);
-                                            map.put('D', Material.DARK_OAK_WOOD);
-                                            map.put('C', Material.CHISELED_BOOKSHELF);
-                                            map.put('L', Material.LECTERN);
-                                            map.put('U', Material.CAULDRON);
-                                            map.put('R', Material.REINFORCED_DEEPSLATE);
-                                            new Structure(new String[][]{
-                                                    new String[]{
-                                                            "  STS  ",
-                                                            " AGDGA ",
-                                                            "SGGGGGS",
-                                                            "TDGGGDT",
-                                                            "SGGGGGS",
-                                                            " AGDGA ",
-                                                            "  STS   "
-                                                    },
-                                                    new String[]{
-                                                            "",
-                                                            " OSLSO ",
-                                                            " SULUS ",
-                                                            " LLRLL ",
-                                                            " SULUS ",
-                                                            " OSLSO ",
-                                                            ""
-                                                    },
-                                                    new String[]{
-                                                            ""
-                                                    },
-                                                    new String[]{
-                                                            "",
-                                                            " C   C ",
-                                                            "",
-                                                            "",
-                                                            "",
-                                                            " C   C ",
-                                                            ""
-                                                    },
-                                                    new String[]{
-                                                            "",
-                                                            " K   K ",
-                                                            "",
-                                                            "",
-                                                            "",
-                                                            " K   K ",
-                                                            ""
-                                                    },
-                                            }, map, null, null).build(player.getLocation());
-                                            String[][] mask = new String[][]{
-                                                    new String[]{
-                                                            " | |S|NO|S| | ",
-                                                            " | | | | | | ",
-                                                            "E| | | | | |W",
-                                                            "WO| | | | | |EO",
-                                                            "E| | | | | |W",
-                                                            " | | | | | | ",
-                                                            " | |N|SO|N| | "
-                                                    },
-                                                    new String[]{
-                                                            " | | | | | | ",
-                                                            " | | |N| | | ",
-                                                            " | | |N| | | ",
-                                                            " |W|W| |E|E| ",
-                                                            " | | |S| | | ",
-                                                            " | | |S| | | ",
-                                                            " | | | | | | "
-                                                    },
-                                                    new String[]{
-                                                            " | | | | | | ",
-                                                            " | | | | | | ",
-                                                            " | | | | | | ",
-                                                            " | | | | | | ",
-                                                            " | | | | | | ",
-                                                            " | | | | | | ",
-                                                            " | | | | | | "
-                                                    },
-                                                    new String[]{
-                                                            " | | | | | | ",
-                                                            " |E| | | |W| ",
-                                                            " | | | | | | ",
-                                                            " | | | | | | ",
-                                                            " | | | | | | ",
-                                                            " |E| | | |W| ",
-                                                            " | | | | | | "
-                                                    },
-                                                    new String[]{},
-                                                    new String[]{}
-                                            };
-                                            StringBuilder sb = new StringBuilder();
-                                            for (String[] str : mask) {
-                                                for (String sti : str)
-                                                    sb.append(sti).append("|");
-                                                sb.append("|");
-                                            }
-                                            new BukkitRunnable() {
-                                                final int zt = mask[0].length;
-                                                final int xt = mask[0][0].split("\\|").length;
-                                                final int cx = (int) Math.floor(player.getLocation().getX());
-                                                final int cy = (int) Math.floor(player.getLocation().getY());
-                                                final int cz = (int) Math.floor(player.getLocation().getZ());
-                                                final int ar = zt*xt+1;
-                                                final World w = player.getWorld();
-                                                final Map<Character, Object> mp = Map.of(
-                                                        'N', BlockFace.NORTH,
-                                                        'S', BlockFace.SOUTH,
-                                                        'E', BlockFace.EAST,
-                                                        'W', BlockFace.WEST,
-                                                        'O', Structure.SBD.Open.TRUE
-                                                );
-                                                final String[] s = sb.toString().split("\\|");
-                                                int x = 0;
-                                                @Override
-                                                public void run() {
-                                                    while (true) {
-                                                        x++;
-                                                        if (x >= s.length) {
-                                                            cancel();
-                                                            break;
-                                                        }
-                                                        if (!s[x].replace(" ", "").isEmpty()) {
-                                                            org.bukkit.block.Block b = w.getBlockAt( cx+((x%ar)%xt), cy+(x /ar), cz+((x % ar)/zt));
-                                                            for (int i = 0; i < s[x].length(); i++)
-                                                                setData(b, mp.get(s[x].charAt(i)), true, true);
-                                                            break;
-                                                        }
-                                                    }
-                                                }
-                                            }.runTaskTimer(plugin, 10, 2);
+                                            Structure.grandWeaver.build(player.getLocation());
+//                                            Structure.setData(player.getTargetBlockExact(5), false, false, BlockFace.SOUTH);
                                         }
                                         case "fill" -> {
-                                            ManaCauldron m = new ManaCauldron(player.getTargetBlockExact(5));
-                                            m.addMana(Integer.parseInt(args[1]));
+                                            ManaCauldron m = ManaCauldron.getOrNew(player.getTargetBlockExact(5));
+                                            m.setMana(Integer.parseInt(args[1]));
                                         }
+                                        case "add2c" -> addBookToChiseledBookshelf(player.getTargetBlockExact(5), 2,
+                                                newItemStack(Material.ENCHANTED_BOOK, "COOLL BOK"));
                                         case "checkmc" -> {
                                             org.bukkit.block.Block b = player.getTargetBlockExact(5);
                                             log(org.tmmi.block.Block.get(b.getLocation().clone().subtract(0.5, 0.5, 0.5)));
@@ -863,27 +849,78 @@ public class Main extends JavaPlugin {
                                                 }
                                             }
                                         }
+                                        case "update" -> player.getTargetBlockExact(5).getBlockData().createBlockState().update(true);
                                         case "suck" -> {
-                                            int s = Integer.parseInt(args[1]);
-                                            Collection<Entity> nearbyEntities = player.getWorld().getNearbyEntities(player.getEyeLocation(), s, s, s);
-                                            for (Entity e : nearbyEntities) {
-                                                if (e instanceof Item i) {
-                                                    ItemCommand.getOrNew(i).moveTo(player, 0.5);
+                                            Location l = player.getLocation().getBlock().getLocation();
+                                            final Structure s = Structure.grandWeaver;
+                                            final int zt = s.depth;
+                                            final int xt = s.width;
+                                            final int ar = zt*xt;
+                                            final int h = s.height*ar-1;
+                                            log(h);
+                                            log(s.height);
+                                            List<org.bukkit.block.Block> bl = new ArrayList<>();
+                                            new BukkitRunnable() {
+                                                int t = ar/2;
+                                                @Override
+                                                public void run() {
+                                                    Structure.SBD sb = s.getAt(t);
+                                                    while (sb != null && sb.m.isAir()) {
+                                                        if (t % ar <= 0) t += ar + (ar / 2);
+                                                        t--;
+                                                        sb = s.getAt(t);
+                                                    }
+                                                    if (sb == null) cancel();
+                                                    else {
+                                                        int y = t / ar;
+                                                        int z = (t % ar) / zt;
+                                                        int x = (t % ar) % xt;
+                                                        org.bukkit.block.Block b = l.clone().add(x, y, z).getBlock();
+                                                        b.setType(sb.m);
+                                                        setData(b, true, true, sb.meta);
+                                                        bl.add(b);
+                                                    }
+                                                    t--;
                                                 }
-                                            }
-                                        }
-                                        case "drop" -> {
-                                            getSphere(player.getLocation(), Integer.parseInt(args[1])).forEach(b -> {
-                                                b.getWorld().dropItem(b.getLocation(), new ItemStack(b.getType()));
-                                                b.setType(Material.AIR);
-                                            });
+                                            }.runTaskTimer(plugin, 0, 0);
+                                            new BukkitRunnable() {
+                                                int t = ar/2;
+                                                @Override
+                                                public void run() {
+                                                    Structure.SBD sb = s.getAt(t);
+                                                    while (sb != null && sb.m.isAir()) {
+                                                        if (t%ar>=ar-1) t += ar-(ar/2);
+                                                        t++;
+                                                        sb = s.getAt(t);
+                                                    }
+                                                    if (sb == null) {
+                                                        cancel();
+                                                        l.clone().add(5, 1, 5).getBlock().setType(s.getAt(181).m);
+                                                        l.clone().add(5, 2, 5).getBlock().setType(s.getAt(302).m);
+                                                        l.clone().add(5, 3, 5).getBlock().setType(Material.ENCHANTING_TABLE);
+                                                        new WeavingTable(l.clone().add(5, 3, 5).getBlock());
+                                                        Location lc = l.clone().add((double) xt /2, (double) s.height /2, (double) zt /2);
+                                                        for (org.bukkit.block.Block b : bl) {
+                                                            l.getWorld().spawnParticle(Particle.FIREWORK, lc, 1, 1, 1, 1, 0.2);
+                                                        }
+                                                        l.getWorld().playSound(lc, Sound.ENTITY_PLAYER_LEVELUP, 1, 1);
+                                                    }
+                                                    else {
+                                                        int y = t / ar;
+                                                        int z = (t % ar) / zt;
+                                                        int x = (t % ar) % xt;
+                                                        org.bukkit.block.Block b = l.clone().add(x, y, z).getBlock();
+                                                        b.setType(sb.m);
+                                                        setData(b, true, true, sb.meta);
+                                                        bl.add(b);
+                                                    }
+                                                    t++;
+                                                }
+                                            }.runTaskTimer(plugin, 0, 0);
                                         }
                                         case "manafy" -> {
                                             log(MagicChunk.get(player.getLocation()));
                                             MagicChunk.getOrNew(player.getLocation());
-                                        }
-                                        case "update" -> {
-                                            MagicChunk.getOrNew(player.getLocation()).update();
                                         }
                                         case "tp" -> {
                                             Location loc = Objects.requireNonNull(player.getTargetBlockExact(5)).getLocation().add(0.5, 1.5, 0.5);
@@ -960,6 +997,33 @@ public class Main extends JavaPlugin {
                 }
             }
             return true;
+        }
+        public void spawnFireworkParticle(Location location, Color... colors) {
+            World world = location.getWorld();
+            if (world == null) {
+                return;
+            }
+
+            // Create a firework effect with the specified colors
+            FireworkEffect.Builder builder = FireworkEffect.builder();
+            builder.withColor(colors);
+            builder.with(FireworkEffect.Type.BALL); // You can change the type here (BALL, BALL_LARGE, STAR, BURST, CREEPER)
+            FireworkEffect effect = builder.build();
+
+            // Spawn a firework entity
+            Firework firework = world.spawn(location, Firework.class);
+            FireworkMeta meta = firework.getFireworkMeta();
+            meta.addEffect(effect);
+            meta.setPower(1); // You can adjust the power to change the flight duration
+            firework.setFireworkMeta(meta);
+
+            // Schedule the firework to explode immediately
+            new BukkitRunnable() {
+                @Override
+                public void run() {
+                    firework.detonate();
+                }
+            }.runTaskLater(plugin, 2L); // Delay to ensure the firework spawns before detonating
         }
         public static class cmdTabCom implements TabCompleter {
             @Nullable
@@ -1079,21 +1143,24 @@ public class Main extends JavaPlugin {
         allItemInv.getFirst().addItem(SpellWeaver.item, new SpellBook(), SpellAbsorbingBlock.item, WeavingTable.item);
         for (Element e : Element.values()) allItemInv.getFirst().addItem(getItem(e));
         for (AreaEffect e : AreaEffect.values()) allItemInv.getFirst().addItem(AreaEffect.getItem(e));
-//        {
-//            NamespacedKey key = new NamespacedKey(this, "fusion_crystal");
-//            ShapedRecipe crfCReci = new ShapedRecipe(key, fusionCrys);
-//            crfCReci.shape(
-//                    "SAS",
-//                    "UAU",
-//                    "SES");
-//            crfCReci.setIngredient('A', Material.AIR);
-//            crfCReci.setIngredient('E', Material.END_CRYSTAL);
-//            crfCReci.setIngredient('U', Material.NETHERITE_SCRAP);
-//            crfCReci.setIngredient('S', Material.IRON_INGOT);
-//            Bukkit.getServer().addRecipe(crfCReci);
-//            Permission permission = new Permission("tmmi.craft." + crfCReci.getKey().getKey(), "Fusion crystal perm");
-//            Bukkit.getServer().getPluginManager().addPermission(permission);
-//        }
+        {
+            NamespacedKey key = new NamespacedKey(this, "fusion_crystal");
+            ShapedRecipe r = new ShapedRecipe(key, fusionCrys);
+            r.shape(
+                    "ATA",
+                    "GCN",
+                    "AEA");
+            r.setIngredient('A', Material.AMETHYST_SHARD);
+            r.setIngredient('C', Material.END_CRYSTAL);
+            r.setIngredient('N', Material.NETHERITE_SCRAP);
+            r.setIngredient('E', Material.ENDER_EYE);
+            r.setIngredient('G', Material.GOLDEN_APPLE);
+            r.setIngredient('T', Material.TOTEM_OF_UNDYING);
+            Bukkit.getServer().addRecipe(r);
+            Permission permission = new Permission("tmmi.craft." + r.getKey().getKey(), "fusion_crystal");
+            Bukkit.getServer().getPluginManager().addPermission(permission);
+            allItemInv.getFirst().addItem(fusionCrys);
+        }
 //        {
 //            NamespacedKey key = new NamespacedKey(this, "crafting_cauldron");
 //            ShapedRecipe crfCReci = new ShapedRecipe(key, CrafttingCauldron.item);
@@ -1222,28 +1289,17 @@ public class Main extends JavaPlugin {
             Entity de = event.getEntity();
             if (de instanceof Player p) {
                 if (event.getCause() == EntityDamageEvent.DamageCause.FALL) {
-                    event.setCancelled(true);
-                    p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 0.2, 0), 3, 0.1, 0, 0.1, Math.sqrt(event.getDamage()));
+                    WeavePlayer w = WeavePlayer.getWeaver(p);
+                    if (w != null && w.getElement() == Element.AIR) {
+                        event.setCancelled(true);
+                        p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 0.2, 0), 3, 0.1, 0, 0.1, Math.sqrt(event.getDamage())/25);
+                    }
                 }
             }
             Entity ce = event.getDamageSource().getCausingEntity();
             if (ce != null) {
-                if (de instanceof LivingEntity l) {
-                    EntityMultiplier em = EntityMultiplier.getOrNew(ce);
-                    int armp = 0;
-                    int tough = 0;
-                    int prot = 0;
-                    int sharp = 0;
-                    if (l instanceof Player p) {
-                        armp = getArmorPoints(p);
-                        tough = getToughness(p);
-                        prot = getProtection(p);
-                    }
-                    double dmg = (event.getDamage()*(1-(Math.max(((double) armp /5), armp-((4*event.getDamage())/tough+8))/25)))*em.getDmg();
-//                    event.setDamage(dmg-(dmg*((double) (prot * 4) /100)));
-                    log(em.getDmg());
-                    event.setDamage(event.getDamage()*em.getDmg());
-                }
+                EntityMultiplier em = EntityMultiplier.getOrNew(ce);
+                event.setDamage(event.getDamage()*em.getDmg());
             }
         }
         @EventHandler
@@ -1256,7 +1312,6 @@ public class Main extends JavaPlugin {
             if (Objects.requireNonNull(event.getItemInHand().getItemMeta()).hasCustomModelData()) {
                 ItemStack i = event.getItemInHand();
                 Location loc = event.getBlock().getLocation();
-                log("place");
                 if (isSim(CraftingCauldron.item, i)) {
                     new CraftingCauldron(loc);
                 } else if (isSim(ForceField.item, i)) {
@@ -1266,7 +1321,6 @@ public class Main extends JavaPlugin {
                 } else if (isSim(SpellAbsorbingBlock.item, i)) {
                     new SpellAbsorbingBlock(loc);
                 } else if (isSim(WeavingTable.item, i)) {
-                    log("anuttihn");
                     new WeavingTable(loc);
                 }
             }
@@ -1389,10 +1443,9 @@ public class Main extends JavaPlugin {
     @Override
     public void onDisable() {
         HandlerList.unregisterAll(this);
-        DISABLED = true;
-        if (ENABLED.v()) {
+        if (ENABLED.v() && !DISABLED) {
+            DISABLED = true;
             for (Thread t : threads) t.interrupt();
-            if (autosave != null) autosave.interrupt();
             fm.saveData();
             for (SpellAbsorbingBlock s : SpellAbsorbingBlock.instances)
                 if (s.getMainThread() != null) s.getMainThread().interrupt();

@@ -13,23 +13,13 @@ public enum Type {
 
     @Contract(pure = true)
     public static @Nullable Type getType(@NotNull String s) {
-        switch (s) {
-            case "ATK" -> {
-                return ATK;
-            }
-            case "DEF" -> {
-                return DEF;
-            }
-            case "PAS" -> {
-                return PAS;
-            }
-            case "STI" -> {
-                return STI;
-            }
-            case "UTL" -> {
-                return UTL;
-            }
-        }
-        return null;
+        return switch (s) {
+            case "ATK" -> ATK;
+            case "DEF" -> DEF;
+            case "PAS" -> PAS;
+            case "STI" -> STI;
+            case "UTL" -> UTL;
+            default -> null;
+        };
     }
 }

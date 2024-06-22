@@ -92,6 +92,11 @@ public class WeavePlayer {
         this(handler, null, 5, 2, 25);
     }
 
+    public WeavePlayer subMana(int sub) {
+        this.mana-=sub;
+        return this;
+    }
+
     public static @NotNull WeavePlayer getOrNew(@NotNull Player p) {
         WeavePlayer w = getWeaver(p.getUniqueId());
         if (w == null) return new WeavePlayer(p);

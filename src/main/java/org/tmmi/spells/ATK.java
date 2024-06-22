@@ -281,7 +281,7 @@ public class ATK extends Spell {
             case EARTH -> sc = ChatColor.DARK_GREEN;
             default -> sc = ChatColor.DARK_AQUA;
         }
-        ItemStack item = Element.getItem(this.mainElement);
+        ItemStack item = getWeight() == Weight.SORCERY ? new ItemStack(Material.ENCHANTED_BOOK) : Element.getItem(this.mainElement);
         ItemMeta m = item.getItemMeta();
         assert m != null;
         m.setDisplayName(c+this.getName() + " (" + this.getWeight() + ")");

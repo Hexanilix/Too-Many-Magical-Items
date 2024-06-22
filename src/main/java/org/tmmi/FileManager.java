@@ -33,9 +33,63 @@ import static org.tmmi.WeavePlayer.getWeaver;
 
 public class FileManager {
     public final Plugin p;
-    public FileManager(Plugin p) {this.p = p;}
+    public String DTFL;
+    public String CONF_FILE;
+    public String BLOCK_DATAFILE;
+    public String PLAYER_DATA_FOLDER;
+    public FileManager(@NotNull Plugin p) {
+        this.p = p;
+        this.DTFL = p.getDataFolder().getAbsolutePath() + "\\";
+        this.CONF_FILE = this.DTFL + "config.yml";
+    }
+    public void createFiles() {
+        if (!Files.exists(Path.of(this.DTFL))) {
+            if (new File(this.DTFL).mkdir()) {
+                log("Created data folder");
+            } else {
+                log(Level.SEVERE, "Created data folder");
+            }
+        }
+        if (!Files.exists(Path.of(CONF_FILE))) {
+            try {
+                Files.createFile(Path.of(CONF_FILE));
+                this.updateConfig();
+                log(Level.WARNING, "Created new config file since it was absent");
+            } catch (IOException e) {
+                p.onDisable();
+                log(Level.SEVERE, "Could not create config file at '" + CONF_FILE + "'\nLog:\n" + String.join(Arrays.asList(e.getStackTrace()).toString()) + "\n");
+                return;
+            }
+            try {
+                FileWriter writer = new FileWriter(CONF_FILE);
+                for (Property prop : Property.properties) writer.append(prop.p()).append(": ").append(prop.toString()).append("\n");
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                p.onDisable();
+            }
+        }
+    }
     
     public int loadConfig() {
+        if (!Files.exists(Path.of(CONF_FILE))) {
+            try {
+                Files.createFile(Path.of(CONF_FILE));
+                this.updateConfig();
+                log(Level.WARNING, "Created new config file since it was absent");
+            } catch (IOException e) {
+                p.onDisable();
+                log(Level.SEVERE, "Could not create config file at '" + CONF_FILE + "'\nLog:\n" + String.join(Arrays.asList(e.getStackTrace()).toString()) + "\n");
+            }
+            try {
+                FileWriter writer = new FileWriter(CONF_FILE);
+                for (Property prop : Property.properties) writer.append(prop.p()).append(": ").append(prop.toString()).append("\n");
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                p.onDisable();
+            }
+        }
         try (InputStream input = new FileInputStream(CONF_FILE)) {
             HashMap<String, Object> l = new Yaml().load(input);
             if (l == null) return -1;
@@ -109,24 +163,6 @@ public class FileManager {
         complete = saveBlockData() && complete;
         return complete;
     }
-
-    public void startAutosave() {
-        if (AUTOSAVE.v()) {
-            autosave = newThread(() -> {
-                try {
-                    while (true) {
-                        Thread.sleep(AUTOSAVE_FREQUENCY.v() * 1000L);
-                        saveData();
-                        if (GARBAGE_COLLECTION.v()) System.gc();
-                        if (AUTOSAVE_MSG.v()) log(AUTOSAVE_MSG_VALUE.v());
-                    }
-                } catch (InterruptedException e) {
-                    if (!DISABLED) log(Level.WARNING, "Autosave interrupted. Plugin data will not be saved until plugin disable and any new data acquired this point will be lost in case of a unprecedented stop");
-                }
-            });
-            autosave.start();
-        }
-    }
     public void loadBlockData() {
         File file = new File(BLOCK_DATAFILE);
         if (file.exists()) {
@@ -159,6 +195,7 @@ public class FileManager {
                                 case SPELLSUCKER -> new SpellAbsorbingBlock(loc);
                                 case SPELLWEAVER -> new SpellWeaver(loc);
                                 case WEAVINGTABLE -> new WeavingTable(loc);
+                                case MANACAULDRON -> new ManaCauldron(loc, j.getInt("mana"));
 //                                case PRESENCE_DETECTOR -> new Presence(loc);
                             }
                         } catch (JSONException ignore) {}

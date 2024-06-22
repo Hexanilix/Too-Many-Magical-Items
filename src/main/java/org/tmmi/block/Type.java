@@ -10,30 +10,19 @@ public enum Type {
     SPELLSUCKER,
     PRESENCEDETECTOR,
     SPELLWEAVER,
-    WEAVINGTABLE;
-
+    WEAVINGTABLE,
+    MANACAULDRON;
     @Contract(pure = true)
     public static @Nullable Type getType(@NotNull String s) {
-        switch (s.toUpperCase()) {
-            case "CRAFTINGCAULDRON" -> {
-                return CRAFTINGCAULDRON;
-            }
-            case "FORCEFIELD" -> {
-                return FORCEFIELD;
-            }
-            case "SPELLSUCKER" -> {
-                return SPELLSUCKER;
-            }
-            case "PRESENCEDETECTOR" -> {
-                return PRESENCEDETECTOR;
-            }
-            case "SPELLWEAVER" -> {
-                return SPELLWEAVER;
-            }
-            case "WEAVINGTABLE" -> {
-                return WEAVINGTABLE;
-            }
-        }
-        return null;
+        return switch (s.toUpperCase()) {
+            case "CRAFTINGCAULDRON" -> CRAFTINGCAULDRON;
+            case "FORCEFIELD" -> FORCEFIELD;
+            case "SPELLSUCKER" -> SPELLSUCKER;
+            case "PRESENCEDETECTOR" -> PRESENCEDETECTOR;
+            case "SPELLWEAVER" -> SPELLWEAVER;
+            case "WEAVINGTABLE" -> WEAVINGTABLE;
+            case "MANACAULDRON" -> MANACAULDRON;
+            default -> null;
+        };
     }
 }
