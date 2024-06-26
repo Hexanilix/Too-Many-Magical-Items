@@ -22,11 +22,4 @@ public class SpellCollideEvent extends PlayerEvent {
         return this.hitSpell;
     }
 
-    public UUID getHitter() {
-        return this.hittingSpell.getS().getHandler();
-    }
-
-    public UUID getHited() {
-        return this.hitSpell.getS().getHandler();
-    }
 }

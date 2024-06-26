@@ -1,14 +1,19 @@
 package org.tmmi.spells;
 
 import org.bukkit.*;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.tmmi.ManaBar;
+import org.tmmi.WeavePlayer;
 import org.tmmi.items.ItemCommand;
 import org.tmmi.spells.atributes.Weight;
 
@@ -16,15 +21,14 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
-import static org.hetils.Util.genVec;
-import static org.hetils.Util.getSphere;
-
-import static org.tmmi.Main.plugin;
+import static org.hetils.Util.*;
+import static org.tmmi.Main.*;
 
 public class UTL extends Spell {
     public enum Util {
         MINE,
-        SMELT;
+        SMELT,
+        LINK;
 
         @Contract(pure = true)
         public static @Nullable UTL.Util get(@NotNull String util) {
@@ -39,11 +43,11 @@ public class UTL extends Spell {
         }
     }
     private final Util util;
-    public UTL(@NotNull UTL.Util u, @NotNull Player handler) {
-        this(u, handler.getUniqueId(), 1, 0, 10);
+    public UTL(@NotNull UTL.Util u) {
+        this(u, 1, 0, 10);
     }
-    public UTL(@NotNull UTL.Util u, UUID handler, int level, int XP, int castcost) {
-        super(null, handler, "Mine", Weight.CANTRIP, level, XP, castcost, null);
+    public UTL(@NotNull UTL.Util u, int level, int XP, int castcost) {
+        super(null, "Mine", Weight.CANTRIP, level, XP, castcost, null);
         this.util = u;
         switch (u) {
             case MINE -> {
@@ -59,8 +63,9 @@ public class UTL extends Spell {
     }
 
     @Override
-    public CastSpell cast(Location castLocation, float multiplier) {
-        Player player = Bukkit.getPlayer(getHandler());
+    public CastSpell cast(@NotNull Location castLocation, float multiplier, Entity entity) {
+        Player player = (Player) entity;
+        WeavePlayer wp = WeavePlayer.getWeaver(player);
         switch (util) {
             case MINE ->
                     getSphere(player.getLocation(), 10).stream().filter(s -> s.getType().name().toLowerCase().contains("ore")).forEach(b -> {
@@ -147,6 +152,36 @@ public class UTL extends Spell {
 //                    };
 //                });
 //            }
+            case LINK -> {
+                Location loc = player.getEyeLocation().clone();
+                for (int it = 0; it < 60; it++) {
+                    loc.add(loc.getDirection().multiply(0.1));
+                    loc.getWorld().spawnParticle(Particle.COMPOSTER, loc, 1, 0, 0 ,0 ,0);
+                    Entity e = nearestEntity(loc, 0.15);
+                    if (e instanceof Player pl && pl != player) {
+                        WeavePlayer we = WeavePlayer.getWeaver(pl);
+                        newThread(new Thread() {
+                            private final Map<WeavePlayer, ManaBar> list = Map.of(
+                                    wp, wp.getManaBar(),
+                                    we, we.getManaBar()
+                            );
+                            @Override
+                            public void run() {
+                                try {
+                                    log(wp.getManaBar().limit + we.getManaBar().limit);
+                                    ManaBar mb = new ManaBar(wp.getManaBar().limit + we.getManaBar().limit, we.getMana() + wp.getMana());
+                                    wp.setManaBar(mb);
+                                    we.setManaBar(mb);
+                                    Thread.sleep(10000);
+                                    for (Map.Entry<WeavePlayer, ManaBar> set : list.entrySet())
+                                        set.getKey().setManaBar(new ManaBar(set.getValue().limit, 0));
+                                } catch (InterruptedException ex) {}
+                            }
+                        }).start();
+                        break;
+                    }
+                }
+            }
         }
         return null;
     }

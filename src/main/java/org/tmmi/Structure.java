@@ -4,30 +4,88 @@ import org.bukkit.*;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.*;
+import org.bukkit.block.data.type.Candle;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.hetils.FileVersion;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.tmmi.block.WeavingTable;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 import java.util.logging.Level;
 
 import static org.tmmi.Main.log;
+import static org.tmmi.Main.plugin;
 
+/**
+ * A custom structure class
+ *
+ *
+ * @author  Hexanilix
+ * @since   1.0
+ */
 public class Structure {
 
+    /**
+     * The class {@code SBD} stands for Structure Block Data. It's simply a package of a {@link org.bukkit.Material} and a undisclosed amount of block data,
+     * <i>not specifically classes extending {@link org.bukkit.block.data.BlockData}</i><br><br>
+     * Custom block data for number and boolean values are the following:
+     * <ul>
+     *     <li> {@link Lit} </li>
+     *     <li> {@link CandleAmount}</li>
+     *     <li> {@link Open} </li>
+     * </ul>
+     *
+     * @author  Hexanilix
+     * @since   1.0
+     */
     public static class SBD {
+        /**
+         * {@code SBD.Lit} is a reference to the {@code isLit} boolean in {@link org.bukkit.block.data.Lightable}.
+         * <br><br><i><font color="gray">A boolean to be interpreted by the {@code setData()} method</i>.
+         *
+         * @author  Hexanilix
+         * @since   1.0
+         */
         public enum Lit {
             TRUE,
             FALSE
         }
-
+        /**
+         * {@code SBD.Open} is a reference to the {@code isOpen} boolean in the block data type {@link org.bukkit.block.data.Openable}.
+         * <br><br><i><font color="gray">A boolean to be interpreted by the {@code setData()} method</i>.
+         *
+         * @author  Hexanilix
+         * @since   1.0
+         */
         public enum Open {
             TRUE,
             FALSE
         }
-        Material m;
-        Object[] meta = null;
+        /**
+         * {@code SBD.Open} is a reference to the amount of candles in {@link org.bukkit.block.data.type.Candle}.
+         * <br><br><i><font color="gray">An integer to be interpreted by the {@code setData()} method</i>.
+         *
+         * @author  Hexanilix
+         * @since   1.0
+         */
+        public enum CandleAmount {
+            ONE(1),
+            TWO(2),
+            THREE(3),
+            FOUR(4);
+
+            final int amount;
+            CandleAmount(int a) {
+                this.amount = a;
+            }
+            public int a() {
+                return this.amount;
+            }
+        }
+        public Material m;
+        public Object[] meta = null;
         boolean hasMeta;
         @Contract(pure = true)
         public SBD(@NotNull Material m, Object... meta) {
@@ -36,6 +94,17 @@ public class Structure {
             if (hasMeta) this.meta = meta;
         }
     }
+    /**
+     * This function is mainly used in the {@link Structure} class to set the {@link BlockData} of the placed blocks,
+     * like the facing direction, lit or unlit states, block half ect. It is used mainly with the {@link SBD} classes {@code meta} array.
+     *
+     * @param bl The {@link Block} to set the data at
+     * @param vs The data
+     * @param effects whether particles appear when applying block data
+     * @param sound whether sound plays when applying block data
+     * @author  Hexanilix
+     * @since   1.0
+     */
     public static void setData(@NotNull Block bl,  boolean effects, boolean sound, Object... vs) {
         if (vs == null || vs.length == 0) return;
         BlockData b = bl.getBlockData();
@@ -63,6 +132,9 @@ public class Structure {
                 if (v instanceof Structure.SBD.Lit li)
                     l.setLit(li == SBD.Lit.TRUE);
             }
+            if (b instanceof Candle c)
+                if (v instanceof SBD.CandleAmount a)
+                    c.setCandles(a.a());
         }
         bl.setBlockData(b);
     }
@@ -86,9 +158,9 @@ public class Structure {
     }
 
     final SBD[][][] layers;
-    int width;
-    int depth;
-    int height;
+    public int width;
+    public int depth;
+    public int height;
     public Structure(@NotNull String[] @NotNull [] layers, Map<Character, SBD> map) {
         int xw = 0;
         int zw = 0;
@@ -174,7 +246,22 @@ public class Structure {
         }
         this.layers = sbds;
     }
+    /**
+     * Builds the Structure at the desired location, loc being the edge point
+     *
+     * @param loc The edge location to build the structure from
+     */
     public void build(Location loc) {
+        build(loc, false, false);
+    }
+    /**
+     * Builds the Structure at the desired location, loc being the edge point
+     *
+     * @param loc The edge location to build the structure from
+     * @param particles whether particles appear when applying block data
+     * @param sound whether sound plays when applying block data
+     */
+    public void build(Location loc, boolean particles, boolean sound) {
         final int zt = depth;
         final int xt = width;
         final int ar = zt*xt;
@@ -187,10 +274,110 @@ public class Structure {
             SBD s = layers[y][z][x];
             loc.clone().add(x, y, z).getBlock().setType(s.m != null ? s.m : Material.AIR);
             if (s.hasMeta)
-                setData(loc.clone().add(x, y, z).getBlock(), true, true, s.meta);
+                setData(loc.clone().add(x, y, z).getBlock(), particles, sound, s.meta);
             t++;
         }
     }
+    public Collection<Block> getBlockPlacements(@NotNull Location loc) {
+        int xf = this.width/2;
+        int zf = this.depth/2;
+        loc.subtract(xf, 0, zf);
+        Collection<Block> cl = new HashSet<>();
+        final int zt = depth;
+        final int xt = width;
+        final int ar = zt*xt;
+        final int h = layers.length*ar-1;
+        int t = 0;
+        while (t < h) {
+            cl.add(loc.clone().add((t%ar)%xt, t/ar, (t%ar)/zt).getBlock());
+            t++;
+        }
+        return cl;
+    }
+    /**
+     * Builds the Structure at the desired location from the location with a specified delay
+     *
+     * @param l The center location
+     * @param r a Runnable which executes after the building is done
+     */
+    public void buildFromCenterDelay(Location l, Runnable r) {
+        buildFromCenterDelay(l, false, false, r);
+    }
+    /**
+     * Builds the Structure at the desired location from the location with a specified delay
+     *
+     * @param l The center location
+     * @param particles whether particles appear when applying block data
+     * @param sound whether sound plays when applying block data
+     * @param r a Runnable which executes after the building is done
+     */
+    public void buildFromCenterDelay(Location l, boolean particles, boolean sound, Runnable r) {
+        final int zt = this.depth;
+        final int xt = this.width;
+        final int ar = zt*xt;
+        new BukkitRunnable() {
+            int t = ar/2;
+            @Override
+            public void run() {
+                Structure.SBD sb = Structure.this.getAt(t);
+                while (sb != null && sb.m.isAir()) {
+                    if (t % ar <= 0) t += ar + (ar / 2);
+                    t--;
+                    sb = Structure.this.getAt(t);
+                }
+                if (sb == null) cancel();
+                else {
+                    int y = t / ar;
+                    int z = (t % ar) / zt;
+                    int x = (t % ar) % xt;
+                    org.bukkit.block.Block b = l.clone().add(x, y, z).getBlock();
+                    b.setType(sb.m);
+                    setData(b, particles, sound, sb.meta);
+                }
+                t--;
+            }
+        }.runTaskTimer(plugin, 0, 0);
+        new BukkitRunnable() {
+            int t = ar/2;
+            @Override
+            public void run() {
+                Structure.SBD sb = Structure.this.getAt(t);
+                while (sb != null && sb.m.isAir()) {
+                    if (t%ar>=ar-1) t += ar-(ar/2);
+                    t++;
+                    sb = Structure.this.getAt(t);
+                }
+                if (sb == null) {
+                    cancel();
+                    r.run();
+                }
+                else {
+                    int y = t / ar;
+                    int z = (t % ar) / zt;
+                    int x = (t % ar) % xt;
+                    org.bukkit.block.Block b = l.clone().add(x, y, z).getBlock();
+                    b.setType(sb.m);
+                    setData(b, particles, sound, sb.meta);
+                }
+                t++;
+            }
+        }.runTaskTimer(plugin, 0, 0);
+    }
+    /**
+     * This method linearizes the structures 3d space into a linearized table, able to be
+     * looked through with a linearized index.
+     *
+     * @param a The linearized index of the structure
+     * @return returns an SBD (Structure Block Data) at that linear index
+     * <br><br>
+     * 3D space coordinates are calculated from a linearized index in the following way:
+     * <blockquote>
+     *     <pre>a = <i>the linearized index</i></pre>
+     *     <pre>X = <b>(a%(width*depth))%width</b></pre>
+     *     <pre>Y = <b>a/(width*depth)</b></pre>
+     *     <pre>Z = <b>(a%(width*depth))/depth</b></pre>
+     * </blockquote>
+     */
     public SBD getAt(int a) {
         int ar = width*depth;
         int y = a/ar;
@@ -209,181 +396,5 @@ public class Structure {
             }
         }
         return true;
-    }
-
-    public static Structure grandWeaver;
-    static {
-        Map<Character, Material> map = new HashMap<>();
-        map.put('A', Material.BUDDING_AMETHYST);
-        map.put('O', Material.OAK_STAIRS);
-        map.put('S', Material.STONE);
-        map.put('B', Material.STONE_BRICK_STAIRS);
-        map.put('C', Material.CAULDRON);
-        map.put('T', Material.STRIPPED_OAK_LOG);
-        map.put('N', Material.STONE_BRICKS);
-        map.put('R', Material.BAMBOO_TRAPDOOR);
-        map.put('L', Material.LECTERN);
-        map.put('K', Material.DEEPSLATE_TILE_WALL);
-        map.put('I', Material.OAK_SLAB);
-        map.put('W', Material.OAK_TRAPDOOR);
-        map.put('F', Material.OCHRE_FROGLIGHT);
-        map.put('H', Material.HOPPER);
-        map.put('c', Material.CHISELED_BOOKSHELF);
-        map.put('P', Material.SOUL_CAMPFIRE);
-        grandWeaver = new Structure(new String[][]{
-                new String[]{
-                        "   O   O   ",
-                        "  BBBNBBB  ",
-                        " BNSBABSNB ",
-                        "OBSSBBBSSNO",
-                        " BBBCSCBBB ",
-                        " NABSSSBSN ",
-                        " BBBCSCBBB ",
-                        "OBSSBBBSSNO",
-                        " BNSBABSNB ",
-                        "  BBBNBBB  ",
-                        "   O   O   "
-                },
-                new String[]{
-                        "           ",
-                        "   R N R   ",
-                        "  NO   ON  ",
-                        " ROT   TOR ",
-                        "     L     ",
-                        " N  LTL  N ",
-                        "     L     ",
-                        " ROT   TOR ",
-                        "  NO   ON  ",
-                        "   R N R   ",
-                        "           "
-                },
-                new String[]{
-                        "           ",
-                        "     K     ",
-                        "  K     K  ",
-                        "   IO OI   ",
-                        "   O W O   ",
-                        " K  WFW  K ",
-                        "   O W O   ",
-                        "   IO OI   ",
-                        "  K     K  ",
-                        "     K     ",
-                        "           "
-                },
-                new String[]{
-                        "           ",
-                        "     H     ",
-                        "  H     H  ",
-                        "     W     ",
-                        "           ",
-                        " H W   W H ",
-                        "           ",
-                        "     W     ",
-                        "  H     H  ",
-                        "     H     ",
-                        "           "
-                },
-                new String[]{
-                        "           ",
-                        "    RcR    ",
-                        "  P     P  ",
-                        "           ",
-                        " R       R ",
-                        " c       c ",
-                        " R       R ",
-                        "           ",
-                        "  P     P  ",
-                        "    RcR    ",
-                        "           "
-                },
-                new String[]{
-                        "           ",
-                        "     R     ",
-                        "           ",
-                        "           ",
-                        "           ",
-                        " R       R ",
-                        "           ",
-                        "           ",
-                        "           ",
-                        "     R     ",
-                        "           "
-                }
-        }, map, new String[][]{
-                new String[]{
-                        " | | |S| | | |S| | | ",
-                        " | |W|N|E| |S|N|E| | ",
-                        " |N| | |E| |W| | |N| ",
-                        "E|W| | |N|N|N| | |E|W",
-                        " |S|S|N| | | |N|S|S| ",
-                        " | | |W| | | |E| | | ",
-                        " |N|N|W| | | |E|N|N| ",
-                        "E|W| | |S|S|S| | |E|W",
-                        " |S| | |E| |W| | |S| ",
-                        " | |W|S|E| |W|S|E| | ",
-                        " | | |N| | | |N| | | ",
-                },
-                new String[]{
-                        " | | | | | | | | | | ",
-                        " | | |N| | | |N| | | ",
-                        " | | |S| | | |S| | | ",
-                        " |W|E| | | | | |W|E| ",
-                        " | | | | |N| | | | | ",
-                        " | | | |W| |E| | | | ",
-                        " | | | | |S| | | | | ",
-                        " |W|E| | | | | |W|E| ",
-                        " | | |N| | | |N| | | ",
-                        " | | |S| | | |S| | | ",
-                        " | | | | | | | | | | "
-                },
-                new String[]{
-                        " | | | | | | | | | | ",
-                        " | | | | | | | | | | ",
-                        " | | | | | | | | | | ",
-                        " | | | |WT| |ET| | | | ",
-                        " | | |NT| |NO| |NT| | | ",
-                        " | | | |WO| |EO| | | | ",
-                        " | | |ST| |SO| |ST| | | ",
-                        " | | | |WT| |ET| | | | ",
-                        " | | | | | | | | | | ",
-                        " | | | | | | | | | | ",
-                        " | | | | | | | | | |"
-                },
-                new String[]{
-                        " | | | | | | | | | | ",
-                        " | | | | | | | | | | ",
-                        " | | | | | | | | | | ",
-                        " | | | | |S| | | | | ",
-                        " | | | | | | | | | | ",
-                        " | | |E| | | |W| | | ",
-                        " | | | | | | | | | | ",
-                        " | | | | |N| | | | | ",
-                        " | | | | | | | | | | ",
-                        " | | | | | | | | | | ",
-                        " | | | | | | | | | | "
-                },
-                new String[]{
-                        " | | | | | | | | | | ",
-                        " | | | |WO|S|EO| | | | ",
-                        " | |L| | | | | |L| | ",
-                        " | | | | | | | | | | ",
-                        " |NO| | | | | | | |NO| ",
-                        " |E| | | | | | | |W| ",
-                        " |SO| | | | | | | |SO| ",
-                        " | | | | | | | | | | ",
-                        " | |L| | | | | |L| | ",
-                        " | | | |WO|N|EO| | | | ",
-                        " | | | | | | | | | |"
-                }
-        }, Map.of(
-                'N', BlockFace.NORTH,
-                'S', BlockFace.SOUTH,
-                'E', BlockFace.EAST,
-                'W', BlockFace.WEST,
-                'O', Structure.SBD.Open.TRUE,
-                'T', Bisected.Half.TOP,
-                'B', Bisected.Half.BOTTOM,
-                'L', Structure.SBD.Lit.FALSE
-        ));
     }
 }

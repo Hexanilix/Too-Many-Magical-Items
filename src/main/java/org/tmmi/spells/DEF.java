@@ -1,6 +1,7 @@
 package org.tmmi.spells;
 
 import org.bukkit.*;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.ItemStack;
@@ -23,16 +24,16 @@ public class DEF extends Spell {
     private final AreaEffect effect;
     private int holdtime;
     private int durability;
-    public DEF(UUID id, UUID handler, String name, Weight weight, int level, int XP, int castCost, Element element, AreaEffect effect, int holdTime, int durability) {
-        super(id, handler, name, weight, level, XP, castCost, new Vector(1, 1, 1));
+    public DEF(UUID id, String name, Weight weight, int level, int XP, int castCost, Element element, AreaEffect effect, int holdTime, int durability) {
+        super(id, name, weight, level, XP, castCost, new Vector(1, 1, 1));
         this.element = element;
         this.effect = effect;
         this.holdtime = holdTime;
         this.durability = durability;
         this.attemptLvlUP();
     }
-    public DEF(UUID handler, String name, Weight weight, Element element, AreaEffect effect) {
-        this(null, handler, name, weight, 1, 0, 10, element, effect, 5000, 10);
+    public DEF(String name, Weight weight, Element element, AreaEffect effect) {
+        this(null, name, weight, 1, 0, 10, element, effect, 5000, 10);
     }
 
     public Element getElement() {
@@ -61,7 +62,8 @@ public class DEF extends Spell {
     }
 
     @Override
-    public CastSpell cast(Location castLocation, float multiplier) {
+    public CastSpell cast(Location castLocation, float multiplier, Entity e) {
+        Player player = (Player) e;
         boolean opE = true;
         Particle p = null;
         switch (element) {

@@ -46,15 +46,15 @@ public class STI extends Spell {
     private final Stat stat;
     private int effectTime;
     private double multiplier;
-    public STI(@NotNull Stat stat, UUID id, UUID handler, int level, int XP, int castCost, int effectTime, double multiplier) {
-        super(id, handler, "Stat inc", Weight.CANTRIP, level, XP, castCost, null);
+    public STI(@NotNull Stat stat, UUID id, int level, int XP, int castCost, int effectTime, double multiplier) {
+        super(id, "Stat inc", Weight.CANTRIP, level, XP, castCost, null);
         this.stat = stat;
         this.effectTime = effectTime;
         this.multiplier = multiplier;
         this.attemptLvlUP();
     }
-    public STI(Stat stat, UUID handler) {
-        this(stat, null, handler, 1, 0, 10, 10000, 1.1);
+    public STI(Stat stat) {
+        this(stat, null, 1, 0, 10, 10000, 1.1);
     }
 
     @Override
@@ -64,8 +64,8 @@ public class STI extends Spell {
     }
 
     @Override
-    public CastSpell cast(@NotNull Location castLocation, float multiplier) {
-        Player p = Bukkit.getPlayer(this.getHandler());
+    public CastSpell cast(@NotNull Location castLocation, float multiplier, Entity e) {
+        Player p = (Player) e;
         Location loc = castLocation.clone();
         double multi = this.multiplier;
         log(multi);
@@ -74,16 +74,16 @@ public class STI extends Spell {
             case DMG -> {
                 for (int i = 0; i < 20; i++) {
                     loc.add(loc.getDirection());
-                    Entity e = nearestEntity(loc, 0.25, List.of(p));
-                    if (e != null) {
-                        EntityMultiplier em = EntityMultiplier.getOrNew(e);
+                    Entity ne = nearestEntity(loc, 0.25, List.of(p));
+                    if (ne != null) {
+                        EntityMultiplier em = EntityMultiplier.getOrNew(ne);
                         em.addDmg(multi);
                         BukkitTask task = new BukkitRunnable() {
                             @Override
                             public void run() {
-                                e.getWorld().spawnParticle(Particle.COMPOSTER,
-                                        e.getLocation().add(0, e.getLocation().getY() - e.getBoundingBox().getCenterY() + (e.getBoundingBox().getHeight()), 0), 
-                                        5, e.getBoundingBox().getWidthX()/4, e.getBoundingBox().getHeight()/4, e.getBoundingBox().getWidthZ()/4, 0.1);
+                                ne.getWorld().spawnParticle(Particle.COMPOSTER,
+                                        ne.getLocation().add(0, ne.getLocation().getY() - ne.getBoundingBox().getCenterY() + (ne.getBoundingBox().getHeight()), 0),
+                                        5, ne.getBoundingBox().getWidthX()/4, ne.getBoundingBox().getHeight()/4, ne.getBoundingBox().getWidthZ()/4, 0.1);
                             }
                         }.runTaskTimer(plugin, 0, 0);
                         newThread(() -> {
@@ -92,7 +92,7 @@ public class STI extends Spell {
                             } catch (InterruptedException ex) {
                                 throw new RuntimeException(ex);
                             }
-                            e.setGlowing(false);
+                            ne.setGlowing(false);
                             em.subDmg(multi);
                             task.cancel();
                             STI.this.addXP((int) Math.floor((eft*multi)/10000));

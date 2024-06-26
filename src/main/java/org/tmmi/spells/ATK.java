@@ -34,10 +34,10 @@ public class ATK extends Spell {
     double speed;
     double baseDamage;
     boolean phase;
-    public ATK(UUID id, UUID handler, String name, Weight w, int level, int XP, int castcost,
+    public ATK(UUID id, String name, Weight w, int level, int XP, int castcost,
                @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect,
                double speed, double travel, double baseDamage, boolean phase) {
-        super(id, handler, name, w, level, XP, castcost, new Vector(0.1, 0.1, 0.1));
+        super(id, name, w, level, XP, castcost, new Vector(0.1, 0.1, 0.1));
         this.mainElement = mainElement;
         this.secondaryElement = secondaryElement;
         this.areaEffect = areaEffect;
@@ -47,13 +47,13 @@ public class ATK extends Spell {
         this.phase = phase;
         this.attemptLvlUP();
     }
-    public ATK(UUID id, UUID handler, String name, Weight w, int level, int XP, int castcost,
+    public ATK(UUID id, String name, Weight w, int level, int XP, int castcost,
                @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect,
                double speed, double travel, double baseDamage) {
-        this(id, handler, name, w, level, XP, castcost, mainElement, secondaryElement, areaEffect, speed, travel, baseDamage, false);
+        this(id, name, w, level, XP, castcost, mainElement, secondaryElement, areaEffect, speed, travel, baseDamage, false);
     }
-    public ATK(UUID handler, String name, Weight w, @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect) {
-        this(null, handler, name, w, 1, 0, 3, mainElement, secondaryElement, areaEffect, 1, 10, 2, false);
+    public ATK(String name, Weight w, @NotNull Element mainElement, Element secondaryElement, @NotNull AreaEffect areaEffect) {
+        this(null, name, w, 1, 0, 3, mainElement, secondaryElement, areaEffect, 1, 10, 2, false);
     }
 
     public double getSpeed() {
@@ -76,7 +76,8 @@ public class ATK extends Spell {
     }
 
     @Override
-    public CastSpell cast(@NotNull Location castLocation, float multiplier) {
+    public CastSpell cast(@NotNull Location castLocation, float multiplier, Entity e) {
+        Player player = (Player) e;
         log("cast " + this.getName());
         boolean opE = true;
         Particle p = null;
@@ -155,7 +156,7 @@ public class ATK extends Spell {
                                     if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
                                         for (Entity e : nearbyEntities) {
                                             if (e instanceof LivingEntity liv) {
-                                                if (liv == Bukkit.getPlayer(getHandler()) || liv == arm) continue;
+                                                if (liv == player || liv == arm) continue;
                                                 liv.damage(dmg);
                                                 loc.getWorld().spawnParticle(finalP, loc, 10, 1, 1, 1, 0.05);
                                                 cancel();
@@ -209,7 +210,7 @@ public class ATK extends Spell {
                                     if (loc.getBlock().getType() != Material.AIR || !nearbyEntities.isEmpty()) {
                                         for (Entity e : nearbyEntities) {
                                             if (e instanceof LivingEntity liv) {
-                                                if (liv == Bukkit.getPlayer(getHandler()) || liv == arm) continue;
+                                                if (liv == player || liv == arm) continue;
                                                 liv.damage(dmg);
                                                 loc.getWorld().spawnParticle(finalP, loc, 10, 1, 1, 1, 0.05);
                                                 cancel();

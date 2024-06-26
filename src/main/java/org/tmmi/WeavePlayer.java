@@ -1,5 +1,6 @@
 package org.tmmi;
 
+import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -40,8 +41,7 @@ public class WeavePlayer {
     }
 
     private final Player player;
-    private float mana;
-    private float maxMana;
+    private ManaBar mana;
     private boolean isWeaving;
     private final List<Spell> spells = new ArrayList<>();
     private GrandBook grandBook;
@@ -58,42 +58,34 @@ public class WeavePlayer {
         this.element = element;
         this.canSize = canSize;
         this.sorSize = sorSize;
-        this.maxMana = maxMana;
-        this.mana = 0;
-//        this.manaThread = newThread(() -> {
-//            try {
-//                while (true) {
-//                    if (handler != null) {
-//                        if (manaCool == 0 && mana < maxMana) {
-//                            mana += (int) Math.min((float) MagicChunk.getOrNew(handler).mean() / 250, maxMana - mana);
-//                        } else manaCool--;
-//                    }
-//                    Thread.sleep(1000);
-//                }
-//            } catch (InterruptedException ignore) {}
-//        });
-//        this.manaThread.start();
+        this.mana = new ManaBar(maxMana, 0);
         new BukkitRunnable() {
             @Override
             public void run() {
                 if (handler != null) {
-                    if (manaCool == 0 && mana < maxMana) {
-                        MagicChunk mc = MagicChunk.getOrNew(handler);
-                        int m = (int) Math.min((float) mc.mean() / 250, maxMana - mana);
-                        mana += m;
-                        mc.subMana(m);
+                    ManaBar ma = WeavePlayer.this.getManaBar();
+                    if (manaCool <= 0) {
+                        if (ma.amount < ma.limit) {
+                            MagicChunk mc = MagicChunk.getOrNew(handler);
+                            int m = (int) Math.min((float) mc.mean() / 500, ma.limit - ma.amount);
+                            ma.add(m);
+                            mc.subMana(m);
+                        }
                     } else manaCool--;
+                    if (handler.getGameMode() != GameMode.CREATIVE) handler.spigot()
+                            .sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(
+                                    ChatColor.RED + "❤" + Math.round(handler.getHealth()) + "/" + Math.round(handler.getMaxHealth()) + ChatColor.AQUA + "       ֍" + ma.amount + "/" + ma.limit));
                 }
             }
-        }.runTaskTimer(plugin, 0, 20);
+        }.runTaskTimer(plugin, 0, 2);
         weavers.add(this);
     }
     public WeavePlayer(Player handler) {
-        this(handler, null, 5, 2, 25);
+        this(handler, null, 5, 2, 100);
     }
 
     public WeavePlayer subMana(int sub) {
-        this.mana-=sub;
+        this.mana.sub(sub);
         return this;
     }
 
@@ -155,14 +147,12 @@ public class WeavePlayer {
         return player;
     }
 
-
-
     public void cast() {
         Spell s = main;
         if (s != null) {
-            if (player.getGameMode() == GameMode.CREATIVE || s.getCastCost() <= mana) {
-                s.cast(this.player.getEyeLocation(), 1);
-                if (player.getGameMode() != GameMode.CREATIVE) mana -= s.getCastCost();
+            if (player.getGameMode() == GameMode.CREATIVE || s.getCastCost() <= mana.amount) {
+                s.cast(this.player.getEyeLocation(), 1, this.player);
+                if (player.getGameMode() != GameMode.CREATIVE) mana.sub(s.getCastCost());
                 manaCool = 5;
             }
         }
@@ -185,7 +175,7 @@ public class WeavePlayer {
     }
 
     public void addMaxMana(float maxMana) {
-        this.maxMana += maxMana;
+        this.mana = new ManaBar(this.mana.limit + maxMana, this.mana.amount);
     }
 
     public int getCanSize() {
@@ -237,19 +227,11 @@ public class WeavePlayer {
     private void bkgSetMain(Spell s) {
         if (s == null || getCanSpells().contains(s) || getSorSpells().contains(s)) {
             main = s;
-        } else {
-            if (s.getHandler().compareTo(player.getUniqueId()) != 0) log("Soft warning: Foreign spell used in inventory");
         }
     }
     public void setMain(Spell s) {
         if (s == null || getCanSpells().contains(s) || getSorSpells().contains(s)) {
             main = s;
-        } else {
-            if (s.getHandler().compareTo(player.getUniqueId()) == 0) {
-                addSpell(s);
-                bkgSetMain(s);
-                main = s;
-            } else log("Soft warning: Foreign spell used in inventory");
         }
     }
     public Spell getMain() {return main;}
@@ -257,11 +239,6 @@ public class WeavePlayer {
     public void setSecondary(Spell s) {
         if (getCanSpells().contains(s) || getSorSpells().contains(s)) {
             sec = s;
-        } else {
-            if (s.getHandler().compareTo(player.getUniqueId()) == 0) {
-                addSpell(s);
-                sec = s;
-            } else log("Soft warning: Foreign spell used in inventory");
         }
     }
     public Spell getSecondary() {return sec;}
@@ -269,7 +246,7 @@ public class WeavePlayer {
     public String toJSON() {
         List<String> spells = this.spells.stream().map(Spell::toJson).toList();
         return "\t\"element\": \"" + this.element + "\",\n" +
-                "\t\"max_mana\": " + this.maxMana + ",\n" +
+                "\t\"max_mana\": " + this.mana.limit + ",\n" +
                 "\t\"can_size\": " + this.canSize + ",\n" +
                 "\t\"sor_size\": " + this.sorSize + ",\n" +
                 "\t\"spells\": [\n" +
@@ -281,6 +258,11 @@ public class WeavePlayer {
     }
 
     public float getMana() {
-        return this.mana;
+        return this.mana.amount;
+    }
+    public ManaBar getManaBar() {return this.mana;}
+
+    public void setManaBar(ManaBar manaBar) {
+        this.mana = manaBar;
     }
 }

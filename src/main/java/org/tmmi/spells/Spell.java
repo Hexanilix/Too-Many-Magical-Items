@@ -1,6 +1,7 @@
 package org.tmmi.spells;
 
 import org.bukkit.*;
+import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +33,6 @@ public abstract class Spell {
     }
 
     private final UUID id;
-    private final UUID handler;
     private final String name;
     private int level;
     private int XP;
@@ -43,7 +43,7 @@ public abstract class Spell {
     private @NotNull UUID uuid() {
         String u = UUID_SEQUENCE + IntToHex(spells.size(), 4) +
                 '-' +
-                toHex(handler, 4) +
+                toHex("3hure9tgi", 4) +
                 '-' +
                 toHex(weight.name(), 4) +
                 '-' +
@@ -51,8 +51,7 @@ public abstract class Spell {
                 String.valueOf(digits.charAt(new Random().nextInt(16))).repeat(8);
         return UUID.fromString(u);
     }
-    public Spell(UUID id, UUID handler, String name, Weight weight, int level, int XP, int castCost, Vector box) {
-        this.handler = handler;
+    public Spell(UUID id, String name, Weight weight, int level, int XP, int castCost, Vector box) {
         this.name = name;
         this.castCost = castCost;
         assert level > 0;
@@ -64,9 +63,6 @@ public abstract class Spell {
         if (!DISABLED_SPELLS.v().contains(this.id)) spells.add(this);
     }
 
-    public UUID getHandler() {
-        return handler;
-    }
     public String getName() {
         return name;
     }
@@ -103,10 +99,9 @@ public abstract class Spell {
             this.level++;
             this.onLevelUP();
         }
-        if (l < this.level && Bukkit.getPlayer(this.handler) != null) Bukkit.getPlayer(this.handler).sendMessage(this.name + " upgraded to level " + this.level);
     }
 
-    public abstract CastSpell cast(@NotNull Location castLocation, float multiplier);
+    public abstract CastSpell cast(@NotNull Location castLocation, float multiplier, Entity e);
 
     public abstract void onLevelUP();
 
@@ -126,7 +121,6 @@ public abstract class Spell {
     public String toString() {
         return "Spell{" +
                 "id=" + id +
-                ", handler=" + handler +
                 ", name='" + name + '\'' +
                 ", level=" + level +
                 ", XP=" + XP +

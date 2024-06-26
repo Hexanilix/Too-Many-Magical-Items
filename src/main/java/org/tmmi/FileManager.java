@@ -276,7 +276,6 @@ public class FileManager {
                                 switch (st) {
                                     case ATK -> s = new ATK(
                                             UUID.fromString(j.getString("id")),
-                                            id,
                                             j.getString("name"),
                                             Weight.getSpellType(j.getString("weight")),
                                             j.getInt("level"),
@@ -291,7 +290,6 @@ public class FileManager {
                                             j.getBoolean("phase"));
                                     case DEF -> s = new DEF(
                                             UUID.fromString(j.getString("id")),
-                                            id,
                                             j.getString("name"),
                                             Weight.getSpellType(j.getString("weight")),
                                             j.getInt("level"),
@@ -304,7 +302,6 @@ public class FileManager {
                                     case STI -> s = new STI(
                                             STI.Stat.get(j.getString("stat")),
                                             UUID.fromString(j.getString("id")),
-                                            id,
                                             j.getInt("level"),
                                             j.getInt("experience"),
                                             j.getInt("cast_cost"),
@@ -312,7 +309,6 @@ public class FileManager {
                                             j.getInt("multiplier"));
                                     default -> s = new UTL(
                                             UTL.Util.get(j.getString("util")),
-                                            id,
                                             j.getInt("level"),
                                             j.getInt("experience"),
                                             j.getInt("cast_cost"));
