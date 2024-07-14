@@ -1,4 +1,4 @@
-package org.tmmi.spells.atributes;
+package org.tmmi.spell.atributes;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;

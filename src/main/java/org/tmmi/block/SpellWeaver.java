@@ -10,14 +10,14 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.*;
-import org.tmmi.spells.atributes.AreaEffect;
+import org.tmmi.spell.atributes.AreaEffect;
 
 import java.util.*;
 
 import static org.hetils.Util.isSim;
 import static org.hetils.Util.newItemStack;
 import static org.tmmi.Main.*;
-import static org.tmmi.spells.atributes.AreaEffect.getAreaEffect;
+import static org.tmmi.spell.atributes.AreaEffect.getAreaEffect;
 import static org.tmmi.Element.getElement;
 
 public class SpellWeaver extends InteractiveBlock {

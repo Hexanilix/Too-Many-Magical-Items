@@ -1,4 +1,4 @@
-package org.tmmi.spells.atributes;
+package org.tmmi.spell.atributes;
 
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;

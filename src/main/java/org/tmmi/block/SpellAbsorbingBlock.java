@@ -5,8 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.inventory.ItemStack;
-import org.tmmi.Main;
-import org.tmmi.spells.CastSpell;
+import org.tmmi.spell.CastSpell;
 
 import java.util.*;
 

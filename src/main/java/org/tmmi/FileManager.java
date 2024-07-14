@@ -14,10 +14,10 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.tmmi.block.*;
-import org.tmmi.spells.*;
-import org.tmmi.spells.atributes.AreaEffect;
-import org.tmmi.spells.atributes.Type;
-import org.tmmi.spells.atributes.Weight;
+import org.tmmi.spell.*;
+import org.tmmi.spell.atributes.AreaEffect;
+import org.tmmi.spell.atributes.Type;
+import org.tmmi.spell.atributes.Weight;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
@@ -273,47 +273,47 @@ public class FileManager {
                                     log("Unknown spell type \"" + Type.getType(j.getString("type") + "\". Omitting"));
                                     continue;
                                 }
-                                switch (st) {
-                                    case ATK -> s = new ATK(
-                                            UUID.fromString(j.getString("id")),
-                                            j.getString("name"),
-                                            Weight.getSpellType(j.getString("weight")),
-                                            j.getInt("level"),
-                                            j.getInt("experience"),
-                                            j.getInt("cast_cost"),
-                                            getElement(j.getString("main_element")),
-                                            getElement(j.getString("secondary_element")),
-                                            AreaEffect.getAreaEffect(j.getString("area_effect")),
-                                            j.getDouble("speed"),
-                                            j.getDouble("travel"),
-                                            j.getDouble("base_damage"),
-                                            j.getBoolean("phase"));
-                                    case DEF -> s = new DEF(
-                                            UUID.fromString(j.getString("id")),
-                                            j.getString("name"),
-                                            Weight.getSpellType(j.getString("weight")),
-                                            j.getInt("level"),
-                                            j.getInt("experience"),
-                                            j.getInt("cast_cost"),
-                                            getElement(j.getString("element")),
-                                            AreaEffect.getAreaEffect(j.getString("area_effect")),
-                                            j.getInt("hold_time"),
-                                            j.getInt("durability"));
-                                    case STI -> s = new STI(
-                                            STI.Stat.get(j.getString("stat")),
-                                            UUID.fromString(j.getString("id")),
-                                            j.getInt("level"),
-                                            j.getInt("experience"),
-                                            j.getInt("cast_cost"),
-                                            j.getInt("effect_time"),
-                                            j.getInt("multiplier"));
-                                    default -> s = new UTL(
-                                            UTL.Util.get(j.getString("util")),
-                                            j.getInt("level"),
-                                            j.getInt("experience"),
-                                            j.getInt("cast_cost"));
-                                }
-                                w.addSpell(s);
+//                                switch (st) {
+//                                    case ATK -> s = new ATK(
+//                                            UUID.fromString(j.getString("id")),
+//                                            j.getString("name"),
+//                                            Weight.getSpellType(j.getString("weight")),
+//                                            j.getInt("level"),
+//                                            j.getInt("experience"),
+//                                            j.getInt("cast_cost"),
+//                                            getElement(j.getString("main_element")),
+//                                            getElement(j.getString("secondary_element")),
+//                                            AreaEffect.getAreaEffect(j.getString("area_effect")),
+//                                            j.getDouble("speed"),
+//                                            j.getDouble("travel"),
+//                                            j.getDouble("base_damage"),
+//                                            j.getBoolean("phase"));
+//                                    case DEF -> s = new DEF(
+//                                            UUID.fromString(j.getString("id")),
+//                                            j.getString("name"),
+//                                            Weight.getSpellType(j.getString("weight")),
+//                                            j.getInt("level"),
+//                                            j.getInt("experience"),
+//                                            j.getInt("cast_cost"),
+//                                            getElement(j.getString("element")),
+//                                            AreaEffect.getAreaEffect(j.getString("area_effect")),
+//                                            j.getInt("hold_time"),
+//                                            j.getInt("durability"));
+//                                    case STI -> s = new STI(
+//                                            STI.Stat.get(j.getString("stat")),
+//                                            UUID.fromString(j.getString("id")),
+//                                            j.getInt("level"),
+//                                            j.getInt("experience"),
+//                                            j.getInt("cast_cost"),
+//                                            j.getInt("effect_time"),
+//                                            j.getInt("multiplier"));
+//                                    default -> s = new UTL(
+//                                            UTL.Util.get(j.getString("util")),
+//                                            j.getInt("level"),
+//                                            j.getInt("experience"),
+//                                            j.getInt("cast_cost"));
+//                                }
+//                                w.addSpell(s);
                             } catch (JSONException e) {
                                 e.printStackTrace();
                             }

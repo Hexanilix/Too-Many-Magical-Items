@@ -1,26 +1,21 @@
-package org.tmmi.spells;
+package org.tmmi.spell;
 
 import org.bukkit.*;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.tmmi.Element;
 import org.tmmi.ManaBar;
 import org.tmmi.WeavePlayer;
 import org.tmmi.items.ItemCommand;
-import org.tmmi.spells.atributes.Weight;
+import org.tmmi.spell.atributes.Weight;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.*;
-
 import static org.hetils.Util.*;
 import static org.tmmi.Main.*;
 
@@ -47,11 +42,11 @@ public class UTL extends Spell {
         this(u, 1, 0, 10);
     }
     public UTL(@NotNull UTL.Util u, int level, int XP, int castcost) {
-        super(null, "Mine", Weight.CANTRIP, level, XP, castcost, null);
+        super(null, "Mine", Weight.CANTRIP, org.tmmi.Element.EARTH, level, XP, castcost);
         this.util = u;
         switch (u) {
             case MINE -> {
-                this.setCastCost(10);
+                this.setCc(10);
             }
         }
         this.attemptLvlUP();
@@ -69,16 +64,16 @@ public class UTL extends Spell {
         switch (util) {
             case MINE ->
                     getSphere(player.getLocation(), 10).stream().filter(s -> s.getType().name().toLowerCase().contains("ore")).forEach(b -> {
-                        new CastSpell(this, player.getEyeLocation(), getCastCost()) {
+                        new CastSpell(this, player.getEyeLocation(), getCc()) {
 
                             @Override
-                            public BukkitTask cast(CastSpell casts) {
-                                return new BukkitRunnable() {
+                            public Thread cast() {
+                                return new Thread() {
                                     final Location loc = player.getEyeLocation();
                                     @Override
                                     public void run() {
                                         if (loc.distance(b.getLocation()) < 1) {
-                                            cancel();
+                                            interrupt();
                                             org.bukkit.entity.Item i = b.getWorld().dropItem(b.getLocation(), new ItemStack(b.getType()));
                                             ItemCommand c = ItemCommand.getOrNew(i);
                                             c.moveTo(player, 0.1, 1);
@@ -87,7 +82,7 @@ public class UTL extends Spell {
                                         loc.add(genVec(loc, b.getLocation().clone().add(0.5, 0.5, 0.5)).multiply(0.4));
                                         Objects.requireNonNull(loc.getWorld()).spawnParticle(Particle.BLOCK, loc, 1, 0, 0, 0, 0, b.getBlockData());
                                     }
-                                }.runTaskTimer(plugin, 0, 0);
+                                };
                             }
                         };
                     });
@@ -187,34 +182,6 @@ public class UTL extends Spell {
     }
 
     @Override
-    public ItemStack toItem() {
-        ChatColor c;
-        switch (util) {
-            default -> c = ChatColor.GRAY;
-        }
-        ChatColor sc;
-        switch (util) {
-            default -> sc = ChatColor.DARK_GRAY;
-        }
-        ItemStack item = new ItemStack(Material.STONE);
-        ItemMeta m = item.getItemMeta();
-        assert m != null;
-        m.setDisplayName(c+this.getName() + " (" + this.getWeight() + ")");
-        int nxtlxp = this.getXP() - (xpsum(this.getLevel()-1));
-        int nxtLvlXP = lvlXPcalc(this.getLevel()-1);
-        int perc = (int) (((float) nxtlxp / nxtLvlXP) * 100);
-        m.setLore(List.of(sc+"Level "+c+this.getLevel(), c + "[" +
-                        "-".repeat(Math.max(0, perc/10)) +
-                        sc + "-".repeat(Math.max(0, 10 - perc/10)) +
-                        c + "]" + (nxtlxp >= 1000 ? BigDecimal.valueOf((float) nxtlxp / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtlxp) +
-                        sc + "/" + c + (nxtLvlXP >= 1000 ? BigDecimal.valueOf((float) nxtLvlXP / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtLvlXP),
-                ChatColor.GRAY + "Total XP: " + this.getXP()));
-        item.setItemMeta(m);
-        return item;
-
-    }
-
-    @Override
     public String toJson() {
         return  "\t\t{\n" +
                 "\t\"type\":\"UTL\",\n" +
@@ -222,7 +189,7 @@ public class UTL extends Spell {
                 "\t\"name\":\"" + this.getName() + "\",\n" +
                 "\t\"level\":" + this.getLevel() + ",\n" +
                 "\t\"experience\":" + this.getXP() + ",\n" +
-                "\t\"cast_cost\":" + this.getCastCost() + ",\n" +
+                "\t\"cast_cost\":" + this.getCc() + ",\n" +
                 "\t\"weight\":\"" + this.getWeight() + "\",\n" +
                 "\t\"util\":\"" + this.util.name() + "\"\n" +
                 "}";

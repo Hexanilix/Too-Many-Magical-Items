@@ -1,9 +1,7 @@
 package org.tmmi.events;
 
 import org.bukkit.entity.Player;
-import org.tmmi.spells.CastSpell;
-
-import java.util.UUID;
+import org.tmmi.spell.CastSpell;
 
 public class SpellCollideEvent extends PlayerEvent {
     private final CastSpell hitSpell;

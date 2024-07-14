@@ -1,21 +1,16 @@
-package org.tmmi.spells;
+package org.tmmi.spell;
 
 import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.*;
-import org.tmmi.spells.atributes.Weight;
+import org.tmmi.spell.atributes.Weight;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -47,7 +42,7 @@ public class STI extends Spell {
     private int effectTime;
     private double multiplier;
     public STI(@NotNull Stat stat, UUID id, int level, int XP, int castCost, int effectTime, double multiplier) {
-        super(id, "Stat inc", Weight.CANTRIP, level, XP, castCost, null);
+        super(id, "Stat inc", Weight.CANTRIP, Element.EARTH,level, XP, castCost);
         this.stat = stat;
         this.effectTime = effectTime;
         this.multiplier = multiplier;
@@ -105,8 +100,8 @@ public class STI extends Spell {
         return null;
     }
 
-    @Override
-    public ItemStack toItem() {
+    @Contract(value = " -> new", pure = true)
+    private @NotNull List<String> extraItemLore() {
         ChatColor c;
         switch (stat) {
             default -> c = ChatColor.AQUA;
@@ -115,23 +110,8 @@ public class STI extends Spell {
         switch (stat) {
             default -> sc = ChatColor.DARK_AQUA;
         }
-        ItemStack item = new ItemStack(Material.DIAMOND_SWORD);
-        ItemMeta m = item.getItemMeta();
-        assert m != null;
-        m.setDisplayName(c+this.getName());
-        int nxtlxp = this.getXP() - (xpsum(this.getLevel()-1));
-        int nxtLvlXP = lvlXPcalc(this.getLevel()-1);
-        int perc = (int) (((float) nxtlxp / nxtLvlXP) * 100);
-        m.setLore(List.of(c + "Multiplier: " + sc + this.multiplier + 'x',
-                c + "Effect time: " + sc + ((double) this.effectTime / 1000) + 's',
-                sc+"Level "+c+this.getLevel(), c + "[" +
-                "-".repeat(Math.max(0, perc/10)) +
-                sc + "-".repeat(Math.max(0, 10 - perc/10)) +
-                c + "]" + (nxtlxp >= 1000 ? BigDecimal.valueOf((float) nxtlxp / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtlxp) +
-                sc + "/" + c + (nxtLvlXP >= 1000 ? BigDecimal.valueOf((float) nxtLvlXP / 1000).setScale(2, RoundingMode.HALF_EVEN) + "k" : nxtLvlXP),
-        ChatColor.GRAY + "Total XP: " + this.getXP()));
-        item.setItemMeta(m);
-        return item;
+        return List.of(c + "Multiplier: " + sc + this.multiplier + 'x',
+                c + "Effect time: " + sc + ((double) this.effectTime / 1000) + 's');
 
     }
 
@@ -143,7 +123,7 @@ public class STI extends Spell {
                 "\t\"name\":\"" + this.getName() + "\",\n" +
                 "\t\"level\":" + this.getLevel() + ",\n" +
                 "\t\"experience\":" + this.getXP() + ",\n" +
-                "\t\"cast_cost\":" + this.getCastCost() + ",\n" +
+                "\t\"cast_cost\":" + this.getCc() + ",\n" +
                 "\t\"stat\":\"" + this.stat + "\",\n" +
                 "\t\"effect_time\":" + this.effectTime + ",\n" +
                 "\t\"multiplier\":" + this.multiplier + "\n" +

@@ -29,10 +29,11 @@ import org.tmmi.Element;
 import org.tmmi.Structure.SBD;
 import org.tmmi.Structure;
 import org.tmmi.WeavePlayer;
-import org.tmmi.spells.ATK;
-import org.tmmi.spells.Spell;
-import org.tmmi.spells.atributes.AreaEffect;
-import org.tmmi.spells.atributes.Weight;
+import org.tmmi.spell.ATK;
+import org.tmmi.spell.Spell;
+import org.tmmi.spell.atributes.AreaEffect;
+import org.tmmi.spell.atributes.Weight;
+import org.tmmi.spell.spells.MagicMissile;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -192,7 +193,7 @@ public class WeavingTable extends InteractiveBlock {
                     public void run() {
                         i++;
                         if (i > 100) {
-                            Spell s = new ATK("atk", Weight.CANTRIP, e, null, ae);
+                            Spell s = new MagicMissile();
                             new BukkitRunnable() {
                                 int i = 0;
                                 Item it = null;

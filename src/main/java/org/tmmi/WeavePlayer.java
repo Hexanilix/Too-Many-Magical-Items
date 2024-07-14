@@ -9,7 +9,6 @@ import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -17,14 +16,14 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.items.GrandBook;
-import org.tmmi.spells.Spell;
+import org.tmmi.spell.Spell;
 
 import java.util.*;
 
 import static org.hetils.Util.*;
 import static org.tmmi.Main.*;
-import static org.tmmi.spells.atributes.Weight.CANTRIP;
-import static org.tmmi.spells.atributes.Weight.SORCERY;
+import static org.tmmi.spell.atributes.Weight.CANTRIP;
+import static org.tmmi.spell.atributes.Weight.SORCERY;
 
 public class WeavePlayer {
     public static Collection<WeavePlayer> weavers = new HashSet<>();
@@ -150,9 +149,9 @@ public class WeavePlayer {
     public void cast() {
         Spell s = main;
         if (s != null) {
-            if (player.getGameMode() == GameMode.CREATIVE || s.getCastCost() <= mana.amount) {
+            if (player.getGameMode() == GameMode.CREATIVE || s.getCc() <= mana.amount) {
                 s.cast(this.player.getEyeLocation(), 1, this.player);
-                if (player.getGameMode() != GameMode.CREATIVE) mana.sub(s.getCastCost());
+                if (player.getGameMode() != GameMode.CREATIVE) mana.sub(s.getCc());
                 manaCool = 5;
             }
         }

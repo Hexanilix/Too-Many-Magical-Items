@@ -1,7 +1,7 @@
 package org.tmmi.events;
 
 import org.bukkit.entity.Player;
-import org.tmmi.spells.Spell;
+import org.tmmi.spell.Spell;
 
 public class SpellCastEvent extends PlayerEvent {
 

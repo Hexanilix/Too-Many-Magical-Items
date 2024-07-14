@@ -1,4 +1,4 @@
-package org.tmmi.spells;
+package org.tmmi.spell;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -22,16 +22,17 @@ public abstract class CastSpell {
     public static Collection<CastSpell> instances = new HashSet<>();
     private final Spell s;
     private Location loc;
-    private final BukkitTask run;
+    private final Thread run;
     private final int cost;
-    CastSpell(Spell s, @NotNull Location loc, int cost) {
+    public CastSpell(Spell s, @NotNull Location loc, int cost) {
         this.s = s;
         this.loc = loc;
         this.cost = cost;
-        this.run = this.cast(this);
+        this.run = cast();
+        run.start();
         instances.add(this);
     }
-    public abstract BukkitTask cast(CastSpell casts);
+    public abstract Thread cast();
 
 
     private World getWorld() {
@@ -51,7 +52,7 @@ public abstract class CastSpell {
     }
 
     public void uncast(boolean natural) {
-        run.cancel();
+        run.interrupt();
         instances.remove(this);
         onUncast(natural);
     }

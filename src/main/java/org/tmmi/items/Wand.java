@@ -9,7 +9,7 @@ import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.Main;
-import org.tmmi.spells.Spell;
+import org.tmmi.spell.Spell;
 import org.tmmi.WeavePlayer;
 
 import java.util.ArrayList;

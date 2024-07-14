@@ -32,8 +32,9 @@ import org.bukkit.util.Vector;
 import org.hetils.FileVersion;
 import org.hetils.Property;
 import org.jetbrains.annotations.NotNull;
-import org.tmmi.spells.*;
-import org.tmmi.spells.atributes.AreaEffect;
+import org.tmmi.items.coolstick;
+import org.tmmi.spell.*;
+import org.tmmi.spell.atributes.AreaEffect;
 import org.tmmi.block.*;
 import org.tmmi.items.SpellBook;
 
@@ -228,6 +229,7 @@ public class Main extends JavaPlugin {
                         background = newItemStack(Material.BLACK_STAINED_GLASS_PANE, " ", unclickable);
                         setItems();
                         Bukkit.getPluginManager().registerEvents(new MainListener(), this);
+                        Spell.damageRunnable.runTaskTimer(plugin, 0, 10);
                         for (Player p : Bukkit.getOnlinePlayers()) fm.loadPlayerSaveData(p);
                         log("Plugin loaded successfully");
                     }
@@ -318,7 +320,7 @@ public class Main extends JavaPlugin {
 
     private void setItems() {
         ItemStack fusionCrys = newItemStack(Material.END_CRYSTAL, ChatColor.DARK_AQUA + "Fusion Crystal", 365450, List.of());
-        allItemInv.getFirst().addItem(SpellWeaver.item, new SpellBook(), SpellAbsorbingBlock.item, WeavingTable.item);
+        allItemInv.getFirst().addItem(SpellWeaver.item, new SpellBook(), SpellAbsorbingBlock.item, WeavingTable.item, new coolstick());
         for (Element e : Element.values()) allItemInv.getFirst().addItem(getItem(e));
         for (AreaEffect e : AreaEffect.values()) allItemInv.getFirst().addItem(AreaEffect.getItem(e));
         {

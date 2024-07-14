@@ -24,9 +24,11 @@ import org.tmmi.block.ManaCauldron;
 import org.tmmi.block.WeavingTable;
 import org.tmmi.items.FocusWand;
 import org.tmmi.items.ItemCommand;
-import org.tmmi.spells.*;
-import org.tmmi.spells.atributes.AreaEffect;
-import org.tmmi.spells.atributes.Weight;
+import org.tmmi.spell.*;
+import org.tmmi.spell.atributes.AreaEffect;
+import org.tmmi.spell.atributes.Weight;
+import org.tmmi.spell.spells.FlameReel;
+import org.tmmi.spell.spells.MagicMissile;
 
 import java.util.*;
 import java.util.stream.Stream;
@@ -317,14 +319,71 @@ public class cmd implements CommandExecutor {
                                         if (args.length > 1) {
                                             Spell s = null;
                                             switch (args[1].toLowerCase()) {
-                                                case "a" ->
-                                                        s = new ATK(null, "ATK", Weight.CANTRIP, 1, 0, 10, Element.FIRE, null, AreaEffect.DIRECT, 1, 10, 2);
-                                                case "u" ->
-                                                        s = new UTL(UTL.Util.MINE);
-                                                case "d" ->
-                                                        s = new DEF(null, "DEF", Weight.CANTRIP, 1, 0, 10, Element.WATER, AreaEffect.DIRECT, 200, 1000);
-                                                case "s" ->
-                                                        s = new STI(STI.Stat.DMG);
+                                                case "g" -> Bukkit.broadcastMessage(nearestEntity(player.getLocation(), 1, List.of(player)).getName());
+                                                case "b" -> new FlameReel().cast(player.getEyeLocation(), 1, player);
+                                                case "a" -> {
+                                                    new BukkitRunnable() {
+                                                        int i = 0;
+                                                        @Override
+                                                        public void run() {
+                                                            i++;
+                                                            if (i == 20) {
+                                                                newThread(() -> {
+                                                                    try {
+                                                                        for (int j = 0; j < 3; j++) {
+                                                                            Thread.sleep(400);
+                                                                            new BukkitRunnable() {
+                                                                                @Override
+                                                                                public void run() {
+                                                                                    new MagicMissile().cast(player.getEyeLocation(), 1, player);
+                                                                                    player.getWorld().playSound(player.getLocation().add(0, 1, 0), Sound.BLOCK_TRIAL_SPAWNER_CLOSE_SHUTTER, 1.4f, 1);
+                                                                                }
+                                                                            }.runTask(plugin);
+                                                                        }
+                                                                    } catch (InterruptedException ignored) {}
+                                                                }).start();
+                                                                cancel();
+                                                            }
+                                                            player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation().add(0, 1, 0), 1, 0, 0, 0, 0.01);
+                                                        }
+                                                    }.runTaskTimer(plugin, 0, 0);
+                                                }
+                                                case "bend" -> {
+                                                    newThread(new Thread() {
+                                                        final Random r = new Random();
+                                                        final Particle p = switch (args[2].toLowerCase()) {
+                                                            case "f" -> Particle.FLAME;
+                                                            case "e" -> Particle.CRIT;
+                                                            case "w" -> Particle.DRIPPING_WATER;
+                                                            case "a" -> Particle.CLOUD;
+                                                            default -> Particle.END_ROD;
+                                                        };
+                                                       @Override
+                                                       public void run() {
+                                                           Location mid = player.getLocation();
+                                                           Location l = mid.clone().subtract(3, 0, 0);
+                                                           World w = mid.getWorld();
+                                                           try {
+                                                               int i = 0;
+                                                               while (true) {
+                                                                   i++;
+                                                                   if (i == 25) {
+                                                                       mid = player.getLocation().add((double) (r.nextInt(30)-15)/10, (double) (r.nextInt(30)-15)/10, (double)  (r.nextInt(30)-15)/10);
+                                                                       i = 0;
+                                                                   }
+                                                                   l.setDirection(l.getDirection().clone().normalize().add(genVec(l, mid).multiply(0.2)));
+                                                                   l.setYaw(l.getYaw()+3);
+                                                                   l.setPitch(l.getPitch()+0.4f);
+                                                                   l.add(l.getDirection().clone().multiply(0.2));
+                                                                   w.spawnParticle(p, l, 1, 0, 0 ,0, 0);
+                                                                   Thread.sleep(25);
+                                                               }
+                                                           } catch (InterruptedException e) {
+                                                               throw new RuntimeException(e);
+                                                           }
+                                                       }
+                                                    }).start();
+                                                }
                                             }
                                             if (s != null) {
                                                 w.setMain(s);
@@ -354,7 +413,7 @@ public class cmd implements CommandExecutor {
                                         public void run() {
                                             i++;
                                             if (i > 100) {
-                                                Spell s = new ATK("atk", Weight.CANTRIP, Element.FIRE, null, AreaEffect.DIRECT);
+                                                Spell s = new MagicMissile();
                                                 new BukkitRunnable() {
                                                     int i = 0;
                                                     Item it = null;
