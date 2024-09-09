@@ -102,7 +102,7 @@ public abstract class ATK extends Spell {
     }
 
     @Override
-    public String toJson() {
+    public @NotNull String json() {
         return  "\t\t{\n" +
                 "\t\"type\":\"ATK\",\n" +
                 "\t\"id\":\"" + this.getId() + "\",\n" +

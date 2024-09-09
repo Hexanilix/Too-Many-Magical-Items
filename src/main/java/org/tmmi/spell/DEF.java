@@ -140,7 +140,7 @@ public class DEF extends Spell {
     }
 
     @Override
-    public String toJson() {
+    public @NotNull String json() {
         return  "\t\t{\n" +
                 "\t\"type\":\"DEF\",\n" +
                 "\t\"id\":\"" + this.getId() + "\",\n" +

@@ -26,22 +26,23 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.Element;
-import org.tmmi.Structure.SBD;
 import org.tmmi.Structure;
+import org.tmmi.Structure.SBD;
 import org.tmmi.WeavePlayer;
-import org.tmmi.spell.ATK;
 import org.tmmi.spell.Spell;
 import org.tmmi.spell.atributes.AreaEffect;
-import org.tmmi.spell.atributes.Weight;
 import org.tmmi.spell.spells.MagicMissile;
 
 import java.util.*;
 import java.util.stream.Stream;
 
-import static org.hetils.Util.*;
+import static org.hetils.Item.newItemStack;
+import static org.hetils.Location.nearestEntity;
+import static org.hetils.Util.isSim;
+import static org.hetils.Vector.genVec;
 import static org.tmmi.Main.*;
 
-public class WeavingTable extends InteractiveBlock {
+public class WeavingTable extends InteractiveBlock implements Listener {
     public static final Collection<WeavingTable> instances = new HashSet<>();
     public static final ItemStack item = newItemStack(Material.ENCHANTING_TABLE, "WeavingTable", 346722);
     public static final Structure base = new Structure(new String[][]{
@@ -65,7 +66,7 @@ public class WeavingTable extends InteractiveBlock {
     private final WTLis e;
     private final List<Thread> particles = new ArrayList<>();
     private boolean built;
-    private int level = 3;
+    private final int level = 3;
     private GlowItemFrame gi;
     final Location c = block.getLocation().clone().add(0.5, 0.7, 0.5);
     public WeavingTable(@NotNull Location l) {
@@ -99,23 +100,22 @@ public class WeavingTable extends InteractiveBlock {
             private final Location a4 = new Location(w, b.getX()+1, b.getY()+0.75, b.getZ()+1);
             @Override
             public void run() {
-                try {
-                    int i = 0;
-                    while (true) {
-                        Thread.sleep(100);
-                        if (built) {
-                            w.spawnParticle(Particle.ASH, a1, 1, 0, 0, 0, 0);
-                            w.spawnParticle(Particle.ASH, a2, 1, 0, 0, 0, 0);
-                            w.spawnParticle(Particle.ASH, a3, 1, 0, 0, 0, 0);
-                            w.spawnParticle(Particle.ASH, a4, 1, 0, 0, 0, 0);
-                            if (i > 10) {
-                                w.spawnParticle(Particle.END_ROD, c, 1, 0.2, 0.1, 0.2, 0.001);
-                                i = 0;
-                            }
-                            i++;
+                int i = 0;
+                while (true) {
+                    try {Thread.sleep(100);
+                    } catch (InterruptedException ignore) {}
+                    if (built) {
+                        w.spawnParticle(Particle.ASH, a1, 1, 0, 0, 0, 0);
+                        w.spawnParticle(Particle.ASH, a2, 1, 0, 0, 0, 0);
+                        w.spawnParticle(Particle.ASH, a3, 1, 0, 0, 0, 0);
+                        w.spawnParticle(Particle.ASH, a4, 1, 0, 0, 0, 0);
+                        if (i > 10) {
+                            w.spawnParticle(Particle.END_ROD, c, 1, 0.2, 0.1, 0.2, 0.001);
+                            i = 0;
                         }
+                        i++;
                     }
-                } catch (InterruptedException ignored) {}
+                }
             }
         }));
         this.particles.add(t(block.getLocation().add(4, 1, 0).getBlock(), 1));
@@ -278,8 +278,8 @@ public class WeavingTable extends InteractiveBlock {
                             if (loca != null) {
                                 Location fl = loca;
                                 newThread(new Thread() {
-                                    int d = 20;
-                                    int v = 15;
+                                    final int d = 20;
+                                    final int v = 15;
                                     int i = 0;
                                     final Location loc = fl;
                                     static double d(double x, float v) {return (-Math.pow(x*v-3, 2)+9)/v;}
@@ -424,11 +424,11 @@ public class WeavingTable extends InteractiveBlock {
                     }
                 }
             }
-            if (isSimBlk(b, l1.b)) l1.drop();
-            else if (isSimBlk(b, l2.b)) l2.drop();
-            else if (isSimBlk(b, l3.b)) l3.drop();
-            else if (isSimBlk(b, l4.b)) l4.drop();
-            else if (b != null && isSimBlk(b, block) && event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && event.getPlayer().isSneaking()) {
+            if (isSim(b, l1.b)) l1.drop();
+            else if (isSim(b, l2.b)) l2.drop();
+            else if (isSim(b, l3.b)) l3.drop();
+            else if (isSim(b, l4.b)) l4.drop();
+            else if (b != null && isSim(b, block) && event.getAction().equals(Action.RIGHT_CLICK_BLOCK) && event.getPlayer().isSneaking()) {
                 event.setCancelled(true);
                 if (isWeaving) return;
                 if (this.isAccepting == null) {
@@ -473,7 +473,7 @@ public class WeavingTable extends InteractiveBlock {
     }
     @EventHandler
     public void onPrepareItemEnchant(@NotNull PrepareItemEnchantEvent event) {
-        if (isSimBlk(event.getEnchantBlock(), block)) {
+        if (isSim(event.getEnchantBlock(), block)) {
             EnchantmentOffer[] enc = event.getOffers();
             for (int i = 0; i < 3; i++) {
                 EnchantmentOffer e = enc[i];
@@ -486,7 +486,7 @@ public class WeavingTable extends InteractiveBlock {
     }
     @EventHandler
     public void onEnchant(@NotNull EnchantItemEvent event) {
-        if (isSimBlk(event.getEnchantBlock(), block)) {
+        if (isSim(event.getEnchantBlock(), block)) {
             Map<Enchantment, Integer> map = event.getEnchantsToAdd();
             int sum = 0;
             for (Enchantment e : map.keySet()) {

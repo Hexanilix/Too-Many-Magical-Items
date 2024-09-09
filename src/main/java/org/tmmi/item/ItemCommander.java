@@ -1,4 +1,4 @@
-package org.tmmi.items;
+package org.tmmi.item;
 
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -11,16 +11,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.hetils.Util.genVec;
+import static org.hetils.Vector.genVec;
 import static org.tmmi.Main.plugin;
 
-public class ItemCommand {
-    public static List<ItemCommand> instances = new ArrayList<>();
+public class ItemCommander {
+    public static List<ItemCommander> instances = new ArrayList<>();
 
     private final org.bukkit.entity.Item item;
     private BukkitRunnable operation;
     private final List<BukkitRunnable> waitlist = new ArrayList<>();
-    public ItemCommand(org.bukkit.entity.Item item) {
+    public ItemCommander(org.bukkit.entity.Item item) {
         this.item = item;
         new BukkitRunnable() {
             @Override
@@ -38,22 +38,22 @@ public class ItemCommand {
         }.runTask(plugin);
     }
 
-    public static @NotNull ItemCommand getOrNew(org.bukkit.entity.Item i) {
-        for (ItemCommand c : instances)
+    public static @NotNull ItemCommander getOrNew(org.bukkit.entity.Item i) {
+        for (ItemCommander c : instances)
             if (c.getItem() == i)
                 return c;
-        return new ItemCommand(i);
+        return new ItemCommander(i);
     }
 
     public org.bukkit.entity.Item getItem() {
         return item;
     }
 
-    public ItemCommand newOperation(BukkitRunnable runnable) {
+    public ItemCommander newOperation(BukkitRunnable runnable) {
         waitlist.add(runnable);
         return this;
     }
-    public ItemCommand newOperation(Runnable run) {
+    public ItemCommander newOperation(Runnable run) {
         waitlist.add(new BukkitRunnable() {
             @Override
             public void run() {
@@ -62,21 +62,21 @@ public class ItemCommand {
         });
         return this;
     }
-    public ItemCommand moveTo(Location des) {
+    public ItemCommander moveTo(Location des) {
         moveTo(des, 1, 1, null);
         return this;
     }
-    public ItemCommand moveTo(Location des, double speed) {
+    public ItemCommander moveTo(Location des, double speed) {
         moveTo(des, speed,1, null);
         return this;
     }
-    public ItemCommand moveTo(Location des, double speed, double dis) {
+    public ItemCommander moveTo(Location des, double speed, double dis) {
         moveTo(des, speed, dis, null);
         return this;
     }
-    public ItemCommand moveTo(Location des, double speed, double dis, Runnable end) {
+    public ItemCommander moveTo(Location des, double speed, double dis, Runnable end) {
         waitlist.add(new BukkitRunnable() {
-            final org.bukkit.entity.Item item = ItemCommand.this.item;
+            final org.bukkit.entity.Item item = ItemCommander.this.item;
             final Location l = item.getLocation();
             @Override
             public void run() {
@@ -97,25 +97,25 @@ public class ItemCommand {
         });
         return this;
     }
-    public ItemCommand moveTo(Entity des) {
+    public ItemCommander moveTo(Entity des) {
         return moveTo(des, 1, 1, null);
     }
-    public ItemCommand moveTo(Entity des, double speed) {
+    public ItemCommander moveTo(Entity des, double speed) {
         return moveTo(des, speed, 1, null);
     }
-    public ItemCommand moveTo(Entity des, double speed, int dis) {
+    public ItemCommander moveTo(Entity des, double speed, int dis) {
         return moveTo(des, speed, dis,null);
     }
-    public ItemCommand moveTo(@NotNull Entity des, double speed, int dis, Runnable end) {
+    public ItemCommander moveTo(@NotNull Entity des, double speed, int dis, Runnable end) {
         item.setPickupDelay((int) des.getLocation().distance(item.getLocation()));
         waitlist.add(new BukkitRunnable() {
-            final org.bukkit.entity.Item item = ItemCommand.this.item;
+            final org.bukkit.entity.Item item = ItemCommander.this.item;
             final Location l = item.getLocation();
             @Override
             public void run() {
                 if (des.isDead() || item.isDead() || (l.distance(des.getLocation()) < dis)) {
                     if (end != null) end.run();
-                    ItemCommand.this.operation = null;
+                    ItemCommander.this.operation = null;
                     cancel();
                 }
                 l.add(genVec(l, des.getLocation()).multiply(speed));
@@ -131,18 +131,18 @@ public class ItemCommand {
         });
         return this;
     }
-    public ItemCommand revolve(@NotNull Location loc) {
+    public ItemCommander revolve(@NotNull Location loc) {
         return revolve(loc, 10, 2);
     }
-    public ItemCommand revolve(@NotNull Location loc, float rspeed, double distance) {
+    public ItemCommander revolve(@NotNull Location loc, float rspeed, double distance) {
         waitlist.add(new BukkitRunnable() {
-            final org.bukkit.entity.Item item = ItemCommand.this.item;
+            final org.bukkit.entity.Item item = ItemCommander.this.item;
             Location cen = loc.clone();
             float r = 0;
             @Override
             public void run() {
                 if (item.isDead()) {
-                    ItemCommand.this.operation = null;
+                    ItemCommander.this.operation = null;
                     cancel();
                 }
                 item.setPickupDelay(23452345);

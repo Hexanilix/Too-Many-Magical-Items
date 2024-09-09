@@ -1,4 +1,4 @@
-package org.tmmi.items;
+package org.tmmi.item.items;
 
 import org.bukkit.inventory.meta.ItemMeta;
 

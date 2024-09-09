@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static org.hetils.Util.isSim;
-import static org.hetils.Util.newItemStack;
+import static org.hetils.Item.newItemStack;
 
 public enum AreaEffect {
     DIRECT,

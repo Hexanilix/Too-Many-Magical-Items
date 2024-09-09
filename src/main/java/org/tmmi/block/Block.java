@@ -10,7 +10,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collection;
 import java.util.HashSet;
 
-import static org.hetils.Util.isSimBlk;
+import static org.hetils.Util.isSim;
 import static org.tmmi.Main.log;
 
 public class Block {
@@ -18,7 +18,7 @@ public class Block {
 
     public static @Nullable Block get(Location loc) {
         for (Block b : blocks)
-            if (isSimBlk(b.getBlock(), loc.getBlock()))
+            if (isSim(b.getBlock(), loc.getBlock()))
                 return b;
         return null;
     }
@@ -37,7 +37,7 @@ public class Block {
         try {
             for (Block b : blocks) {
                 log(b.getLoc());
-                if (isSimBlk(b.getBlock(), block)) throw new BlockLocationExists("Block already exists at " + block);
+                if (isSim(b.getBlock(), block)) throw new BlockLocationExists("Block already exists at " + block);
             }
             this.material = material;
             this.item = item;

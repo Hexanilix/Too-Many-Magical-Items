@@ -13,14 +13,15 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.hetils.Util;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.tmmi.items.GrandBook;
+import org.tmmi.item.items.GrandBook;
 import org.tmmi.spell.Spell;
 
 import java.util.*;
 
-import static org.hetils.Util.*;
+import static org.hetils.Item.*;
 import static org.tmmi.Main.*;
 import static org.tmmi.spell.atributes.Weight.CANTRIP;
 import static org.tmmi.spell.atributes.Weight.SORCERY;
@@ -97,7 +98,7 @@ public class WeavePlayer {
     public Inventory inventory() {
         Inventory inv = Bukkit.createInventory(null, 54, "Spell Weaver");
         for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, background);
-        setCusData(inv.getItem(0), 2003245);
+        setCustomData(inv.getItem(0), 2003245);
         List<Spell> ss = getSorSpells();
         for (int i = 10; i < 17; i++) {
             if (i < ss.size()) {
@@ -220,7 +221,7 @@ public class WeavePlayer {
     }
 
     public boolean hasGrandBook() {
-        return Arrays.stream(player.getInventory().getContents()).anyMatch(i -> isSim(i, grandBook));
+        return Arrays.stream(player.getInventory().getContents()).anyMatch(i -> Util.isSim(i, grandBook));
     }
 
     private void bkgSetMain(Spell s) {
@@ -243,7 +244,7 @@ public class WeavePlayer {
     public Spell getSecondary() {return sec;}
 
     public String toJSON() {
-        List<String> spells = this.spells.stream().map(Spell::toJson).toList();
+        List<String> spells = this.spells.stream().map(Spell::json).toList();
         return "\t\"element\": \"" + this.element + "\",\n" +
                 "\t\"max_mana\": " + this.mana.limit + ",\n" +
                 "\t\"can_size\": " + this.canSize + ",\n" +

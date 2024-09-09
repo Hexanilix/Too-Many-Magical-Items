@@ -9,8 +9,8 @@ import org.tmmi.spell.CastSpell;
 
 import java.util.*;
 
-import static org.hetils.Util.inSphere;
-import static org.hetils.Util.newItemStack;
+import static org.hetils.Block.inSphere;
+import static org.hetils.Item.newItemStack;
 import static org.tmmi.Main.*;
 
 public class SpellAbsorbingBlock extends Block {

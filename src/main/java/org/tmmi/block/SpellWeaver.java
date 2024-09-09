@@ -15,7 +15,7 @@ import org.tmmi.spell.atributes.AreaEffect;
 import java.util.*;
 
 import static org.hetils.Util.isSim;
-import static org.hetils.Util.newItemStack;
+import static org.hetils.Item.newItemStack;
 import static org.tmmi.Main.*;
 import static org.tmmi.spell.atributes.AreaEffect.getAreaEffect;
 import static org.tmmi.Element.getElement;

@@ -1,9 +1,7 @@
 package org.tmmi.spell;
 
 import org.bukkit.*;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -19,6 +17,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
+import static org.hetils.Item.newItemStack;
 import static org.hetils.Util.*;
 import static org.tmmi.Main.*;
 
@@ -123,7 +122,7 @@ public abstract class Spell {
         return this.element;
     }
 
-    public abstract CastSpell cast(@NotNull Location castLocation, float multiplier, Entity e);
+    public abstract CastSpell cast(Location castLocation, float multiplier, Entity e);
 
     public abstract void onLevelUP();
 
@@ -189,5 +188,21 @@ public abstract class Spell {
                 '}';
     }
 
-    public abstract String toJson();
+    @Contract(pure = true)
+    public @NotNull String json() {
+        return "";
+    }
+
+    public String toJson() {
+        return "\t\t{\n" +
+                "\t\"type\":\"ATK\",\n" +
+                "\t\"id\":\"" + this.getId() + "\",\n" +
+                "\t\"name\":\"" + this.getName() + "\",\n" +
+                "\t\"level\":" + this.getLevel() + ",\n" +
+                "\t\"experience\":" + this.getXP() + ",\n" +
+                "\t\"cast_cost\":" + this.getCc() + ",\n" +
+                "\t\"weight\":\"" + this.getWeight() + "\",\n" +
+                json() +
+                "}";
+    }
 }

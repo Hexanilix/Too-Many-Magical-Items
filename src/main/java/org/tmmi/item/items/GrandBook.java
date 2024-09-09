@@ -1,10 +1,11 @@
-package org.tmmi.items;
+package org.tmmi.item.items;
 
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.tmmi.item.Item;
 
 public class GrandBook extends Item {
     public GrandBook(@NotNull ItemStack item) {

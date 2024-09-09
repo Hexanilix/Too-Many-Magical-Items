@@ -12,12 +12,11 @@ import org.tmmi.spell.Spell;
 import org.tmmi.spell.atributes.AreaEffect;
 import org.tmmi.spell.atributes.Weight;
 
-import java.math.BigDecimal;
-import java.math.MathContext;
 import java.util.Collection;
 import java.util.Random;
 
 import static org.hetils.Util.*;
+import static org.hetils.Vector.genVec;
 import static org.tmmi.Main.*;
 
 public class MagicMissile extends ATK {
@@ -28,12 +27,7 @@ public class MagicMissile extends ATK {
 
     @Override
     public CastSpell cast(@NotNull Location castLocation, float multiplier, Entity e) {
-        Player player = (Player) e;
-        boolean opB = (!Element.getOptimalBiomes(this.getElement()).contains(castLocation.getWorld().getBiome(castLocation)));
-        double spellSpeed = BigDecimal.valueOf((this.getSpeed() - Math.floor(this.getSpeed())) / 2).round(MathContext.DECIMAL32).doubleValue() + 0.3;
-        Vector direction = castLocation.getDirection();
         Location loc = castLocation.clone();
-        loc.add(direction.multiply(spellSpeed));
         Entity target = null;
         Location lab = null;
         int o = 3;
@@ -65,21 +59,20 @@ public class MagicMissile extends ATK {
                     final Entity tar = finalTarget;
                     final World w = loc.getWorld();
                     final Random r = new Random();
+                    boolean hit = false;
                     @Override
                     public void run() {
                         try {
-                            Location hl = tar == null ? finalLab : tar.getLocation().add(0, tar.getHeight()/2, 0).add(genVec(tar.getLocation().add(0, tar.getHeight()/2, 0), loc).normalize().multiply(0.3));
+                            Location hl = tar == null ? finalLab : tar.getLocation().add(0, tar.getHeight()/2, 0);
                             loc.setYaw(loc.getYaw()+r.nextInt(360)-180);
                             loc.setPitch(-r.nextInt(95)+5);
                             loc.add(loc.getDirection().normalize().multiply(0.3));
                             double dis = 0;
                             int i = 0;
-                            final boolean[] hit = {false};
-                            while (!hit[0]) {
+                            while (!hit) {
                                 Location ll = loc.clone();
-                                Thread.sleep(10);
                                 i++;
-                                if (i % 25 == 0) hl = tar == null ? finalLab : tar.getLocation().add(0, tar.getHeight()/2, 0).add(genVec(tar.getLocation().add(0, tar.getHeight()/2, 0), loc).normalize().multiply(0.3));
+                                if (i % 25 == 0) hl = tar == null ? finalLab : tar.getLocation().add(0, tar.getHeight()/2, 0);
                                 loc.setDirection(loc.getDirection().clone().add(genVec(loc, hl).multiply(.1)));
                                 loc.add(loc.getDirection().clone().normalize().multiply(.25));
                                 w.spawnParticle(Particle.END_ROD, loc, 1, 0, 0, 0, 0);
@@ -89,33 +82,30 @@ public class MagicMissile extends ATK {
                                         @Override
                                         public void run() {
                                             Collection<Entity> nearbyEntities = w.getNearbyEntities(loc, 1, 1, 1);
-                                            for (Entity e : nearbyEntities) {
-                                                if (e instanceof LivingEntity l && e != tar) {
-                                                    if (e == player) return;
+                                            for (Entity en : nearbyEntities) if (en instanceof LivingEntity l && en != tar) {
+                                                    if (en == e) return;
                                                     Spell.damageEnt(l, dmg / (l.getLocation().distance(loc) * 2));
                                                     w.spawnParticle(Particle.CLOUD, l.getLocation(), 2, 1, 1, 1, 0.05);
                                                     l.setVelocity(l.getVelocity().add(genVec(l.getLocation().add(0, l.getHeight()/2, 0), loc).normalize().multiply(-0.1)));
-                                                    hit[0] = true;
+                                                    hit = true;
                                                 }
-                                            }
-                                            if (finalHl.distance(loc) <= 1 && !hit[0]) {
-                                                if (tar != null && tar instanceof LivingEntity liv) {
-                                                    Spell.damageEnt(liv, dmg);
-                                                    hit[0] = true;
-                                                    liv.setVelocity(liv.getVelocity().add(genVec(liv.getLocation().add(0, liv.getHeight()/2, 0), loc).normalize().multiply(-0.2)));
-                                                }
+                                            if (finalHl.distance(loc) <= 1 && !hit && tar != null && tar instanceof LivingEntity liv) {
+                                                Spell.damageEnt(liv, dmg);
+                                                hit = true;
+                                                liv.setVelocity(liv.getVelocity().add(genVec(liv.getLocation().add(0, liv.getHeight()/2, 0), loc).normalize().multiply(-0.2)));
                                             }
                                             w.playSound(loc, Sound.BLOCK_COPPER_BULB_HIT, 1, 1);
                                         }
                                     }.runTask(plugin);
-                                if (dis >= getTravel() || loc.getBlock().getType().isSolid() || hl.distance(loc) <= 1) break;
+                                if (dis >= getTravel() || loc.getBlock().getType().isSolid()) break;
                                 dis += loc.distance(ll);
+                                Thread.sleep(10);
                             }
                             MagicMissile.this.attemptLvlUP();
                         } catch (InterruptedException ignored) {}
                     }
                 });
             }
-            };
+        };
     }
 }

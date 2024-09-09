@@ -1,4 +1,4 @@
-package org.tmmi.items.potions;
+package org.tmmi.item.items.potions;
 
 import org.bukkit.*;
 import org.bukkit.block.Block;

@@ -1,4 +1,4 @@
-package org.tmmi.items;
+package org.tmmi.item.items;
 
 public class CreditCookie {
 }

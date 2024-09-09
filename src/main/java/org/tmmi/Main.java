@@ -4,7 +4,6 @@ import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import org.bukkit.*;
-import org.bukkit.block.data.Levelled;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
@@ -13,6 +12,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityShootBowEvent;
@@ -27,21 +27,30 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.permissions.Permission;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.EulerAngle;
 import org.bukkit.util.Vector;
 import org.hetils.FileVersion;
 import org.hetils.Property;
 import org.jetbrains.annotations.NotNull;
-import org.tmmi.items.coolstick;
-import org.tmmi.spell.*;
-import org.tmmi.spell.atributes.AreaEffect;
 import org.tmmi.block.*;
-import org.tmmi.items.SpellBook;
+import org.tmmi.item.items.SpellBook;
+import org.tmmi.item.items.coolstick;
+import org.tmmi.spell.CastSpell;
+import org.tmmi.spell.Spell;
+import org.tmmi.spell.atributes.AreaEffect;
 
 import java.util.*;
 import java.util.logging.Level;
 
-import static org.hetils.Util.*;
+import static org.hetils.Item.*;
+import static org.hetils.Location.nearestEntity;
+import static org.hetils.Player.isCriticalHit;
+import static org.hetils.Util.isSim;
+import static org.hetils.Util.toHex;
+import static org.hetils.Vector.vecAvg;
 import static org.tmmi.Element.getItem;
 import static org.tmmi.WeavePlayer.getOrNew;
 import static org.tmmi.WeavePlayer.getWeaver;
@@ -123,17 +132,21 @@ public class Main extends JavaPlugin {
     }
 
     /**
-     * A shortcut to the Bukkit console logger
+     * The TMMI plugin console logger. This method sends the string value of {@code msg} through the
+     * Bukkit logger with the disclosure that the message was sent by this plugin, in the form of a
+     * string in front of the message: <i>{@code [TMMI]}</i>
      *
-     * @param msg The message
+     * @param msg The object converted to a string to send
      */
     public static void log(Object msg) {
         log(Level.INFO, msg);
     }
     /**
-     * A shortcut to the Bukkit console logger
+     * The TMMI plugin console logger. This method sends the string value of {@code msg} through the
+     * Bukkit plugin with the disclosure that the message was sent by this plugin, in the form of a string
+     * in front of the message: <i>{@code [TMMI]}</i>
      *
-     * @param msg The message
+     * @param msg The object converted to a string to send
      * @param lv The level of the message
      */
     public static void log(Level lv, Object msg) {
@@ -143,7 +156,8 @@ public class Main extends JavaPlugin {
     public static Collection<Thread> threads = new ArrayList<>();
 
     /**
-     * Adds a thread to a list within the TMMI plugin
+     * Creates a thread that's added to a {@link Collection} of threads that
+     * is interrupted when disabling or reloading the plugin
      *
      * @param run The Runnable
      * @return returns a Thread, after adding it to the list
@@ -289,25 +303,6 @@ public class Main extends JavaPlugin {
         return i;
     }
 
-    /**
-     * A shortcut to the Bukkit console logger
-     *
-     * @param caul The cauldron
-     * @param level The water level ranging from an int 0 to 4, skips on any other value
-     */
-    public static void setCauldronFillLevel(org.bukkit.block.@NotNull Block caul, int level) {
-        if (caul.getType() == Material.CAULDRON || caul.getType() == Material.WATER_CAULDRON)
-            if (level > -1 && level < 4) {
-                if (level == 0) caul.setType(Material.CAULDRON);
-                else {
-                    if (caul.getType() != Material.WATER_CAULDRON) caul.setType(Material.WATER_CAULDRON);
-                    Levelled l = (Levelled) caul.getBlockData();
-                    l.setLevel(level);
-                    caul.setBlockData(l);
-                }
-            }
-    }
-
     public boolean loadClasses() {
         try {
             classes.add(Class.forName("org.tmmi.Main"));
@@ -386,10 +381,12 @@ public class Main extends JavaPlugin {
                         cl.setPitch(-cl.getPitch());
                         double m = Math.pow(vecAvg(ar.getVelocity())*4, 2) / 4;
                         cl.add(cl.getDirection().multiply(m));
-                        ar.getLocation().getWorld().spawnParticle(Particle.COMPOSTER, cl, 1, 0, 0, 0,0);
-                        liver = (nearestEntity(cl, 10, List.of(ar, event.getEntity())) instanceof LivingEntity e ? e : null);
-                        liver = (nearestEntity(cl.add(cl.getDirection().multiply(m)), 5, List.of(ar, event.getEntity())) instanceof LivingEntity e ? e : liver);
-                        ar.getLocation().getWorld().spawnParticle(Particle.FLAME, cl, 1, 0, 0, 0,0);
+                        World w = ar.getLocation().getWorld();
+                        if (w == null) return;
+                        w.spawnParticle(Particle.COMPOSTER, cl, 1, 0, 0, 0,0);
+                        liver = (nearestEntity(cl, 10, ar, event.getEntity()) instanceof LivingEntity e ? e : null);
+                        liver = (nearestEntity(cl.add(cl.getDirection().multiply(m)), 5, ar, event.getEntity()) instanceof LivingEntity e ? e : liver);
+                        w.spawnParticle(Particle.FLAME, cl, 1, 0, 0, 0,0);
                         if (ar.isOnGround()) cancel();
                         if (liver != null && !liver.isDead()) {
                             if (ar.getLocation().distance(liver.getLocation()) < 1) cancel();
@@ -398,45 +395,6 @@ public class Main extends JavaPlugin {
                         }
                     }
                 }.runTaskTimer(plugin, 0, 1);
-            }
-        }
-
-        @EventHandler
-        public void onInteract(@NotNull PlayerInteractEvent event) {
-            Player p = event.getPlayer();
-            if (event.getAction() == Action.LEFT_CLICK_AIR  && p.getInventory().getItemInMainHand().getType() == Material.AIR) {
-//                Location l = p.getEyeLocation().clone().subtract(0, 0.5, 0);
-//                for (int i = 0; i < 12; i++) {
-//                    Entity e = nearestEntity(l.add(l.getDirection().multiply(1)), 0.5);
-////                    if (e != p && e instanceof LivingEntity liv) {
-////                        BoundingBox b = liv.getBoundingBox();
-////                        log((b.getMinX() - b.getMaxX()));
-////                        log(new Location(liv.getWorld(), b.getMinX() +  ((b.getMinX() - b.getMaxX())/10) , b.getMinY() + ((b.getMinY() - b.getMaxY())/10) , b.getMinZ() + ((b.getMinZ() - b.getMaxZ())/10)));
-////                        for (int j = -2; j < 12; j++) {
-////                            Location locer = new Location(liv.getWorld(),
-////                                    b.getMinX() - (((b.getMinX() - b.getMaxX())/10) * j),
-////                                    b.getMinY() - (((b.getMinY() - b.getMaxY())/10) * j),
-////                                    b.getMinZ() - (((b.getMinZ() - b.getMaxZ())/10) * j));
-////                            locer.getWorld().spawnParticle(Particle.FLAME, locer, 1, 0, 0, 0, 0);
-////                        }
-////                        liv.damage(2);
-////                        liv.setFireTicks(20);
-////                        break;
-////                    }
-//                    if (e != p && e instanceof LivingEntity liv) {
-//                        liv.getWorld().spawnParticle(Particle.CLOUD, liv.getLocation(), 5, 0.2, 0.2, 0.2, 0.1);
-//                        liv.damage(0.2);
-//                        liv.setVelocity(liv.getVelocity().subtract(genVec(liv.getLocation(), p.getLocation())).normalize().multiply(0.7));
-//                        break;
-//                    }
-//                }
-                WeavePlayer w = getOrNew(p);
-                log(w.getMain());
-                if (w.getMain() != null) w.cast();
-            } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK && p.getInventory().getItemInMainHand().getType() == Material.AIR) {
-//                org.bukkit.block.Block b = p.getTargetBlockExact(5);
-//                if (b != null) b.getWorld().spawnParticle(Particle.CLOUD, b.getLocation().add(0.5, 1, 0.5), 3, 0.1, 0, 0.1, 0.04);
-//                p.setVelocity(p.getVelocity().add(p.getEyeLocation().getDirection().multiply(-0.3d)));
             }
         }
 
@@ -484,7 +442,7 @@ public class Main extends JavaPlugin {
         @EventHandler
         public void breakBlock(@NotNull BlockBreakEvent event) {
             for (Block l : Block.blocks)
-                if (isSimBlk(l.getBlock().getLocation(), event.getBlock().getLocation())) {
+                if (isSim(l.getBlock().getLocation(), event.getBlock().getLocation())) {
                     l.remove(event.getPlayer().getGameMode() != GameMode.CREATIVE);
                     return;
                 }
@@ -504,13 +462,150 @@ public class Main extends JavaPlugin {
         public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
             if (!event.hasItem()) return;
             ItemStack item = event.getItem();
-            if (item == null) return;
-            if (!item.hasItemMeta()) return;
-            if (!Objects.requireNonNull(item.getItemMeta()).hasCustomModelData()) return;
-            for (org.tmmi.items.Item i : org.tmmi.items.Item.items) {
+            for (org.tmmi.item.Item i : org.tmmi.item.Item.items)
                 if (isSim(item, i)) {
                     i.onUse(event);
+                    return;
                 }
+            if (event.getClickedBlock() != null) {
+                for (InteractiveBlock b : InteractiveBlock.instances)
+                    if (b.getLoc().getBlock().equals(event.getClickedBlock().getLocation().getBlock())) {
+                        b.onClick(event.getAction(), event.getPlayer(), event);
+                        return;
+                    }
+            }
+            Player p = event.getPlayer();
+            //Code for sword shielding
+            if (isSword(event.getItem()) && event.getAction() == Action.RIGHT_CLICK_AIR) {
+                new BukkitRunnable() {
+                    boolean cancelled = false;
+                    public class Listener implements org.bukkit.event.Listener {
+                        @EventHandler
+                        public void onClick(@NotNull PlayerInteractEvent event1) {
+                            if (event1.getPlayer() == p && !cancelled) {
+                                cancel();
+                                a.remove();
+                                cancelled = true;
+                            }
+                        }
+                        @EventHandler
+                        public void onClick(@NotNull PlayerInteractAtEntityEvent event1) {
+                            if (event1.getRightClicked() == a && event1.getPlayer() == p && !cancelled) {
+                                cancel();
+                                a.remove();
+                                cancelled = true;
+                            }
+                        }
+                        @EventHandler
+                        public void onEntityDamageByEntity(@NotNull EntityDamageByEntityEvent event) {
+                            if (event.getEntity() == a && event.getDamager() == p && !cancelled) {
+                                cancel();
+                                a.remove();
+                                cancelled = true;
+                            } else if ((event.getEntity() == p || event.getEntity() == a)
+                                    && event.getDamager() instanceof Player damager) {
+                                if (isEntityBehindPlayer(p, damager)) return;
+                                if (sp == 0 && !isCriticalHit(event)) return;
+                                else if (sp == 1 && isCriticalHit(event)) return;
+                                else if (sp == 2 && damager.getLocation().getY() > p.getLocation().getY()-1) return;
+                                cancelled = true;
+                                event.setCancelled(true);
+                                cancel();
+                                a.getWorld().playSound(a.getLocation(), Sound.ENTITY_ITEM_BREAK, 1, 1.9f);
+                                damager.setVelocity(damager.getVelocity().add(damager.getLocation().toVector().subtract(p.getLocation().toVector())).multiply(.2));
+                                damager.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 1, 3));
+                                setItemCoolDown(damager, SWORDS, 10);
+                                setItemCoolDown(p, SWORDS, 20);
+                            }
+                        }
+                        public static boolean isEntityBehindPlayer(@NotNull Player player, @NotNull Entity entity) {
+                            Vector playerDirection = player.getLocation().getDirection();
+                            Vector playerToEntity = entity.getLocation().toVector().subtract(player.getLocation().toVector());
+                            playerToEntity.normalize();
+                            double dotProduct = playerDirection.dot(playerToEntity);
+                            return dotProduct < 0;
+                        }
+                        @EventHandler
+                        public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
+                            if (event.getPlayer() == p) {
+                                sp = Math.max(Math.min(sp + (event.getNewSlot() - event.getPreviousSlot()), 2), 0);
+                                log(sp);
+                                a.setRightArmPose(ang[sp]);
+                                event.setCancelled(true);
+                            }
+                        }
+                    }
+                    int sp = 0;
+                    final Player p = event.getPlayer();
+                    final ArmorStand a = (ArmorStand) p.getWorld().spawnEntity(p.getLocation(), EntityType.ARMOR_STAND);
+                    final ItemStack it = event.getItem();
+                    final Listener l = new Listener();
+                    final EulerAngle[] ang = new EulerAngle[]{
+                            new EulerAngle(4.4, .6, 1.3),
+                            new EulerAngle(4.6, .3, 2.3),
+                            new EulerAngle(-.2, -1.5, .5)
+                    };
+                    {
+                        a.setVisible(false);
+                        a.setGravity(false);
+                        a.setInvisible(true);
+                        a.getEquipment().setItemInMainHand(it);
+                        a.setRightArmPose(ang[0]);
+                        a.getWorld().playSound(a.getLocation(), Sound.ITEM_ARMOR_EQUIP_CHAIN, 1, .9f);
+                        Bukkit.getPluginManager().registerEvents(l, plugin);
+                    }
+                    final int s = p.getInventory().getHeldItemSlot();
+                    public void run() {
+                        Vector v = p.getVelocity();
+                        v.setX(Math.min(0.3, v.getX()));
+                        v.setZ(Math.min(0.3, v.getZ()));
+                        Location pl = p.getLocation();
+//                        if (!a.isDead()) a.teleport(new Location(p.getWorld(), pl.getX()+Math.log(v.getX()*10), pl.getY()+v.getY(), pl.getZ()+Math.log(v.getZ()*10), pl.getYaw(), pl.getPitch()));
+                        if (!a.isDead()) a.teleport(pl);
+                        p.setVelocity(v);
+                    }
+                    @Override
+                    public void cancel() {
+                        super.cancel();
+                        p.getInventory().setItem(s, it);
+                        HandlerList.unregisterAll(l);
+                    }
+                }.runTaskTimer(plugin, 0, 0);
+                p.getInventory().setItemInMainHand(new ItemStack(Material.GRAY_STAINED_GLASS_PANE));
+            }
+            if (event.getAction() == Action.LEFT_CLICK_AIR  && p.getInventory().getItemInMainHand().getType() == Material.AIR) {
+//                Location l = p.getEyeLocation().clone().subtract(0, 0.5, 0);
+//                for (int i = 0; i < 12; i++) {
+//                    Entity e = nearestEntity(l.add(l.getDirection().multiply(1)), 0.5);
+////                    if (e != p && e instanceof LivingEntity liv) {
+////                        BoundingBox b = liv.getBoundingBox();
+////                        log((b.getMinX() - b.getMaxX()));
+////                        log(new Location(liv.getWorld(), b.getMinX() +  ((b.getMinX() - b.getMaxX())/10) , b.getMinY() + ((b.getMinY() - b.getMaxY())/10) , b.getMinZ() + ((b.getMinZ() - b.getMaxZ())/10)));
+////                        for (int j = -2; j < 12; j++) {
+////                            Location locer = new Location(liv.getWorld(),
+////                                    b.getMinX() - (((b.getMinX() - b.getMaxX())/10) * j),
+////                                    b.getMinY() - (((b.getMinY() - b.getMaxY())/10) * j),
+////                                    b.getMinZ() - (((b.getMinZ() - b.getMaxZ())/10) * j));
+////                            locer.getWorld().spawnParticle(Particle.FLAME, locer, 1, 0, 0, 0, 0);
+////                        }
+////                        liv.damage(2);
+////                        liv.setFireTicks(20);
+////                        break;
+////                    }
+//                    if (e != p && e instanceof LivingEntity liv) {
+//                        liv.getWorld().spawnParticle(Particle.CLOUD, liv.getLocation(), 5, 0.2, 0.2, 0.2, 0.1);
+//                        liv.damage(0.2);
+//                        liv.setVelocity(liv.getVelocity().subtract(genVec(liv.getLocation(), p.getLocation())).normalize().multiply(0.7));
+//                        break;
+//                    }
+//                }
+                WeavePlayer w = getOrNew(p);
+                log(w.getMain());
+                if (w.getMain() != null) w.cast();
+            } else if (event.getAction() == Action.RIGHT_CLICK_BLOCK && p.getInventory().getItemInMainHand().getType() == Material.AIR) {
+//                org.bukkit.block.Block b = p.getTargetBlockExact(5);
+//                if (b != null) b.getWorld().spawnParticle(Particle.CLOUD, b.getLocation().add(0.5, 1, 0.5), 3, 0.1, 0, 0.1, 0.04);
+//                p.setVelocity(p.getVelocity().add(p.getEyeLocation().getDirection().multiply(-0.3d)));
             }
         }
         @EventHandler
@@ -518,7 +613,7 @@ public class Main extends JavaPlugin {
             ItemStack item = event.getItem().getItemStack();
             if (!item.hasItemMeta()) return;
             if (!Objects.requireNonNull(item.getItemMeta()).hasCustomModelData()) return;
-            for (org.tmmi.items.Item i : org.tmmi.items.Item.items)
+            for (org.tmmi.item.Item i : org.tmmi.item.Item.items)
                 if (isSim(item, i))
                     i.onPickup(event);
         }
@@ -527,17 +622,9 @@ public class Main extends JavaPlugin {
             ItemStack item = event.getItemDrop().getItemStack();
             if (!item.hasItemMeta()) return;
             if (!Objects.requireNonNull(item.getItemMeta()).hasCustomModelData()) return;
-            for (org.tmmi.items.Item i : org.tmmi.items.Item.items)
+            for (org.tmmi.item.Item i : org.tmmi.item.Item.items)
                 if (isSim(item, i))
                     i.onDrop(event);
-        }
-        @EventHandler
-        public void onBlockClick(@NotNull PlayerInteractEvent event) {
-            if (event.getClickedBlock() != null) {
-                for (InteractiveBlock b : InteractiveBlock.instances)
-                    if (b.getLoc().getBlock().equals(event.getClickedBlock().getLocation().getBlock()))
-                        b.onClick(event.getAction(), event.getPlayer(), event);
-            }
         }
 //        @EventHandler
 //        public void onPickup(@NotNull PlayerPickupItemEvent event) {
@@ -585,6 +672,13 @@ public class Main extends JavaPlugin {
         }
     }
 
+    private boolean isSword(ItemStack item) {
+        return item != null && item.getType().isItem() && switch (item.getType()) {
+            case WOODEN_SWORD, STONE_SWORD, GOLDEN_SWORD, IRON_SWORD, DIAMOND_SWORD, NETHERITE_SWORD -> true;
+            default -> false;
+        };
+    }
+
     public void reload() {
         onDisable();
         Block.blocks.clear();
@@ -592,7 +686,7 @@ public class Main extends JavaPlugin {
         Spell.spells.clear();
         CastSpell.instances.clear();
         WeavePlayer.weavers.clear();
-        org.tmmi.items.Item.items.clear();
+        org.tmmi.item.Item.items.clear();
         DISABLED = false;
         onEnable();
     }

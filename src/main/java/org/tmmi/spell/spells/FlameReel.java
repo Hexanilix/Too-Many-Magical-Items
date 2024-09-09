@@ -11,8 +11,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
-import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -27,10 +25,8 @@ import org.tmmi.spell.atributes.Weight;
 
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 
-import static org.hetils.Util.genVec;
-import static org.hetils.Util.nearestEntity;
+import static org.hetils.Vector.genVec;
 import static org.tmmi.Main.*;
 
 public class FlameReel extends ATK {
@@ -49,12 +45,11 @@ public class FlameReel extends ATK {
                     private class Lis implements Listener {
                         @EventHandler
                         public void onRck(@NotNull PlayerInteractEvent event) {
-                            if (event.getAction() == Action.LEFT_CLICK_AIR) {
+                            if (event.getAction() == Action.LEFT_CLICK_AIR)
                                 if (!shoot) {
                                     shoot = true;
                                     HandlerList.unregisterAll(this);
                                 }
-                            }
                         }
                         @EventHandler
                         public void onEntityDamageByEntity(@NotNull ProjectileHitEvent event) {
@@ -84,15 +79,15 @@ public class FlameReel extends ATK {
                                     Location l = e.getLocation().add(0, 1.2, 0);
                                     Collection<LivingEntity> dme = new HashSet<>();
                                     dme.add((LivingEntity) e);
-                                    Vector direction = l.toVector().subtract(ent.getLocation().toVector());
-                                    double st = l.distance(ent.getLocation());
+                                    Vector direction = l.toVector().subtract(ent.getLocation().add(0, ent.getHeight()/2, 0).toVector());
+                                    double st = l.distance(ent.getLocation().add(0, ent.getHeight()/2, 0));
                                     Vector step = direction.multiply(.5 / -st);
                                     int i = 0;
                                     while (i < st*2) {
                                         Location lo = l.clone().add(step.clone().multiply(i));
                                         if (lo.getBlock().getType().isSolid()) break;
                                         w.spawnParticle(Particle.DRIPPING_LAVA, lo, 5, .1, .1, .1, .1);
-                                        w.spawnParticle(Particle.FLAME, lo, 10, .2, .2, .2, 0.1);
+                                        w.spawnParticle(Particle.FLAME, lo, 10, .15, .15, .15, 0.02);
                                         for (Entity e : w.getNearbyEntities(lo, .4, .4, .4))
                                             if (e instanceof LivingEntity li)
                                                 if (!dme.contains(li)) {
@@ -108,6 +103,12 @@ public class FlameReel extends ATK {
                                     }
                                 }
                             }.runTask(plugin);
+                            if (!ent.isDead()) new BukkitRunnable() {
+                                @Override
+                                public void run() {
+                                    ent.remove();
+                                }
+                            };
                         } catch (InterruptedException ignored) {}
                     }
                 });

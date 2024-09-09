@@ -1,4 +1,4 @@
-package org.tmmi.items;
+package org.tmmi.item.items;
 
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -10,6 +10,7 @@ import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.WeavePlayer;
+import org.tmmi.item.Item;
 
 import java.util.ArrayList;
 import java.util.List;

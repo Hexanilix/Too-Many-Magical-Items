@@ -43,7 +43,7 @@
         <dependency>
             <groupId>org.hetils</groupId>
             <artifactId>mdu</artifactId>
-            <version>1.0.0</version>
+            <version>1.1.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.yaml/snakeyaml -->
         <dependency>
@@ -98,7 +98,7 @@
                         <configuration>
                             <tasks>
                                 <copy file="${project.build.directory}/${project.artifactId}-${project.version}-jar-with-dependencies.jar"
-                                      todir="C:\Users\sebas\Documents\mc_servers\1.20.6\plugins"/>
+                                      todir="C:\Users\sebas\Documents\mc_servers\1.20.6\TMMItestServ\plugins"/>
                             </tasks>
                         </configuration>
                     </execution>

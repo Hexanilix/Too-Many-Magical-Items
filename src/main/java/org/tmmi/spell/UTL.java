@@ -4,19 +4,20 @@ import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitRunnable;
-import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.tmmi.Element;
 import org.tmmi.ManaBar;
 import org.tmmi.WeavePlayer;
-import org.tmmi.items.ItemCommand;
+import org.tmmi.item.ItemCommander;
 import org.tmmi.spell.atributes.Weight;
 
 import java.util.*;
+
+import static org.hetils.Block.getBlocksInSphere;
+import static org.hetils.Location.nearestEntity;
 import static org.hetils.Util.*;
+import static org.hetils.Vector.genVec;
 import static org.tmmi.Main.*;
 
 public class UTL extends Spell {
@@ -63,7 +64,7 @@ public class UTL extends Spell {
         WeavePlayer wp = WeavePlayer.getWeaver(player);
         switch (util) {
             case MINE ->
-                    getSphere(player.getLocation(), 10).stream().filter(s -> s.getType().name().toLowerCase().contains("ore")).forEach(b -> {
+                    getBlocksInSphere(player.getLocation(), 10).stream().filter(s -> s.getType().name().toLowerCase().contains("ore")).forEach(b -> {
                         new CastSpell(this, player.getEyeLocation(), getCc()) {
 
                             @Override
@@ -75,7 +76,7 @@ public class UTL extends Spell {
                                         if (loc.distance(b.getLocation()) < 1) {
                                             interrupt();
                                             org.bukkit.entity.Item i = b.getWorld().dropItem(b.getLocation(), new ItemStack(b.getType()));
-                                            ItemCommand c = ItemCommand.getOrNew(i);
+                                            ItemCommander c = ItemCommander.getOrNew(i);
                                             c.moveTo(player, 0.1, 1);
                                             b.setType(Material.AIR);
                                         }
@@ -182,7 +183,7 @@ public class UTL extends Spell {
     }
 
     @Override
-    public String toJson() {
+    public @NotNull String json() {
         return  "\t\t{\n" +
                 "\t\"type\":\"UTL\",\n" +
                 "\t\"id\":\"" + this.getId() + "\",\n" +

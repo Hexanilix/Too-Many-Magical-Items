@@ -9,16 +9,16 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.HashSet;
 
-import static org.hetils.Util.isSimBlk;
-import static org.hetils.Util.newItemStack;
-import static org.tmmi.Main.setCauldronFillLevel;
+import static org.hetils.Block.setCauldronFillLevel;
+import static org.hetils.Item.newItemStack;
+import static org.hetils.Util.isSim;
 
 public class ManaCauldron extends Block {
     public static Collection<ManaCauldron> instances = new HashSet<>();
     public static final ItemStack item = newItemStack(Material.CAULDRON, "ManaCaul", 3435879);
 
     final int max = 1000;
-    int mana = 0;
+    int mana;
     public ManaCauldron(@NotNull Location loc) {
         this(loc.getBlock(), 0);
     }
@@ -36,7 +36,7 @@ public class ManaCauldron extends Block {
     }
     public static @NotNull ManaCauldron getOrNew(org.bukkit.block.Block block) {
         for (ManaCauldron m : instances)
-            if (isSimBlk(m.getBlock(), block))
+            if (isSim(m.getBlock(), block))
                 return m;
         return new ManaCauldron(block);
     }
