@@ -253,7 +253,7 @@ public class Main extends JavaPlugin {
                         log("Plugin loaded successfully");
                         if (CHECK_FOR_UPDATES.v()) {
                             try {
-                                URL url = new URL("https://github.com/Hexanilix/Too-Many-Magical-Items/blob/master/src/main/resources/plugin_versions.txt");
+                                URL url = new URL("https://github.com/Hexanilix/Too-Many-Magical-Items/raw/master/src/main/resources/plugin_versions.txt");
                                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
                                 connection.setRequestMethod("GET");
                                 BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
