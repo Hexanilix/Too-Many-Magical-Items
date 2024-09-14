@@ -37,10 +37,11 @@ By going into your plugin folder and locating a folder called **TMMI**, you shou
 | spell_travel_distance_cap |     double      | *The maximum distance a spell can travel measured in block*                           |
 | spell_damage_cap          |     double      | *The maximum amount of damage a spell can inflict on an entity*                       |
 | enable_custom_spells      |   true, false   | *Allow **[custom spells](#custom-spells)***                                           |
- **autosave¹ -** *Note that this function only saves data collected by the plugin, not server data*
 
-> More and more aspects of the plugin are becoming available to be changed,
-> so this list is going to continue to expand, as well as the `config.yml` file.
+> autosave¹ - Note that this function only saves data collected by the plugin, not server data
+
+More and more aspects of the plugin are becoming available to be changed,
+so this list is going to continue to expand, as well as the `config.yml` file.
 
 ### Default template for `config.yml` file:
 ```
