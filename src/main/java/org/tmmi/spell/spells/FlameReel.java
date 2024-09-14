@@ -75,7 +75,6 @@ public class FlameReel extends ATK {
                             new BukkitRunnable() {
                                 @Override
                                 public void run() {
-                                    e.setVelocity(e.getVelocity().add(genVec(e.getLocation(), ent.getLocation()).multiply(-2)));
                                     Location l = e.getLocation().add(0, 1.2, 0);
                                     Collection<LivingEntity> dme = new HashSet<>();
                                     dme.add((LivingEntity) e);
@@ -94,6 +93,7 @@ public class FlameReel extends ATK {
                                                     Spell.damageEnt(li, getBaseDamage() / (li.getLocation().distance(l)));
                                                     dme.add(li);
                                                 }
+                                        e.setVelocity(e.getVelocity().add(genVec(e.getLocation(), ent.getLocation()).multiply(-.02)));
                                         i++;
                                     }
                                     w.spawnParticle(Particle.LAVA, l.clone().add(step.clone().multiply(i)), 250, 1, 1, 1, 0.3);

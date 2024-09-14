@@ -42,6 +42,10 @@ import org.tmmi.spell.CastSpell;
 import org.tmmi.spell.Spell;
 import org.tmmi.spell.atributes.AreaEffect;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -66,7 +70,7 @@ public class Main extends JavaPlugin {
     public Collection<Class<?>> classes = new HashSet<>();
     public static boolean DISABLED;
 
-    public static final Property<FileVersion> FILE_VERSION = new Property<>("FILE_VERSION", Main.PLUGIN_VERSION);
+    public static final Property<FileVersion> FILE_VERSION = new Property<>("FILE_VERSION", Main.FILES_VERSION);
     public static final Property<Boolean> ENABLED = new Property<>("ENABLED", true);
     public static final Property<Boolean> GARBAGE_COLLECTION = new Property<>("GARBAGE_COLLECTION", true);
     public static final Property<Boolean> AUTOSAVE = new Property<>("AUTOSAVE", true);
@@ -80,6 +84,7 @@ public class Main extends JavaPlugin {
     public static final Property<Double> SPELL_DAMAGE_CAP = new Property<>("SPELL_DAMAGE_CAP", 20d);
     public static final Property<Integer> CHUNK_TREE_DEPTH = new Property<>("CHUNK_TREE_DEPTH", 3);
     public static final Property<Boolean> LEGACY_STI_SPELL = new Property<>("LEGACY_STI_SPELL", false);
+    public static final Property<Boolean> CHECK_FOR_UPDATES = new Property<>("CHECH_FOR_UPDATES", true);
 
     public static final Property<Boolean> DEBUG = new Property<>("DEBUG_n_TEST", false);
 
@@ -246,6 +251,25 @@ public class Main extends JavaPlugin {
                         Spell.damageRunnable.runTaskTimer(plugin, 0, 10);
                         for (Player p : Bukkit.getOnlinePlayers()) fm.loadPlayerSaveData(p);
                         log("Plugin loaded successfully");
+                        if (CHECK_FOR_UPDATES.v()) {
+                            try {
+                                URL url = new URL("https://github.com/Hexanilix/Too-Many-Magical-Items/blob/master/src/main/resources/plugin_versions.txt");
+                                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                                connection.setRequestMethod("GET");
+                                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                                String inputLine;
+                                StringBuilder content = new StringBuilder();
+                                if (PLUGIN_VERSION.versionDiff(new FileVersion(in.readLine())) == -1) {
+                                    Bukkit.broadcastMessage("You are a version behind!");
+                                }
+                                while ((inputLine = in.readLine()) != null)
+                                    content.append(inputLine).append("\n");
+                                in.close();
+                                connection.disconnect();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
                 }
             } else log(Level.WARNING, "Plugin is soft disabled in config, make sure this is a change you wanted");
@@ -702,6 +726,9 @@ public class Main extends JavaPlugin {
             for (WeavingTable w : WeavingTable.instances)
                 w.onBreak();
         }
+    }
+    public class Updator {
+
     }
 }
 

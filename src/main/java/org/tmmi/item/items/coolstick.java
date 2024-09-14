@@ -7,6 +7,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
@@ -15,11 +16,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.WeavePlayer;
 import org.tmmi.item.Item;
+import org.tmmi.spell.Spell;
+import org.tmmi.spell.spells.FlameReel;
+import org.tmmi.spell.spells.MagicMissile;
 
 import java.util.List;
 
 import static org.hetils.Util.isSim;
-import static org.tmmi.Main.log;
 import static org.tmmi.Main.plugin;
 
 public class coolstick extends Item {
@@ -33,20 +36,13 @@ public class coolstick extends Item {
         this.setItemMeta(m);
         Bukkit.getPluginManager().registerEvents(new Listener(), plugin);
     }
-
-    public boolean var = false;
     @Override
     public void onUse(@NotNull PlayerInteractEvent event) {
-//        if (event.getAction() == Action.LEFT_CLICK_AIR) {
-//            new MagicMissile().cast(event.getPlayer().getEyeLocation(), 1, event.getPlayer());
-//        } else {
-//            new FlameReel().cast(event.getPlayer().getEyeLocation(), 1, event.getPlayer());
-//        }
-        var = !var;
-        log(var);
+        if (event.getAction() == Action.RIGHT_CLICK_AIR)
+            ss[sesl % ss.length].cast(event.getPlayer().getEyeLocation(), 1, event.getPlayer());
     }
     int sesl = 0;
-    String[] ss = new String[]{"Spell a", "Spell b", "Spell c"};
+    Spell[] ss = new Spell[]{new MagicMissile(), new FlameReel()};
     public class Listener implements org.bukkit.event.Listener {
         @EventHandler
         public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
@@ -55,7 +51,7 @@ public class coolstick extends Item {
                 sesl += event.getNewSlot() - event.getPreviousSlot();
                 if (sesl < 0) sesl += 16784;
                 else if (sesl > 16784) sesl -= 16784;
-                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ss[sesl % ss.length]));
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ss[sesl % ss.length].getName()));
                 p.getInventory().setHeldItemSlot(event.getPreviousSlot());
             }
         }
