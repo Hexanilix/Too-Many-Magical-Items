@@ -1,27 +1,33 @@
-# ❗THIS PLUGIN DOES NOT HAVE ANY RELEASES YET`❗
+# ❗THIS PLUGIN DOES NOT HAVE ANY RELEASES YET❗
 # TMMI: A fun Minecraft Magic Plugin
-Too Many Magical Items, or TMMI for short, is a Magic Minecraft plugin made by [Hexanilix](https://github.com/Hexanilix) as a
-result of some wants and lacks from similar plugins. 
-This is a free, open source hobby project open to the community to use for themselves.
+**Too Many Magical Items**, or *TMMI* for short, is a Magic Minecraft plugin made by [Hexanilix](https://github.com/Hexanilix) as a
+result of some fun ideas coming from friends and inspiration from popular games and TV shows 
+This is a free, open source hobby project, available for the minecraft commiunity to enjoy and develop, for a memorable experience together.<br>
+<img src="https://preview.redd.it/90-of-the-feedback-i-get-from-playtesting-is-like-v0-stono8yvbjbd1.png?auto=webp&s=b82f6fda0c0b2b1a3c09349acd5fd9f942fb5333">
 ## Contents:
 - [Getting started](#getting-started)
 - [Modifications](#modifications)
-## Getting started
-### Initial Setup
+
+# Setup
+## Latest releases:
+<ul>
+   <li>1.20.6 - <a href="https://github.com/Hexanilix/Too-Many-Magical-Items/releases/tag/Pre-alpha">blahblahbal</a></li>
+</ul>
+
 After downloading the latest release, simply put the `.jar` file in your **plugins** folder
-***(this requires a paper, spigot or forge server)***, and the plugin will automatically set everything up and is usable straight
-out of the box.
+***(this requires a server with built in [CraftBukkit](https://dev.bukkit.org/) support like [PaperMC](https://papermc.io/))***, and the plugin will automatically create and configure any nessesairy files. Thanks to this, there isn't any required setup besides downloading the plugin. The plugin automatically updates itself *(if set to do so)*, but to not miss out on any interesting new additions, we recomend visiting this page once in a while.
+*You will be prompted to each update to visit this page. To disable this, click on "disable this message" or set the variable `SITE_PROMPT` in the [config.yml](#) file
 
 ### Optional Setup
 Most options are tuned to suit most use cases, so it's not advised to change them if you don't have to,
 but here are options that you should consider changing to fit your specific needs:
 - enabled
 - autosaveFrequency
+- automaticUpdates
 
 > For a more indepth analysis and options, check out [modifications](#modifications).
 
-## Modifications
-### Properties Config
+# Configuration
 By going into your plugin folder and locating a folder called **TMMI**, you should find a file named ```config.yml```. Inside you'll find variables you can change. **However, you musn't change the properties listed above the comment regarding them, since they hold information about the file and plugin.**
 
 ### Table of changeable properties
