@@ -26,7 +26,7 @@ import org.tmmi.spell.atributes.Weight;
 import java.util.Collection;
 import java.util.HashSet;
 
-import static org.hetils.Vector.genVec;
+import static org.hetils.minecraft.Vector.genVec;
 import static org.tmmi.Main.*;
 
 public class FlameReel extends ATK {

@@ -15,8 +15,8 @@ import org.tmmi.spell.atributes.Weight;
 import java.util.Collection;
 import java.util.Random;
 
-import static org.hetils.Util.*;
-import static org.hetils.Vector.genVec;
+import static org.hetils.minecraft.General.*;
+import static org.hetils.minecraft.Vector.genVec;
 import static org.tmmi.Main.*;
 
 public class MagicMissile extends ATK {

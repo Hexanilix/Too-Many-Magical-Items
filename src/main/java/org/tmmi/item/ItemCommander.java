@@ -11,7 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-import static org.hetils.Vector.genVec;
+import static org.hetils.minecraft.Vector.genVec;
 import static org.tmmi.Main.plugin;
 
 public class ItemCommander {

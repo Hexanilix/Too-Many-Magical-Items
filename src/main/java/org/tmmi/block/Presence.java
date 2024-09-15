@@ -15,7 +15,7 @@
 //
 //import java.util.*;
 //
-//import static org.hetils.Item.newItemStack;
+//import static org.hetils.minecraft.Item.newItemStack;
 //import static org.tmmi.Main.plugin;
 //
 //public class Presence extends InteractiveBlock {

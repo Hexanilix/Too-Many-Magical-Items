@@ -36,10 +36,10 @@ import org.tmmi.spell.spells.MagicMissile;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static org.hetils.Item.newItemStack;
-import static org.hetils.Location.nearestEntity;
-import static org.hetils.Util.isSim;
-import static org.hetils.Vector.genVec;
+import static org.hetils.minecraft.Item.newItemStack;
+import static org.hetils.minecraft.Location.nearestEntity;
+import static org.hetils.minecraft.General.isSim;
+import static org.hetils.minecraft.Vector.genVec;
 import static org.tmmi.Main.*;
 
 public class WeavingTable extends InteractiveBlock implements Listener {

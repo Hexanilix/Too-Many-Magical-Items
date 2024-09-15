@@ -42,19 +42,20 @@ import org.tmmi.spell.CastSpell;
 import org.tmmi.spell.Spell;
 import org.tmmi.spell.atributes.AreaEffect;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.logging.Level;
 
-import static org.hetils.Item.*;
-import static org.hetils.Location.nearestEntity;
-import static org.hetils.Player.isCriticalHit;
-import static org.hetils.Util.isSim;
-import static org.hetils.Util.toHex;
-import static org.hetils.Vector.vecAvg;
+import static org.hetils.minecraft.Item.*;
+import static org.hetils.minecraft.Location.nearestEntity;
+import static org.hetils.minecraft.Entity.Player.isCriticalHit;
+import static org.hetils.minecraft.General.isSim;
+import static org.hetils.General.toHex;
+import static org.hetils.minecraft.Vector.vecAvg;
+import static org.hetils.minecraft.Item.newItemStack;
 import static org.tmmi.Element.getItem;
 import static org.tmmi.WeavePlayer.getOrNew;
 import static org.tmmi.WeavePlayer.getWeaver;
@@ -84,7 +85,8 @@ public class Main extends JavaPlugin {
     public static final Property<Double> SPELL_DAMAGE_CAP = new Property<>("SPELL_DAMAGE_CAP", 20d);
     public static final Property<Integer> CHUNK_TREE_DEPTH = new Property<>("CHUNK_TREE_DEPTH", 3);
     public static final Property<Boolean> LEGACY_STI_SPELL = new Property<>("LEGACY_STI_SPELL", false);
-    public static final Property<Boolean> CHECK_FOR_UPDATES = new Property<>("CHECH_FOR_UPDATES", true);
+    public static final Property<Boolean> CHECK_FOR_UPDATES = new Property<>("CHECK_FOR_UPDATES", true);
+    public static final Property<Boolean> AUTOMATIC_UPDATE = new Property<>("AUTOMATIC_UPDATE", false);
 
     public static final Property<Boolean> DEBUG = new Property<>("DEBUG_n_TEST", false);
 
@@ -251,25 +253,15 @@ public class Main extends JavaPlugin {
                         Spell.damageRunnable.runTaskTimer(plugin, 0, 10);
                         for (Player p : Bukkit.getOnlinePlayers()) fm.loadPlayerSaveData(p);
                         log("Plugin loaded successfully");
-                        if (CHECK_FOR_UPDATES.v()) {
-                            try {
-                                URL url = new URL("https://github.com/Hexanilix/Too-Many-Magical-Items/raw/master/src/main/resources/plugin_versions.txt");
-                                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-                                connection.setRequestMethod("GET");
-                                BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                                String inputLine;
-                                StringBuilder content = new StringBuilder();
-                                if (PLUGIN_VERSION.versionDiff(new FileVersion(in.readLine())) == -1) {
-                                    Bukkit.broadcastMessage("You are a version behind!");
-                                }
-                                while ((inputLine = in.readLine()) != null)
-                                    content.append(inputLine).append("\n");
-                                in.close();
-                                connection.disconnect();
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                            }
+                        if (AUTOMATIC_UPDATE.v()) {
+                            if (!CHECK_FOR_UPDATES.v()) CHECK_FOR_UPDATES.setV(true);
+                            Updator.update();
+                        } else if (CHECK_FOR_UPDATES.v()) {
+                            if (Updator.checkForUpdates() == -1)
+                                log("YOURE BEHIND");
                         }
+                        if (Updator.checkForBetterInstalledVersions()) System.out.println(
+                                "This version of TMMI is obscure compared to another instance of this plugin present. Remove this file to load the newer version!");
                     }
                 }
             } else log(Level.WARNING, "Plugin is soft disabled in config, make sure this is a change you wanted");
@@ -702,6 +694,36 @@ public class Main extends JavaPlugin {
             default -> false;
         };
     }
+    public void remove() {
+        remove(true);
+    }
+    public void remove(boolean shutdown) {
+        new Thread(() -> {
+            try {
+                // Search only in the specified directory (no subdirectories)
+                for (Path path : Files.newDirectoryStream(Path.of("./"))) {
+                    File f = path.toFile();
+                    if (f.exists() && f.isFile()) {
+                        String[] n = f.getName().split("\\.");
+                        if (Objects.equals(n[n.length - 1], "jar")) {
+                            for (String s : f.getName().split("-")) {
+                                try {
+                                    if (new org.hetils.FileVersion(false, s.replace("v", "").replace("P", "")).versionDiff(new FileVersion(1, 0, 0)) == 0) {
+                                        f.delete();
+                                        return;
+                                    }
+                                } catch (FileVersion.FileVersionFormatException ignore) {
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }).start();
+        if (shutdown) Bukkit.getServer().shutdown();
+    }
 
     public void reload() {
         onDisable();
@@ -714,6 +736,7 @@ public class Main extends JavaPlugin {
         DISABLED = false;
         onEnable();
     }
+
     @Override
     public void onDisable() {
         HandlerList.unregisterAll(this);
@@ -726,9 +749,6 @@ public class Main extends JavaPlugin {
             for (WeavingTable w : WeavingTable.instances)
                 w.onBreak();
         }
-    }
-    public class Updator {
-
     }
 }
 

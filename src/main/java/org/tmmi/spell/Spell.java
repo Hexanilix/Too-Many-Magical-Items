@@ -17,8 +17,9 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.*;
 
-import static org.hetils.Item.newItemStack;
-import static org.hetils.Util.*;
+import static org.hetils.General.*;
+import static org.hetils.minecraft.Item.newItemStack;
+import static org.hetils.minecraft.General.*;
 import static org.tmmi.Main.*;
 
 public abstract class Spell {

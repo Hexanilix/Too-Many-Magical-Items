@@ -14,10 +14,10 @@ import org.tmmi.spell.atributes.Weight;
 
 import java.util.*;
 
-import static org.hetils.Block.getBlocksInSphere;
-import static org.hetils.Location.nearestEntity;
-import static org.hetils.Util.*;
-import static org.hetils.Vector.genVec;
+import static org.hetils.minecraft.Block.getBlocksInSphere;
+import static org.hetils.minecraft.Location.nearestEntity;
+import static org.hetils.minecraft.General.*;
+import static org.hetils.minecraft.Vector.genVec;
 import static org.tmmi.Main.*;
 
 public class UTL extends Spell {

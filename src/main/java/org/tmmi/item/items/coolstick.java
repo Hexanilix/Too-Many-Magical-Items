@@ -22,7 +22,7 @@ import org.tmmi.spell.spells.MagicMissile;
 
 import java.util.List;
 
-import static org.hetils.Util.isSim;
+import static org.hetils.minecraft.General.isSim;
 import static org.tmmi.Main.plugin;
 
 public class coolstick extends Item {

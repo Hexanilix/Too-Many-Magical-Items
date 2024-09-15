@@ -13,7 +13,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitRunnable;
-import org.hetils.Util;
+import org.hetils.minecraft.General;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.tmmi.item.items.GrandBook;
@@ -21,7 +21,7 @@ import org.tmmi.spell.Spell;
 
 import java.util.*;
 
-import static org.hetils.Item.*;
+import static org.hetils.minecraft.Item.*;
 import static org.tmmi.Main.*;
 import static org.tmmi.spell.atributes.Weight.CANTRIP;
 import static org.tmmi.spell.atributes.Weight.SORCERY;
@@ -221,7 +221,7 @@ public class WeavePlayer {
     }
 
     public boolean hasGrandBook() {
-        return Arrays.stream(player.getInventory().getContents()).anyMatch(i -> Util.isSim(i, grandBook));
+        return Arrays.stream(player.getInventory().getContents()).anyMatch(i -> General.isSim(i, grandBook));
     }
 
     private void bkgSetMain(Spell s) {

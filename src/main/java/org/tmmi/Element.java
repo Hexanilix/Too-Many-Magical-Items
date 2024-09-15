@@ -11,8 +11,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.hetils.Item.newItemStack;
-import static org.hetils.Util.isSim;
+import static org.hetils.minecraft.Item.newItemStack;
+import static org.hetils.minecraft.General.isSim;
 
 public enum Element {
     FIRE,

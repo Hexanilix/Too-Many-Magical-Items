@@ -13,7 +13,7 @@ import org.tmmi.spell.atributes.Weight;
 
 import java.util.List;
 
-import static org.hetils.Location.nearestEntity;
+import static org.hetils.minecraft.Location.nearestEntity;
 import static org.tmmi.Main.newThread;
 import static org.tmmi.Main.plugin;
 

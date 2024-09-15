@@ -9,9 +9,9 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.HashSet;
 
-import static org.hetils.Block.setCauldronFillLevel;
-import static org.hetils.Item.newItemStack;
-import static org.hetils.Util.isSim;
+import static org.hetils.minecraft.Block.setCauldronFillLevel;
+import static org.hetils.minecraft.Item.newItemStack;
+import static org.hetils.minecraft.General.isSim;
 
 public class ManaCauldron extends Block {
     public static Collection<ManaCauldron> instances = new HashSet<>();

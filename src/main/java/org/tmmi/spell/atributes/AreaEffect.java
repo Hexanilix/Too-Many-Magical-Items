@@ -7,8 +7,8 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import static org.hetils.Util.isSim;
-import static org.hetils.Item.newItemStack;
+import static org.hetils.minecraft.General.isSim;
+import static org.hetils.minecraft.Item.newItemStack;
 
 public enum AreaEffect {
     DIRECT,
