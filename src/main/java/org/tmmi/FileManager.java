@@ -70,8 +70,8 @@ public class FileManager {
             }
         }
     }
-    
-    public int loadConfig() {
+    int CloadAttms = 0;
+    public boolean loadConfig() {
         if (!Files.exists(Path.of(CONF_FILE))) {
             try {
                 Files.createFile(Path.of(CONF_FILE));
@@ -92,8 +92,13 @@ public class FileManager {
         }
         try (InputStream input = new FileInputStream(CONF_FILE)) {
             HashMap<String, Object> l = new Yaml().load(input);
-            if (l == null) return -1;
-            if (l.isEmpty()) return 0;
+            if (l == null) return false;
+            if (l.isEmpty()) {
+                if (CloadAttms == 3) return false;
+                CloadAttms++;
+                this.updateConfig();
+                return loadConfig();
+            }
             for (Map.Entry<String, Object> s : l.entrySet())
                 for (Property pr : Property.properties)
                     if (Objects.equals(pr.p(), s.getKey()))
@@ -101,10 +106,10 @@ public class FileManager {
                             case "FILE_VERSION" -> pr.setV(new FileVersion(String.valueOf(s.getValue())));
                             default -> pr.setV(s.getValue());
                         }
-            return l.size();
+            return true;
         }  catch (IOException e) {
             e.printStackTrace();
-            return -1;
+            return false;
         }
     }
 

@@ -87,6 +87,7 @@ public class Main extends JavaPlugin {
     public static final Property<Boolean> LEGACY_STI_SPELL = new Property<>("LEGACY_STI_SPELL", false);
     public static final Property<Boolean> CHECK_FOR_UPDATES = new Property<>("CHECK_FOR_UPDATES", true);
     public static final Property<Boolean> AUTOMATIC_UPDATE = new Property<>("AUTOMATIC_UPDATE", false);
+    public static final Property<Integer> CHUNK_MANA_CAP = new Property<>("CHUNK_MANA_CAP", 2000);
 
     public static final Property<Boolean> DEBUG = new Property<>("DEBUG_n_TEST", false);
 
@@ -227,6 +228,7 @@ public class Main extends JavaPlugin {
                 Spell.mxD = SPELL_DAMAGE_CAP.v();
                 if (fm.checkFilesAndCreate()) {
                     if (loadClasses()) {
+                        MagicChunk.chmc = CHUNK_MANA_CAP.v();
                         if (AUTOSAVE_FREQUENCY.v() < 10) {
                             AUTOSAVE_FREQUENCY.setV(10);
                             fm.updateConfig();

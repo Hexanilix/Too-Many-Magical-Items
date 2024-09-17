@@ -1,195 +1,200 @@
 package org.tmmi;
 
-import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.*;
+import java.util.logging.Level;
 
-import static org.tmmi.Main.log;
+import static org.tmmi.Main.*;
 
 public class MagicChunk {
-
-    public static class ChunkInstanceExists extends Exception {
-        public ChunkInstanceExists(String e) {
-            super(e);
-        }
-    }
-
+    public static int div = 16;
     public static int treeDepth = 3;
-    public static Collection<MagicChunk> insances = new HashSet<>();
+    public static int CGPTH = 8;
+    public static Map<World, List<Integer>> instX = new HashMap<>();
+    public static Map<World, List<Integer>> instZ = new HashMap<>();
+    public static Map<World, List<int[][]>> insances = new HashMap<>();
+    public static int chmc = CHUNK_MANA_CAP.d();
 
-    public static @NotNull MagicChunk getOrNew(World world, int x, int z, int tree) {
-        for (MagicChunk m : insances)
-            if (m.world == world && m.x == x && m.z == z) return m;
-        return new MagicChunk(world, x, z, 1000, tree);
+    public static int takeMana(Entity e, int i) {
+        return takeMana(e.getLocation(), i);
     }
-    public static @NotNull MagicChunk getOrNew(World world, int x, int z) {
-        return getOrNew(world, x, z, treeDepth);
+    public static int takeMana(Location l, int i) {
+        return takeMana(l.getWorld(), (int) l.getX(), (int) l.getZ(), i);
     }
-    public static @NotNull MagicChunk getOrNew(@NotNull Location location) {
-        return getOrNew(location.getWorld(), location.getChunk().getX(), location.getChunk().getZ(), treeDepth);
+    public static int takeMana(Chunk c, int i) {
+        getManaAtChunk(c);
+        return t;
     }
-    public static @NotNull MagicChunk getOrNew(@NotNull Entity e) {
-        return getOrNew(e.getWorld(), e.getLocation().getChunk().getX(), e.getLocation().getChunk().getZ(), treeDepth);
-    }
-    public static @Nullable MagicChunk get(World world, int x, int z) {
-        for (MagicChunk m : insances)
-            if (m.getWorld() == world && m.getX() == x && m.getZ() == z) return m;
-        return null;
-    }
-    public static @Nullable MagicChunk get(@NotNull Location loc) {
-        World w = loc.getWorld();
-        int x = loc.getChunk().getX();
-        int z = loc.getChunk().getZ();
-        for (MagicChunk m : insances)
-            if (m.world == w && m.x == x && m.z == z) return m;
-        return null;
+    public static int takeMana(World w, int x, int z, int i) {
+        int m = getManaAt(w, x, z);
+        subMana(w, x, z, i);
+        return i;
     }
 
-    World world;
-    int mana;
-    int x;
-    int z;
-    private final List<MagicChunk> neighbours = new ArrayList<>();
-    private ArmorStand dis;
-    MagicChunk(World world, int x, int z, int mana, int tree) {
-        try {
-            if (get(world, x, z) != null) throw new ChunkInstanceExists("Chunk data already exists for chunk in " + ChatColor.ITALIC + world.getName() + ChatColor.RESET + ChatColor.RED + " at " + x + ", " + z  + ")");
-        } catch (ChunkInstanceExists e) {
-            e.printStackTrace();
+
+    public static class CGThread extends Thread {
+        private final List<int[][]>[] lts = new List[CGPTH];
+        @SafeVarargs
+        CGThread(List<int[][]>... lists) {
+            System.arraycopy(lists, 0, lts, 0, CGPTH);
+            if (lists.length > CGPTH)
+                new BukkitRunnable() {
+                final List<int[][]>[] l = new List[CGPTH];
+                    @Override
+                    public void run() {
+                        System.arraycopy(lists, CGPTH, l, 0, CGPTH);
+                        new CGThread(l);
+                    }
+                }.runTask(plugin);
         }
-        this.x = x;
-        this.z = z;
-        if (tree > 0) {
-            tree--;
-            neighbours.add(MagicChunk.getOrNew(world, x + 1, z + 1, tree));
-            neighbours.add(MagicChunk.getOrNew(world, x + 1, z, tree));
-            neighbours.add(MagicChunk.getOrNew(world, x + 1, z - 1, tree));
-            neighbours.add(MagicChunk.getOrNew(world, x, z + 1, tree));
-            neighbours.add(MagicChunk.getOrNew(world, x, z - 1, tree));
-            neighbours.add(MagicChunk.getOrNew(world, x - 1, z + 1, tree));
-            neighbours.add(MagicChunk.getOrNew(world, x - 1, z , tree));
-            neighbours.add(MagicChunk.getOrNew(world, x - 1, z - 1, tree));
-        } else {
-            neighbours.add(MagicChunk.get(world, x + 1, z + 1));
-            neighbours.add(MagicChunk.get(world, x + 1, z));
-            neighbours.add(MagicChunk.get(world, x + 1, z - 1));
-            neighbours.add(MagicChunk.get(world, x, z + 1));
-            neighbours.add(MagicChunk.get(world, x, z - 1));
-            neighbours.add(MagicChunk.get(world, x - 1, z + 1));
-            neighbours.add(MagicChunk.get(world, x - 1, z));
-            neighbours.add(MagicChunk.get(world, x - 1, z - 1));
-        }
-        this.mana = mana;
-        this.world = world;
-        insances.add(this);
-    }
-
-    public World getWorld() {
-        return world;
-    }
-
-    public int getX() {
-        return x;
-    }
-
-    public int getZ() {
-        return z;
-    }
-
-    public int mean() {
-        List<MagicChunk> ne = neighbours;
-        if (ne.isEmpty()) return mana;
-        int nc = 0;
-        for (Object o : ne) if (o == null) nc++;
-        if (nc == ne.size()) return mana;
-        int[] nl = new int[ne.size()-nc];
-        int n = 0;
-        for (int i = 0; i < 8; i++) {
-            if (ne.get(i) != null) nl[i-n] = ne.get(i).mana;
-            else n++;
-        }
-        int sum = 0;
-        for (int j : nl) {
-            sum += j;
-        }
-//        for (int i = 0; i < nl.length-1; i++) {
-//            int m = i;
-//            for (int j = i+1; j < nl.length; j++)
-//                if (nl[j] < nl[m]) m = j;
-//            int p = nl[m];
-//            nl[m] = nl[i];
-//            nl[i] = p;
-//        }
-//        for (int i = 0; i < nl.length/2; i++)
-//            sum += nl[i] - (nl[nl.length-i-1]/2);
-        return sum/nl.length;
-    }
-
-    public int getMana() {
-        return mana;
-    }
-
-    public MagicChunk addMana(int amount) {
-        mana += amount;
-        return this;
-    }
-
-    public MagicChunk subMana(int m) {
-        mana -= m;
-        return this;
-    }
-
-    public MagicChunk setMana(int amnt) {
-        this.mana = amnt;
-        return this;
-    }
-
-    public void update() {
-        int avg = mean();
-        if (!neighbours.isEmpty() && avg < this.mana) {
-            List<MagicChunk> mc = new ArrayList<>();
-            for (int i = 0; i < neighbours.size(); i++) {
-                MagicChunk c = neighbours.get(i);
-                if (c == null || c.mana >= this.mana) continue;
-                for (int j = i; j < neighbours.size(); j++)
-                    if (neighbours.get(j) != null && c.mana < neighbours.get(j).mana) c = neighbours.get(j);
-                mc.add(c);
-            }
-            if (!mc.isEmpty()) {
-                int a = Math.max(Math.min(mana - avg, 20), 0);
-                log("a = " + a);
-                List<Integer> out = getIntegers(a, mc.size());
-                int i = 0;
-                if (a > 0) for (MagicChunk m : mc) {
-                    if (a <= 0) break;
-                    m.addMana(out.get(i));
-                    this.mana -= out.get(i);;
-                    a -= out.get(i);;
-                    i++;
+        public boolean add(List<int[][]> list) {
+            for (int i = 0; i < CGPTH; i++)
+                if (lts[i]==null) {
+                    lts[i] = list;
+                    return true;
                 }
+            return false;
+        }
+        @Override
+        public void run() {
+            while (true) {
+                try {
+                    for (List<int[][]> lt : lts) {
+                        if (lt == null) break;
+                        for (int[][] it : lt) {
+                            for (int x = 0; x < 16; x++) {
+                                for (int z = 0; z < 16; z++) {
+
+                                }
+                            }
+                        }
+                    }
+                    Thread.sleep(60000);
+                } catch (InterruptedException ignore) {}
             }
         }
     }
 
-    private static @NotNull List<Integer> getIntegers(int a, int div) {
-        List<Integer> val = new ArrayList<>();
-        for (int i = 3; i < div+3; i++)
-            val.add((int) Math.max(Math.round((float) a / (i + (double) div%i)), 0));
-        List<Integer> out = new ArrayList<>();
-        int sum = 0;
-        for (int i = 0; i < div; i++) {
-            if (sum < a) {
-                sum += Math.min(val.get(i), a - sum);
-                out.add(Math.min(val.get(i), a - sum));
-            } else out.add(0);
+    public static int[] @Nullable [] newChunks(World w, int x, int z) {
+        List<Integer> xs = instX.get(w);
+        List<Integer> zs = instZ.get(w);
+        for (int i = 0; i < instX.size(); i++)
+            if (xs.get(i) == x && zs.get(i) == z)
+                return null;
+        int[][] nmc = new int[div][div];
+        instX.get(w).add(x);
+        instZ.get(w).add(z);
+        for (int i = 0; i < div; i++)
+            for (int j = 0; j < div; j++)
+                nmc[i][j] = 1000;
+        insances.get(w).add(nmc);
+        return nmc;
+    }
+    public static int getManaAtChunk(World w, int x, int z) {
+        List<Integer> xs = instX.get(w);
+        List<Integer> zs = instZ.get(w);
+        for (int i = 0; i < instX.size(); i++)
+            if (xs.get(i) == x && zs.get(i) == z)
+                return insances.get(w).get(i)[x%div][z%div];
+        newChunks(w, x, z);
+        return 1000;
+    }
+    public static int getManaAt(World w, int x, int z) {
+        return getManaAtChunk(w, x/div, z/div);
+    }
+    public static int getManaAt(@NotNull Location loc) {
+        return getManaAtChunk(loc.getWorld(), (int) (loc.getX()/div), (int) (loc.getZ()/div));
+    }
+    public static int getManaAt(@NotNull Entity e) {
+        return getManaAt(e.getLocation());
+    }
+    public static int[][] get(World w, int x, int z) {
+        List<Integer> xs = instX.get(w);
+        List<Integer> zs = instZ.get(w);
+        for (int i = 0; i < instX.size(); i++)
+            if (xs.get(i) == x/div && zs.get(i) == z/div)
+                return insances.get(w).get(i);
+        return newChunks(w, x, z);
+    }
+
+    public static void addMana(World w, int x, int z, int amount) {
+        int[][] cks = get(w, x, z);
+        int xc = x%div;
+        int zc = z%div;
+        if (cks == null) {
+            cks = new int[div][div];
+            instX.get(w).add(x/div);
+            instZ.get(w).add(z/div);
+            for (int i = 0; i < div; i++)
+                for (int j = 0; j < div; j++)
+                    cks[i][j] = 1000;
+            insances.get(w).add(cks);
         }
-        return out;
+        int ov = cks[xc][zc] + amount;
+        if (ov > CHUNK_MANA_CAP.v()) {
+            cks[xc][zc] = CHUNK_MANA_CAP.v();
+            ov -= CHUNK_MANA_CAP.v();
+            addMana(w, x+1, z, ov/4);
+            addMana(w, x-1, z, ov/4);
+            addMana(w, x, z+1, ov/4);
+            addMana(w, x, z-1, ov/4+ov%4);
+        } else cks[xc][zc] += amount;
+    }
+    public static void subMana(World w, int x, int z, int amount) {
+        int[][] cks = get(w, x, z);
+        int xc = x%div;
+        int zc = z%div;
+        if (cks == null) {
+            cks = new int[div][div];
+            instX.get(w).add(x/div);
+            instZ.get(w).add(z/div);
+            for (int i = 0; i < div; i++)
+                for (int j = 0; j < div; j++)
+                    cks[i][j] = 1000;
+            insances.get(w).add(cks);
+        }
+        int ov = cks[xc][zc] - amount;
+        if (ov < 0) {
+            cks[xc][zc] = 0;
+            ov *= -1;
+            subMana(w, x+1, z, ov/4+ov%4);
+            subMana(w, x-1, z, ov/4);
+            subMana(w, x, z+1, ov/4);
+            subMana(w, x, z-1, ov/4);
+        } else cks[xc][zc] -= amount;
+    }
+
+    public static void setMana(World w, int x, int z, int amount) {
+        int[][] cks = get(w, x, z);
+        int xc = x%div;
+        int zc = z%div;
+        if (cks == null) {
+            cks = new int[div][div];
+            instX.get(w).add(x/div);
+            instZ.get(w).add(z/div);
+            for (int i = 0; i < div; i++)
+                for (int j = 0; j < div; j++)
+                    cks[i][j] = 1000;
+            insances.get(w).add(cks);
+        }
+        cks[xc][zc] = amount;
+    }
+
+    public int mean(World w, int x, int z) {
+        return
+                (
+                    getManaAt(w, x+1, z)
+                    +getManaAt(w, x-1, z)
+                    +getManaAt(w, x, z+1)
+                    +getManaAt(w, x, z-1)
+                    +getManaAt(w, x, z)
+                )/5;
     }
 }

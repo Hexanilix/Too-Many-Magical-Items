@@ -9,6 +9,9 @@ import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -16,11 +19,16 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.hetils.minecraft.General;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.tmmi.item.Item;
 import org.tmmi.item.items.GrandBook;
+import org.tmmi.item.items.coolstick;
 import org.tmmi.spell.Spell;
+import org.tmmi.spell.spells.FlameReel;
+import org.tmmi.spell.spells.MagicMissile;
 
 import java.util.*;
 
+import static org.hetils.minecraft.General.isSim;
 import static org.hetils.minecraft.Item.*;
 import static org.tmmi.Main.*;
 import static org.tmmi.spell.atributes.Weight.CANTRIP;
@@ -40,6 +48,29 @@ public class WeavePlayer {
         return null;
     }
 
+    int sesl = 0;
+    Spell[] ss = new Spell[]{new MagicMissile(), new FlameReel()};
+    public class Listener implements org.bukkit.event.Listener {
+        @EventHandler
+        public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
+            Player p = event.getPlayer();
+            if (p.isSneaking() && isSim(p.getInventory().getItemInMainHand(), coolstick.COOLSTICK)) {
+                sesl += event.getNewSlot() - event.getPreviousSlot();
+                if (sesl < 0) sesl += 16784;
+                else if (sesl > 16784) sesl -= 16784;
+                p.spigot().sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(ss[sesl % ss.length].getName()));
+                p.getInventory().setHeldItemSlot(event.getPreviousSlot());
+            }
+        }
+        @EventHandler
+        public void onInvOpen(@NotNull PlayerDropItemEvent event) {
+            Player p = event.getPlayer();
+            if (p.isSneaking() && isSim(event.getItemDrop().getItemStack(), coolstick.COOLSTICK)) {
+                event.setCancelled(true);
+                p.openInventory(WeavePlayer.getWeaver(p).inventory());
+            }
+        }
+    }
     private final Player player;
     private ManaBar mana;
     private boolean isWeaving;
@@ -66,8 +97,7 @@ public class WeavePlayer {
                     ManaBar ma = WeavePlayer.this.getManaBar();
                     if (manaCool <= 0) {
                         if (ma.amount < ma.limit) {
-                            MagicChunk mc = MagicChunk.getOrNew(handler);
-                            int m = (int) Math.min((float) mc.mean() / 500, ma.limit - ma.amount);
+                            MagicChunk.takeMana(10);
                             ma.add(m);
                             mc.subMana(m);
                         }

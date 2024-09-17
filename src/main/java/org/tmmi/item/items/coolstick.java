@@ -12,6 +12,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.tmmi.WeavePlayer;
@@ -26,6 +27,7 @@ import static org.hetils.minecraft.General.isSim;
 import static org.tmmi.Main.plugin;
 
 public class coolstick extends Item {
+    public static ItemStack COOLSTICK = new coolstick();
     public coolstick() {
         super(Material.STICK);
         ItemMeta m = this.getItemMeta();
