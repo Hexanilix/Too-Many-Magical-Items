@@ -4,6 +4,9 @@ import org.bukkit.*;
 import org.bukkit.block.data.type.ChiseledBookshelf;
 import org.bukkit.command.*;
 import org.bukkit.entity.*;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
@@ -153,7 +156,7 @@ public class cmd implements CommandExecutor {
                                         main.fm.loadConfig();
                                         if (ENABLED.v()) {
                                             for (Player p : Bukkit.getOnlinePlayers()) main.fm.loadPlayerSaveData(p);
-                                            Block.blocks.clear();
+                                            Block.instances.clear();
                                             main.fm.loadBlockData();
                                         }
                                         Bukkit.broadcastMessage(ChatColor.GREEN + "[TMMI] Reloaded!");
@@ -166,7 +169,7 @@ public class cmd implements CommandExecutor {
                                     }
                                     case "blockdata" -> {
                                         Bukkit.broadcastMessage(ChatColor.YELLOW + "[TMMI] Reloading block data...");
-                                        Block.blocks.clear();
+                                        Block.instances.clear();
                                         main.fm.loadBlockData();
                                         Bukkit.broadcastMessage(ChatColor.GREEN + "[TMMI] Reloaded!");
                                     }
@@ -519,10 +522,10 @@ public class cmd implements CommandExecutor {
                                                         }
                                                     }
                                                 }.runTaskTimer(plugin, 0, 0);
-                                                case "set_mana" -> {
-                                                    MagicChunk mc = MagicChunk.getOrNew(player.getLocation()).setMana(Integer.parseInt(args[1]));
-                                                    log(mc.getX() + ", " + mc.getZ());
-                                                }
+//                                                case "set_mana" -> {
+//                                                    MagicChunk mc = MagicChunk.getOrNew(player.getLocation()).setMana(Integer.parseInt(args[1]));
+//                                                    log(mc.getX() + ", " + mc.getZ());
+//                                                }
                                                 case "amor" -> {
                                                     if (args.length > 1) {
                                                         ArmorStand ar = (ArmorStand) player.getWorld().spawnEntity(player.getLocation(), EntityType.ARMOR_STAND);
@@ -551,17 +554,17 @@ public class cmd implements CommandExecutor {
                                                         }
                                                     }
                                                 }
-                                                case "prerender" -> {
-                                                    int cx = player.getLocation().getChunk().getX();
-                                                    int cz = player.getLocation().getChunk().getZ();
-                                                    World w = player.getWorld();
-                                                    int amnt = Integer.parseInt(args[1])/2;
-                                                    for (int i = cx-amnt; i < cx+Integer.parseInt(args[1]); i++) {
-                                                        for (int j = cz-amnt; j < cz+Integer.parseInt(args[1]); j++) {
-                                                            MagicChunk.getOrNew(w, i, j);
-                                                        }
-                                                    }
-                                                }
+//                                                case "prerender" -> {
+//                                                    int cx = player.getLocation().getChunk().getX();
+//                                                    int cz = player.getLocation().getChunk().getZ();
+//                                                    World w = player.getWorld();
+//                                                    int amnt = Integer.parseInt(args[1])/2;
+//                                                    for (int i = cx-amnt; i < cx+Integer.parseInt(args[1]); i++) {
+//                                                        for (int j = cz-amnt; j < cz+Integer.parseInt(args[1]); j++) {
+//                                                            MagicChunk.getOrNew(w, i, j);
+//                                                        }
+//                                                    }
+//                                                }
                                                 case "suck" -> WeavingTable.build(player.getTargetBlockExact(12).getLocation().add(0, 1, 0), 3);
                                                 case "fill" -> {
                                                     ManaCauldron m = ManaCauldron.getOrNew(player.getTargetBlockExact(5));
@@ -573,83 +576,83 @@ public class cmd implements CommandExecutor {
                                                     org.bukkit.block.Block b = player.getTargetBlockExact(5);
                                                     log(org.tmmi.block.Block.get(b.getLocation().clone().subtract(0.5, 0.5, 0.5)));
                                                 }
-                                                case "show_mana" -> {
-                                                    newThread(() -> {
-                                                        for (int i = 0; i < 9; i++) {
-                                                            ItemStack it = player.getInventory().getContents()[i];
-                                                            if (it == null || it.getType() == Material.AIR) {
-                                                                ItemStack itm = new ItemStack(Material.FILLED_MAP);
-                                                                MapMeta mm = (MapMeta) itm.getItemMeta();
-                                                                mm.setEnchantmentGlintOverride(true);
-                                                                mm.setScaling(false);
-                                                                MapView mv = Bukkit.createMap(player.getWorld());
-                                                                mv.getRenderers().clear();
-                                                                mv.addRenderer(new MapRenderer() {
-                                                                    private boolean r = true;
-                                                                    @Override
-                                                                    public void render(@NotNull MapView mapView, @NotNull MapCanvas mapCanvas, @NotNull Player player) {
-                                                                        int cx = (int) player.getLocation().getX();
-                                                                        int cz = (int) player.getLocation().getZ();
-                                                                        World w = player.getWorld();
-                                                                        for (int x = 0; x < 128; x++) {
-                                                                            for (int z = 0; z < 128; z++) {
-                                                                                MagicChunk mc = MagicChunk.get(w, (x+cx)/16+1, (z+cz)/16+1);
-                                                                                mapCanvas.setPixel(x, z, MapPalette.matchColor(java.awt.Color.getHSBColor((mc == null ? 0 : 0.05f * ((float) mc.getMana() /100)), 1, (mc == null ? 0 : 1))));
-                                                                            }
-                                                                        }
-                                                                        for (int x = 62; x < 66; x++) {
-                                                                            for (int z = 62; z < 66; z++) {
-                                                                                mapCanvas.setPixelColor(x, z, java.awt.Color.GREEN);
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                });
-                                                                mv.setCenterX(player.getLocation().getBlockX());
-                                                                mv.setCenterZ(player.getLocation().getBlockZ());
-                                                                mv.setUnlimitedTracking(false);
-                                                                mv.setLocked(true);
-                                                                mm.setMapView(mv);
-                                                                itm.setItemMeta(mm);
-                                                                player.getInventory().setItem(i, itm);
-                                                                break;
-                                                            }
-                                                        }
-                                                    }).start();
-//                                            new BukkitRunnable() {
-//                                                final Map<MagicChunk, ArmorStand> arms = new HashMap<>();
-//                                                @Override
-//                                                public void run() {
-//                                                    List<MagicChunk> ml = new ArrayList<>();
-//                                                    int x = player.getLocation().getChunk().getX();
-//                                                    int z = player.getLocation().getChunk().getZ();
-//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x + 1, z + 1)));
-//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x + 1, z)));
-//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x + 1, z - 1)));
-//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x, z + 1)));
-//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x, z - 1)));
-//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x - 1, z + 1)));
-//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x - 1, z)));
-//                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x - 1, z - 1)));
-//                                                    double y = player.getLocation().getY();
-//                                                    for (Map.Entry<MagicChunk, ArmorStand> a : arms.entrySet()) {
-//                                                        Location l =a.getValue().getLocation();
-//                                                        l.setY(y);
-//                                                        a.getValue().teleport(l);
-//                                                        a.getValue().setCustomName(ChatColor.AQUA + "Mana: " + a.getKey().getMana() + " | " + ChatColor.LIGHT_PURPLE + "Area avg: " + a.getKey().mean());
-//                                                    }
-//                                                    for (MagicChunk mc : ml) {
-//                                                        if (mc == null || arms.containsKey(mc)) continue;
-//                                                        Chunk chunk = mc.getChunk();
-//                                                        ArmorStand dis = (ArmorStand) player.getWorld().spawnEntity(new Location(chunk.getWorld(), chunk.getX() * 16 + 8, y, chunk.getZ() * 16 + 8), EntityType.ARMOR_STAND);
-//                                                        dis.setVisible(false);
-//                                                        dis.setCustomNameVisible(true);
-//                                                        dis.setGravity(false);
-//                                                        dis.setCustomName(ChatColor.AQUA + "Mana: " + mc.getMana() + " | " + ChatColor.LIGHT_PURPLE + "Area avg: " + mc.mean());
-//                                                        arms.put(mc, dis);
-//                                                    }
+//                                                case "show_mana" -> {
+//                                                    newThread(() -> {
+//                                                        for (int i = 0; i < 9; i++) {
+//                                                            ItemStack it = player.getInventory().getContents()[i];
+//                                                            if (it == null || it.getType() == Material.AIR) {
+//                                                                ItemStack itm = new ItemStack(Material.FILLED_MAP);
+//                                                                MapMeta mm = (MapMeta) itm.getItemMeta();
+//                                                                mm.setEnchantmentGlintOverride(true);
+//                                                                mm.setScaling(false);
+//                                                                MapView mv = Bukkit.createMap(player.getWorld());
+//                                                                mv.getRenderers().clear();
+//                                                                mv.addRenderer(new MapRenderer() {
+//                                                                    private boolean r = true;
+//                                                                    @Override
+//                                                                    public void render(@NotNull MapView mapView, @NotNull MapCanvas mapCanvas, @NotNull Player player) {
+//                                                                        int cx = (int) player.getLocation().getX();
+//                                                                        int cz = (int) player.getLocation().getZ();
+//                                                                        World w = player.getWorld();
+//                                                                        for (int x = 0; x < 128; x++) {
+//                                                                            for (int z = 0; z < 128; z++) {
+//                                                                                MagicChunk mc = MagicChunk.get(w, (x+cx)/16+1, (z+cz)/16+1);
+//                                                                                mapCanvas.setPixel(x, z, MapPalette.matchColor(java.awt.Color.getHSBColor((mc == null ? 0 : 0.05f * ((float) mc.getMana() /100)), 1, (mc == null ? 0 : 1))));
+//                                                                            }
+//                                                                        }
+//                                                                        for (int x = 62; x < 66; x++) {
+//                                                                            for (int z = 62; z < 66; z++) {
+//                                                                                mapCanvas.setPixelColor(x, z, java.awt.Color.GREEN);
+//                                                                            }
+//                                                                        }
+//                                                                    }
+//                                                                });
+//                                                                mv.setCenterX(player.getLocation().getBlockX());
+//                                                                mv.setCenterZ(player.getLocation().getBlockZ());
+//                                                                mv.setUnlimitedTracking(false);
+//                                                                mv.setLocked(true);
+//                                                                mm.setMapView(mv);
+//                                                                itm.setItemMeta(mm);
+//                                                                player.getInventory().setItem(i, itm);
+//                                                                break;
+//                                                            }
+//                                                        }
+//                                                    }).start();
+////                                            new BukkitRunnable() {
+////                                                final Map<MagicChunk, ArmorStand> arms = new HashMap<>();
+////                                                @Override
+////                                                public void run() {
+////                                                    List<MagicChunk> ml = new ArrayList<>();
+////                                                    int x = player.getLocation().getChunk().getX();
+////                                                    int z = player.getLocation().getChunk().getZ();
+////                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x + 1, z + 1)));
+////                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x + 1, z)));
+////                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x + 1, z - 1)));
+////                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x, z + 1)));
+////                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x, z - 1)));
+////                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x - 1, z + 1)));
+////                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x - 1, z)));
+////                                                    ml.add(MagicChunk.get(player.getWorld().getChunkAt(x - 1, z - 1)));
+////                                                    double y = player.getLocation().getY();
+////                                                    for (Map.Entry<MagicChunk, ArmorStand> a : arms.entrySet()) {
+////                                                        Location l =a.getValue().getLocation();
+////                                                        l.setY(y);
+////                                                        a.getValue().teleport(l);
+////                                                        a.getValue().setCustomName(ChatColor.AQUA + "Mana: " + a.getKey().getMana() + " | " + ChatColor.LIGHT_PURPLE + "Area avg: " + a.getKey().mean());
+////                                                    }
+////                                                    for (MagicChunk mc : ml) {
+////                                                        if (mc == null || arms.containsKey(mc)) continue;
+////                                                        Chunk chunk = mc.getChunk();
+////                                                        ArmorStand dis = (ArmorStand) player.getWorld().spawnEntity(new Location(chunk.getWorld(), chunk.getX() * 16 + 8, y, chunk.getZ() * 16 + 8), EntityType.ARMOR_STAND);
+////                                                        dis.setVisible(false);
+////                                                        dis.setCustomNameVisible(true);
+////                                                        dis.setGravity(false);
+////                                                        dis.setCustomName(ChatColor.AQUA + "Mana: " + mc.getMana() + " | " + ChatColor.LIGHT_PURPLE + "Area avg: " + mc.mean());
+////                                                        arms.put(mc, dis);
+////                                                    }
+////                                                }
+////                                            }.runTaskTimer(plugin, 0, 5);
 //                                                }
-//                                            }.runTaskTimer(plugin, 0, 5);
-                                                }
                                                 case "auto" -> {
                                                     int s = Integer.parseInt(args[1]);
                                                     List<Entity> nearbyEntities = (List<Entity>) Objects.requireNonNull(player.getWorld()).getNearbyEntities(player.getEyeLocation(), s, s, s);
@@ -692,10 +695,10 @@ public class cmd implements CommandExecutor {
                                                     }
                                                 }
                                                 case "update" -> player.getTargetBlockExact(5).getBlockData().createBlockState().update(true);
-                                                case "manafy" -> {
-                                                    log(MagicChunk.get(player.getLocation()));
-                                                    MagicChunk.getOrNew(player.getLocation());
-                                                }
+//                                                case "manafy" -> {
+//                                                    log(MagicChunk.get(player.getLocation()));
+//                                                    MagicChunk.getOrNew(player.getLocation());
+//                                                }
                                                 case "tp" -> {
                                                     Location loc = Objects.requireNonNull(player.getTargetBlockExact(5)).getLocation().add(0.5, 1.5, 0.5);
                                                     new BukkitRunnable() {
@@ -805,6 +808,28 @@ public class cmd implements CommandExecutor {
             }
         }.runTaskLater(plugin, 2L); // Delay to ensure the firework spawns before detonating
     }
+
+    static class asg implements org.tmmi.item.Item {
+        asg() {
+
+        }
+
+        @Override
+        public void onUse(PlayerInteractEvent event) {
+
+        }
+
+        @Override
+        public void onDrop(PlayerDropItemEvent event) {
+
+        }
+
+        @Override
+        public void onPickup(PlayerPickupItemEvent event) {
+
+        }
+    }
+
     public static class cmdTabCom implements TabCompleter {
         @Nullable
         @Override

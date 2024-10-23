@@ -28,10 +28,10 @@ public class MagicChunk {
     public static int takeMana(Location l, int i) {
         return takeMana(l.getWorld(), (int) l.getX(), (int) l.getZ(), i);
     }
-    public static int takeMana(Chunk c, int i) {
-        getManaAtChunk(c);
-        return t;
-    }
+//    public static int takeMana(Chunk c, int i) {
+//        getManaAtChunk(c);
+//        return t;
+//    }
     public static int takeMana(World w, int x, int z, int i) {
         int m = getManaAt(w, x, z);
         subMana(w, x, z, i);

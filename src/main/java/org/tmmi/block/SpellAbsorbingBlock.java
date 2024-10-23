@@ -9,7 +9,6 @@ import org.tmmi.spell.CastSpell;
 
 import java.util.*;
 
-import static org.hetils.minecraft.Block.inSphere;
 import static org.hetils.minecraft.Item.newItemStack;
 import static org.tmmi.Main.*;
 
@@ -41,7 +40,7 @@ public class SpellAbsorbingBlock extends Block {
                         Thread.sleep(200);
                         for (CastSpell s : CastSpell.instances) {
                             // fix the check
-                            if (inSphere(getLoc(), 5, s.getLoc())) {
+                            if (org.hetils.minecraft.Block.isInnSphere(getLoc(), 5, s.getLoc())) {
                                 getWorld().spawnParticle(Particle.CLOUD, s.getLoc(), s.getS().getLevel(), 1, 1, 1, 0.02);
                                 SpellAbsorbingBlock.this.magicules += s.getCastCost();
                                 s.uncast(false);

@@ -15,9 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.tmmi.block.*;
 import org.tmmi.spell.*;
-import org.tmmi.spell.atributes.AreaEffect;
 import org.tmmi.spell.atributes.Type;
-import org.tmmi.spell.atributes.Weight;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.*;
@@ -225,7 +223,7 @@ public class FileManager {
                 FileWriter writer = new FileWriter(file);
                 String json = "{\n";
                 List<String> blocks = new ArrayList<>();
-                for (Block b : Block.blocks)
+                for (Block b : Block.instances)
                     blocks.add(String.join("\n\t\t", b.toJSON().split("\n")));
                 json += "\t\"blocks\": [\n" + String.join(",\n", blocks) + "\n\t]";
                 json += "\n}";

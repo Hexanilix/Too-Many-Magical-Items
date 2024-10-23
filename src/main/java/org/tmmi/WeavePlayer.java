@@ -19,9 +19,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.hetils.minecraft.General;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.tmmi.item.Item;
 import org.tmmi.item.items.GrandBook;
-import org.tmmi.item.items.coolstick;
+import org.tmmi.item.items.wands.coolstick;
 import org.tmmi.spell.Spell;
 import org.tmmi.spell.spells.FlameReel;
 import org.tmmi.spell.spells.MagicMissile;
@@ -95,13 +94,13 @@ public class WeavePlayer {
             public void run() {
                 if (handler != null) {
                     ManaBar ma = WeavePlayer.this.getManaBar();
-                    if (manaCool <= 0) {
-                        if (ma.amount < ma.limit) {
-                            MagicChunk.takeMana(10);
-                            ma.add(m);
-                            mc.subMana(m);
-                        }
-                    } else manaCool--;
+//                    if (manaCool <= 0) {
+//                        if (ma.amount < ma.limit) {
+//                            MagicChunk.takeMana(10);
+//                            ma.add(m);
+//                            mc.subMana(m);
+//                        }
+//                    } else manaCool--;
                     if (handler.getGameMode() != GameMode.CREATIVE) handler.spigot()
                             .sendMessage(ChatMessageType.ACTION_BAR, new TextComponent(
                                     ChatColor.RED + "❤" + Math.round(handler.getHealth()) + "/" + Math.round(handler.getMaxHealth()) + ChatColor.AQUA + "       ֍" + ma.amount + "/" + ma.limit));

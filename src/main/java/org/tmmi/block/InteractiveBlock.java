@@ -30,6 +30,7 @@ public class InteractiveBlock extends Block {
         super(material, loc);
         instances.add(this);
     }
+
     public InteractiveBlock(Material material, Location loc) {
         super(material, loc);
         instances.add(this);

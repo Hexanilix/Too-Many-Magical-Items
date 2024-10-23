@@ -9,15 +9,23 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 
 import static org.hetils.minecraft.General.isSim;
 import static org.tmmi.Main.log;
 
 public class Block {
-    public static Collection<Block> blocks = new HashSet<>();
+    public static Collection<Block> instances = new HashSet<>();
+    public static List<Class<? extends org.tmmi.block.Block>> classes = List.of(
+            CraftingCauldron.class,
+            ManaCauldron.class,
+            SpellAbsorbingBlock.class,
+            SpellWeaver.class,
+            WeavingTable.class
+    );
 
     public static @Nullable Block get(Location loc) {
-        for (Block b : blocks)
+        for (Block b : instances)
             if (isSim(b.getBlock(), loc.getBlock()))
                 return b;
         return null;
@@ -35,18 +43,18 @@ public class Block {
     public Block(Material material, org.bukkit.block.Block block, ItemStack item) {
         if (block == null) throw new RuntimeException();
         try {
-            for (Block b : blocks) {
+            for (Block b : instances) {
                 log(b.getLoc());
                 if (isSim(b.getBlock(), block)) throw new BlockLocationExists("Block already exists at " + block);
             }
             this.material = material;
             this.item = item;
             this.block = block;
-            blocks.add(this);
+            instances.add(this);
             onPlace();
         } catch (BlockLocationExists e) {
             e.printStackTrace();
-            blocks.remove(this);
+            instances.remove(this);
         }
     }
     public Block(Material material, @NotNull Location loc, ItemStack item) {
@@ -69,7 +77,7 @@ public class Block {
     public void onPlace() {}
 
     public final void remove(boolean drop) {
-        blocks.remove(this);
+        instances.remove(this);
         if (this instanceof InteractiveBlock)
             InteractiveBlock.instances.remove(this);
         if (drop) block.getWorld().dropItem(block.getLocation().add(0.5,0.5,0.5), item);
@@ -96,5 +104,9 @@ public class Block {
 
     protected World getWorld() {
         return block.getWorld();
+    }
+
+    public ItemStack getItem() {
+        return item;
     }
 }

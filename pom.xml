@@ -4,8 +4,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.decspigot</groupId>
-    <version>v1.0.0P-alpha-1.20.6</version>
+    <groupId>org.tmmi</groupId>
+    <version>v0.9.34P-alpha-1.20.6</version>
     <artifactId>TMMI</artifactId>
 
     <properties>
@@ -43,7 +43,7 @@
         <dependency>
             <groupId>org.hetils</groupId>
             <artifactId>mdu</artifactId>
-            <version>1.2.1</version>
+            <version>0.2.4</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.yaml/snakeyaml -->
         <dependency>

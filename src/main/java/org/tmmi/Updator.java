@@ -2,13 +2,15 @@ package org.tmmi;
 
 import org.hetils.FileVersion;
 import org.hetils.HTTPDownloader;
+import org.jetbrains.annotations.Contract;
+import org.jetbrains.annotations.NotNull;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Objects;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import static org.tmmi.Main.PLUGIN_VERSION;
 import static org.tmmi.Main.log;
@@ -41,25 +43,36 @@ public class Updator {
     }
 
     public static boolean checkForBetterInstalledVersions() {
+        return lookForDuplicates() == 1;
+    }
+    public static int lookForDuplicates() {
+        int best = -2;
         File directory = new File("./plugins/");
         File[] fList = directory.listFiles();
-        if(fList != null)
+        if (fList != null)
             for (File f : fList) {
-                if (f.exists() && f.isFile()) {
-                    log(f);
-                    String[] n = f.getName().split("\\.");
-                    if (Objects.equals(n[n.length - 1], "jar")) {
-                        for (String s : f.getName().split("-")) {
-                            try {
-                                if (new org.hetils.FileVersion(false,
-                                        s.replace("v", "").replace("P", ""))
-                                        .versionDiff(PLUGIN_VERSION) == 1)
-                                    return true;
-                            } catch (FileVersion.FileVersionFormatException ignore) {}
+                if (f.exists() && f.isFile() && Objects.equals(getLastArrayItem(f.getName().split("\\.")), "jar")) {
+                    try (ZipFile jarFile = new ZipFile(f)) {
+                        ZipEntry entry = jarFile.getEntry("plugin.yml");
+                        if (entry == null) continue;
+                        BufferedReader reader = new BufferedReader(new InputStreamReader(jarFile.getInputStream(entry)));
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            if (!line.strip().toLowerCase().contains("tmmi")) break;
+                            if (line.contains("version:")) {
+                                int r = new org.hetils.FileVersion(line.strip().replace("version:", ""))
+                                        .versionDiff(PLUGIN_VERSION);
+                                if (r > best) best = r;
+                            }
                         }
-                    }
+                    } catch (IOException ignore) {}
                 }
             }
-        return false;
+        return best;
+    }
+
+    @Contract(pure = true)
+    public static <T> T getLastArrayItem(T @NotNull [] array) {
+        return array[array.length-1];
     }
 }

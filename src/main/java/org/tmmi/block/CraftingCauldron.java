@@ -236,9 +236,6 @@ public class CraftingCauldron extends Block {
 //        });
 //    }
 
-    public ItemStack getItem() {
-        return item;
-    }
 
     public Boolean isCrafting() {
         return isCrafting;

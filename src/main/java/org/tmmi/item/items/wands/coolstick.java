@@ -1,4 +1,4 @@
-package org.tmmi.item.items;
+package org.tmmi.item.items.wands;
 
 import net.md_5.bungee.api.ChatMessageType;
 import net.md_5.bungee.api.chat.TextComponent;
